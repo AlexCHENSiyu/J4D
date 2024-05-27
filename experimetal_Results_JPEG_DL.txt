@@ -1,0 +1,446 @@
+============================================
+
+Do wide search for alpha when q_min = 0
+then, we select the best alpha values and tune the learning rate for it.
+
+
+vgg8_JEPG_alpha_0.6_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1    240 71.6199951171875
+vgg8_JEPG_alpha_0.9_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1    240 71.5199966430664
+vgg8_JEPG_alpha_0.5_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1    240 71.27999877929688
+vgg8_JEPG_alpha_0.3_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1    240 71.18999481201172
+vgg8_JEPG_alpha_2.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1	240 71.18999481201172
+vgg8_JEPG_alpha_0.4_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1    240 71.16999816894531
+vgg8_JEPG_alpha_0.8_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1    240 71.12999725341797
+vgg8_JEPG_alpha_0.6_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1    240 71.1199951171875
+vgg8_JEPG_alpha_0.6_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1	240 71.0199966430664
+vgg8_JEPG_alpha_0.7_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1	240 71.05999755859375
+vgg8_JEPG_alpha_0.4_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_1	240 71.00999450683594
+
+
+
+
+=================================================================
+
+After only considering 257 levels for the quantization levels. { -128q, ......, 128q}
+
+
+vgg8_alpha_lr_0.2_JEPG_alpha_0.5_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.25
+vgg8_alpha_lr_0.2_JEPG_alpha_0.5_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.75
+
+vgg8_alpha_lr_0.1_JEPG_alpha_0.5_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.06999969482422
+
+vgg8_alpha_lr_0.15_JEPG_alpha_0.5_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.00999450683594
+
+vgg8_alpha_lr_0.2_JEPG_alpha_1.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.1500015258789
+vgg8_alpha_lr_0.2_JEPG_alpha_1.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.1199951171875
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.9_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.04999542236328
+vgg8_alpha_lr_0.35_JEPG_alpha_0.9_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.81999969482422
+
+
+vgg8_alpha_lr_0.1_JEPG_alpha_2.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.18000030517578
+vgg8_alpha_lr_0.1_JEPG_alpha_2.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.61000061035156
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_0.9_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.1500015258789
+vgg8_alpha_lr_0.15_JEPG_alpha_0.9_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.68000030517578
+
+vgg8_alpha_lr_0.3_JEPG_alpha_0.5_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.04999542236328
+vgg8_alpha_lr_0.3_JEPG_alpha_0.5_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.04999542236328
+
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_0.7_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.11000061035156
+vgg8_alpha_lr_0.15_JEPG_alpha_0.7_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.18000030517578
+
+
+
+vgg8_alpha_lr_0.25_JEPG_alpha_1.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.80999755859375
+vgg8_alpha_lr_0.25_JEPG_alpha_1.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.04000091552734
+
+
+vgg8_alpha_lr_0.1_JEPG_alpha_1.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.81999969482422
+vgg8_alpha_lr_0.1_JEPG_alpha_1.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.58000183105469
+
+
+vgg8_alpha_lr_0.3_JEPG_alpha_0.7_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.9000015258789
+vgg8_alpha_lr_0.3_JEPG_alpha_0.7_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.48999786376953
+
+
+vgg8_alpha_lr_0.3_JEPG_alpha_1.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.97000122070312
+vgg8_alpha_lr_0.3_JEPG_alpha_1.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.69999694824219
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_2.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.94999694824219
+vgg8_alpha_lr_0.15_JEPG_alpha_2.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.61000061035156
+
+vgg8_alpha_lr_0.25_JEPG_alpha_0.5_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.98999786376953
+vgg8_alpha_lr_0.25_JEPG_alpha_0.5_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.86000061035156
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_1.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.79000091552734
+vgg8_alpha_lr_0.15_JEPG_alpha_1.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.00999450683594
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.7_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.79000091552734
+vgg8_alpha_lr_0.35_JEPG_alpha_0.7_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.6500015258789
+
+
+
+
+--------------------------
+
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.6_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.54000091552734
+vgg8_alpha_lr_0.2_JEPG_alpha_0.6_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.0
+vgg8_alpha_lr_0.2_JEPG_alpha_0.7_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.90999603271484
+vgg8_alpha_lr_0.35_JEPG_alpha_0.8_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.83000183105469
+vgg8_alpha_lr_0.2_JEPG_alpha_0.9_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.5
+vgg8_alpha_lr_0.2_JEPG_alpha_0.8_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.45999908447266
+vgg8_alpha_lr_0.35_JEPG_alpha_2.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.98999786376953
+vgg8_alpha_lr_0.35_JEPG_alpha_1.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.0999984741211
+vgg8_alpha_lr_0.2_JEPG_alpha_2.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.62999725341797
+vgg8_alpha_lr_0.3_JEPG_alpha_0.6_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.83000183105469
+
+vgg8_alpha_lr_0.15_JEPG_alpha_0.6_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.7699966430664
+vgg8_alpha_lr_0.3_JEPG_alpha_0.8_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.8699951171875
+vgg8_alpha_lr_0.3_JEPG_alpha_0.9_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.66999816894531
+vgg8_alpha_lr_0.15_JEPG_alpha_0.8_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.70999908447266
+
+vgg8_alpha_lr_0.3_JEPG_alpha_2.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.5
+
+
+vgg8_alpha_lr_0.25_JEPG_alpha_0.6_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.86000061035156
+vgg8_alpha_lr_0.25_JEPG_alpha_0.9_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.40999603271484
+vgg8_alpha_lr_0.25_JEPG_alpha_0.7_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.0199966430664
+vgg8_alpha_lr_0.1_JEPG_alpha_0.6_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.52999877929688
+vgg8_alpha_lr_0.1_JEPG_alpha_0.7_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.86000061035156
+vgg8_alpha_lr_0.25_JEPG_alpha_0.8_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	68.97000122070312
+vgg8_alpha_lr_0.1_JEPG_alpha_0.9_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.90999603271484
+vgg8_alpha_lr_0.1_JEPG_alpha_0.8_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.04999542236328
+vgg8_alpha_lr_0.25_JEPG_alpha_2.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.4000015258789
+
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.5_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.1500015258789
+
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.6_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.37999725341797
+vgg8_alpha_lr_0.2_JEPG_alpha_0.6_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.86000061035156
+vgg8_alpha_lr_0.2_JEPG_alpha_0.7_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.72999572753906
+vgg8_alpha_lr_0.35_JEPG_alpha_0.8_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.0199966430664
+vgg8_alpha_lr_0.2_JEPG_alpha_0.9_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.0999984741211
+vgg8_alpha_lr_0.2_JEPG_alpha_0.8_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.68999481201172
+vgg8_alpha_lr_0.35_JEPG_alpha_2.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.37999725341797
+vgg8_alpha_lr_0.2_JEPG_alpha_2.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.68999481201172
+vgg8_alpha_lr_0.35_JEPG_alpha_1.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.58999633789062
+vgg8_alpha_lr_0.3_JEPG_alpha_0.6_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.47999572753906
+vgg8_alpha_lr_0.15_JEPG_alpha_0.6_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.29000091552734
+vgg8_alpha_lr_0.3_JEPG_alpha_0.8_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.12999725341797
+vgg8_alpha_lr_0.3_JEPG_alpha_0.9_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.38999938964844
+
+vgg8_alpha_lr_0.15_JEPG_alpha_0.8_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.58999633789062
+
+
+vgg8_alpha_lr_0.3_JEPG_alpha_2.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.56999969482422
+vgg8_alpha_lr_0.35_JEPG_alpha_0.5_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.83999633789062
+vgg8_alpha_lr_0.25_JEPG_alpha_0.6_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.97999572753906
+vgg8_alpha_lr_0.1_JEPG_alpha_0.7_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.70999908447266
+vgg8_alpha_lr_0.25_JEPG_alpha_0.7_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.02999877929688
+vgg8_alpha_lr_0.1_JEPG_alpha_0.6_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.29999542236328
+vgg8_alpha_lr_0.1_JEPG_alpha_0.8_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.5199966430664
+vgg8_alpha_lr_0.25_JEPG_alpha_0.8_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.93000030517578
+vgg8_alpha_lr_0.1_JEPG_alpha_0.9_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.98999786376953
+vgg8_alpha_lr_0.25_JEPG_alpha_0.9_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.79000091552734
+
+vgg8_alpha_lr_0.25_JEPG_alpha_2.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.93999481201172
+
+
+=================================================================
+
+After only considering 255 levels for the quantization levels. { -127q, ......, 127q}
+
+
+vgg8_alpha_lr_0.3_JEPG_alpha_0.7_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.5
+vgg8_alpha_lr_0.3_JEPG_alpha_0.7_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.02999877929688
+
+
+vgg8_alpha_lr_0.3_JEPG_alpha_0.5_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.43999481201172
+vgg8_alpha_lr_0.3_JEPG_alpha_0.5_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.04000091552734
+
+
+vgg8_alpha_lr_0.2_JEPG_alpha_0.9_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.06999969482422
+vgg8_alpha_lr_0.2_JEPG_alpha_0.9_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.83000183105469
+
+
+vgg8_alpha_lr_0.2_JEPG_alpha_0.7_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.3699951171875
+vgg8_alpha_lr_0.2_JEPG_alpha_0.7_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.37999725341797
+
+
+vgg8_alpha_lr_0.25_JEPG_alpha_0.6_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.3699951171875
+vgg8_alpha_lr_0.25_JEPG_alpha_0.6_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.68000030517578
+
+
+vgg8_alpha_lr_0.25_JEPG_alpha_0.9_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.20999908447266
+vgg8_alpha_lr_0.25_JEPG_alpha_0.9_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.15999603271484
+
+
+vgg8_alpha_lr_0.2_JEPG_alpha_0.4_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.15999603271484
+vgg8_alpha_lr_0.2_JEPG_alpha_0.4_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.18000030517578
+
+
+vgg8_alpha_lr_0.2_JEPG_alpha_0.6_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.12999725341797
+vgg8_alpha_lr_0.2_JEPG_alpha_0.6_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.72999572753906
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_1.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	71.0999984741211
+vgg8_alpha_lr_0.15_JEPG_alpha_1.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.52999877929688
+
+
+vgg8_alpha_lr_0.25_JEPG_alpha_0.8_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.0199966430664
+vgg8_alpha_lr_0.25_JEPG_alpha_0.8_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.68999481201172
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_0.7_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.00999450683594
+vgg8_alpha_lr_0.15_JEPG_alpha_0.7_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.61000061035156
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_2.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.00999450683594
+vgg8_alpha_lr_0.15_JEPG_alpha_2.0_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.65999603271484
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.5_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	71.0
+vgg8_alpha_lr_0.35_JEPG_alpha_0.5_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.88999938964844
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.7_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.97000122070312
+vgg8_alpha_lr_0.35_JEPG_alpha_0.7_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.27999877929688
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_1.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.95999908447266
+vgg8_alpha_lr_0.35_JEPG_alpha_1.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.25
+
+
+vgg8_alpha_lr_0.2_JEPG_alpha_1.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.98999786376953
+vgg8_alpha_lr_0.2_JEPG_alpha_1.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.6199951171875
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.6_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.9000015258789
+vgg8_alpha_lr_0.35_JEPG_alpha_0.6_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.18000030517578
+
+vgg8_alpha_lr_0.3_JEPG_alpha_0.8_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.93000030517578
+vgg8_alpha_lr_0.3_JEPG_alpha_0.8_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.79000091552734
+
+
+vgg8_alpha_lr_0.3_JEPG_alpha_0.9_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.70999908447266
+vgg8_alpha_lr_0.3_JEPG_alpha_0.9_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.62999725341797
+
+
+vgg8_alpha_lr_0.3_JEPG_alpha_2.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.70999908447266
+vgg8_alpha_lr_0.3_JEPG_alpha_2.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.98999786376953
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.4_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.6199951171875
+vgg8_alpha_lr_0.35_JEPG_alpha_0.4_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.69999694824219
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.9_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.68999481201172
+vgg8_alpha_lr_0.15_JEPG_alpha_0.8_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.6500015258789
+vgg8_alpha_lr_0.25_JEPG_alpha_0.4_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.63999938964844
+
+
+------
+
+vgg8_alpha_lr_0.2_JEPG_alpha_0.8_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.54999542236328
+vgg8_alpha_lr_0.35_JEPG_alpha_0.9_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.50999450683594
+vgg8_alpha_lr_0.35_JEPG_alpha_0.8_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.8699951171875
+vgg8_alpha_lr_0.2_JEPG_alpha_0.5_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.37999725341797
+vgg8_alpha_lr_0.2_JEPG_alpha_2.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.72000122070312
+vgg8_alpha_lr_0.35_JEPG_alpha_2.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.48999786376953
+vgg8_alpha_lr_0.15_JEPG_alpha_0.4_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.62999725341797
+vgg8_alpha_lr_0.3_JEPG_alpha_0.4_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.93000030517578
+vgg8_alpha_lr_0.15_JEPG_alpha_0.8_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.79000091552734
+vgg8_alpha_lr_0.15_JEPG_alpha_0.6_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.47000122070312
+vgg8_alpha_lr_0.3_JEPG_alpha_0.6_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.66999816894531
+vgg8_alpha_lr_0.15_JEPG_alpha_0.5_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.79000091552734
+vgg8_alpha_lr_0.15_JEPG_alpha_0.9_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.45999908447266
+vgg8_alpha_lr_0.3_JEPG_alpha_1.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.9000015258789
+
+vgg8_alpha_lr_0.1_JEPG_alpha_0.8_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.22999572753906
+
+vgg8_alpha_lr_0.1_JEPG_alpha_0.4_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.19999694824219
+vgg8_alpha_lr_0.25_JEPG_alpha_0.5_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.1199951171875
+vgg8_alpha_lr_0.25_JEPG_alpha_0.4_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.97999572753906
+vgg8_alpha_lr_0.1_JEPG_alpha_0.6_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.50999450683594
+vgg8_alpha_lr_0.1_JEPG_alpha_0.7_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.41999816894531
+vgg8_alpha_lr_0.25_JEPG_alpha_0.7_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.69999694824219
+vgg8_alpha_lr_0.1_JEPG_alpha_0.9_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.29000091552734
+vgg8_alpha_lr_0.1_JEPG_alpha_0.5_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.52999877929688
+vgg8_alpha_lr_0.25_JEPG_alpha_2.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	70.56999969482422
+vgg8_alpha_lr_0.25_JEPG_alpha_1.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.54999542236328
+vgg8_alpha_lr_0.1_JEPG_alpha_2.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.5
+vgg8_alpha_lr_0.1_JEPG_alpha_1.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_2	240	69.41999816894531
+
+
+vgg8_alpha_lr_0.35_JEPG_alpha_0.8_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.56999969482422
+vgg8_alpha_lr_0.2_JEPG_alpha_0.8_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.19999694824219
+
+
+
+vgg8_alpha_lr_0.2_JEPG_alpha_0.5_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.47999572753906
+vgg8_alpha_lr_0.2_JEPG_alpha_2.0_JEPG_lr_0.2_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.08999633789062
+vgg8_alpha_lr_0.35_JEPG_alpha_2.0_JEPG_lr_0.35_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.58999633789062
+vgg8_alpha_lr_0.15_JEPG_alpha_0.5_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.77999877929688
+vgg8_alpha_lr_0.15_JEPG_alpha_0.4_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.83999633789062
+vgg8_alpha_lr_0.3_JEPG_alpha_0.4_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.5
+
+
+vgg8_alpha_lr_0.15_JEPG_alpha_0.6_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.8499984741211
+
+vgg8_alpha_lr_0.3_JEPG_alpha_0.6_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.90999603271484
+vgg8_alpha_lr_0.15_JEPG_alpha_0.9_JEPG_lr_0.15_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.56999969482422
+
+vgg8_alpha_lr_0.3_JEPG_alpha_1.0_JEPG_lr_0.3_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.47999572753906
+vgg8_alpha_lr_0.1_JEPG_alpha_0.5_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.79000091552734
+vgg8_alpha_lr_0.1_JEPG_alpha_0.4_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.68000030517578
+vgg8_alpha_lr_0.25_JEPG_alpha_0.5_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.94999694824219
+
+vgg8_alpha_lr_0.1_JEPG_alpha_0.8_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.30999755859375
+vgg8_alpha_lr_0.1_JEPG_alpha_0.9_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.95999908447266
+vgg8_alpha_lr_0.25_JEPG_alpha_0.7_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.66999816894531
+vgg8_alpha_lr_0.1_JEPG_alpha_0.7_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.50999450683594
+
+vgg8_alpha_lr_0.1_JEPG_alpha_0.6_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.5199966430664
+vgg8_alpha_lr_0.25_JEPG_alpha_1.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.97999572753906
+vgg8_alpha_lr_0.1_JEPG_alpha_2.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	69.8699951171875
+vgg8_alpha_lr_0.25_JEPG_alpha_2.0_JEPG_lr_0.25_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.29000091552734
+vgg8_alpha_lr_0.1_JEPG_alpha_1.0_JEPG_lr_0.1_Q_inital_1.0_Min_Q_0.0_alpha_untrainable_trial_3	240	70.3699951171875
+
+
+=============================================================================================
+
+I have taken into account 255 different quantization levels. The quantization levels range from -127q to 127q, 
+with each channel's mean for each image being subtracted.
+
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.1_alpha_untrainable_trial_3	240	71.22000122070312
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.73999786376953
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.2_alpha_untrainable_trial_3	240	71.1199951171875
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.2_alpha_untrainable_trial_2	240	71.0
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.2_alpha_untrainable_trial_2	240	71.1500015258789
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.2_alpha_untrainable_trial_3	240	71.0
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.2_alpha_untrainable_trial_2	240	71.15999603271484
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.2_alpha_untrainable_trial_3	240	70.95999908447266
+
+
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.35_alpha_untrainable_trial_2	240	71.0
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.79000091552734
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.25_alpha_untrainable_trial_3	240	71.06999969482422
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.61000061035156
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.1_alpha_untrainable_trial_3	240	71.1199951171875
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.5
+
+------------------------------------
+
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.54000091552734
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.44999694824219
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.33000183105469
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.1_alpha_untrainable_trial_3	240	70.75999450683594
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.25_alpha_untrainable_trial_3	240	70.52999877929688
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.1_alpha_untrainable_trial_3	240	70.6500015258789
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.61000061035156
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.25_alpha_untrainable_trial_3	240	70.86000061035156
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.25_alpha_untrainable_trial_3	240	70.50999450683594
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.1_alpha_untrainable_trial_3	240	70.73999786376953
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.25_alpha_untrainable_trial_3	240	70.7699966430664
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.18000030517578
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.44999694824219
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.29000091552734
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.36000061035156
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.2_alpha_untrainable_trial_3	240	70.5999984741211
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.50999450683594
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.47000122070312
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.35_alpha_untrainable_trial_2	240	70.8699951171875
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.35_alpha_untrainable_trial_2	240	70.86000061035156
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.2_alpha_untrainable_trial_3	240	70.61000061035156
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.2_alpha_untrainable_trial_3	240	70.95999908447266
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.35_alpha_untrainable_trial_2	240	70.6199951171875
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.2_alpha_untrainable_trial_2	240	70.8499984741211
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.35_alpha_untrainable_trial_2	240	70.43999481201172
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.35_alpha_untrainable_trial_2	240	70.95999908447266
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.35_alpha_untrainable_trial_2	240	70.43000030517578
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.2_alpha_untrainable_trial_2	240	70.11000061035156
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.2_alpha_untrainable_trial_2	240	70.80999755859375
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.91999816894531
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.2_alpha_untrainable_trial_3	240	70.25999450683594
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.2_alpha_untrainable_trial_3	240	70.25999450683594
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.35_alpha_untrainable_trial_3	240	70.13999938964844
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.2_alpha_untrainable_trial_2	240	70.43000030517578
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.2_alpha_untrainable_trial_2	240	70.19999694824219
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.35_alpha_untrainable_trial_2	240	70.37999725341797
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.56999969482422
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.77999877929688
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.88999938964844
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.95999908447266
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.8499984741211
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.6500015258789
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.90999603271484
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.5199966430664
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.81999969482422
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.58999633789062
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.69999694824219
+cifar100_vgg8_alpha_lr_None_alpha_0.6_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.90999603271484
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.40999603271484
+cifar100_vgg8_alpha_lr_None_alpha_0.7_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.72000122070312
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.69999694824219
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.88999938964844
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.87999725341797
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.54999542236328
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.7699966430664
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.48999786376953
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.70999908447266
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.43000030517578
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.8499984741211
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.2699966430664
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.44999694824219
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.6199951171875
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.3_alpha_untrainable_trial_2	240	70.44999694824219
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.19999694824219
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.15_alpha_untrainable_trial_3	240	70.30999755859375
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.4000015258789
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.3_alpha_untrainable_trial_3	240	70.97000122070312
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.15_alpha_untrainable_trial_2	240	70.29000091552734
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.1_alpha_untrainable_trial_3	240	70.75
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.43000030517578
+cifar100_vgg8_alpha_lr_None_alpha_0.9_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.58000183105469
+cifar100_vgg8_alpha_lr_None_alpha_0.8_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.29999542236328
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.25_alpha_untrainable_trial_3	240	70.77999877929688
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.1_alpha_untrainable_trial_3	240	70.79999542236328
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.65999603271484
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.7699966430664
+cifar100_vgg8_alpha_lr_None_alpha_0.5_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.50999450683594
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.25_alpha_untrainable_trial_2	240	70.68000030517578
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.1_alpha_untrainable_trial_3	240	70.63999938964844
+cifar100_vgg8_alpha_lr_None_alpha_1.0_JEPG_lr_0.25_alpha_untrainable_trial_3	240	70.97999572753906
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.1_alpha_untrainable_trial_2	240	70.75
+cifar100_vgg8_alpha_lr_None_alpha_2.0_JEPG_lr_0.25_alpha_untrainable_trial_3	240	70.5999984741211
+=============================================================================================
+
+
+
+cifar100_vgg8_alpha_lr_None_alpha_0.4_JEPG_lr_0.3_alpha_untrainable_trial_99	2	29.51999855041504
