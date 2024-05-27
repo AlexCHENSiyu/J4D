@@ -213,20 +213,20 @@ def main():
         adjust_learning_rate(epoch, opt, optimizer)
         print("==> training...")
 
-        # with torch.no_grad(): 
-        #     if torch.cuda.device_count() > 1:
-        #         layer = model.module[0]
-        #     else:
-        #         layer = model[0]
+        with torch.no_grad(): 
+            if torch.cuda.device_count() > 1:
+                layer = model.module[0]
+            else:
+                layer = model[0]
         
-        # if opt.JPEG_enable:
-        #     quantizationTable = layer.quantization_table.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-        #     print("Quantization Table --> Min: {:.2f}, Max: {:.2f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
+        if opt.JPEG_enable:
+            quantizationTable = layer.quantization_table.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+            print("Quantization Table --> Min: {:.2f}, Max: {:.2f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
             
-        # if opt.JPEG_enable and opt.JPEG_alpha_trainable:
-        #     with torch.no_grad(): 
-        #         alpha = layer.alpha.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-        #         print("Alpha --> Min: {:.2f}, Max: {:.2f}".format(alpha.min().item(), alpha.max().item()))
+        if opt.JPEG_enable and opt.JPEG_alpha_trainable:
+            with torch.no_grad(): 
+                alpha = layer.alpha.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+                print("Alpha --> Min: {:.2f}, Max: {:.2f}".format(alpha.min().item(), alpha.max().item()))
 
                 
         time1 = time.time()
@@ -303,6 +303,7 @@ def main():
     torch.save(state, save_file)
 
 def profiling():
+    opt = parse_option()
     import cProfile
     import pstats
  
@@ -312,9 +313,11 @@ def profiling():
     stats = pstats.Stats(pr)
     stats.sort_stats(pstats.SortKey.TIME)
     stats.print_stats()
-    stats.dump_stats(filename='profile_vanilla.prof')
+    if opt.JPEG_enable:
+        stats.dump_stats(filename='profile_JPEG.prof')
+    else:
+        stats.dump_stats(filename='profile_vanilla.prof')
 
 if __name__ == '__main__':
-    # check_val()
     main()
     # profiling()
