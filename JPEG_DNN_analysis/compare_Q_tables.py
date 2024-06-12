@@ -38,8 +38,6 @@ def zigzag(matrix):
                            [20, 22, 33, 38, 46, 51, 55, 60],
                            [21, 34, 37, 47, 50, 56, 59, 61],
                            [35, 36, 48, 49, 57, 58, 62, 63]])
-    
-    
 
     # Get the shape of the matrix
     matrix_size = np.shape(matrix)
@@ -94,6 +92,7 @@ def inverse_zigzag(vector):
 
     return matrix
 
+
 def get_average_model_magnitude(model):
     total_magnitude = 0.0
     num_parameters = 0
@@ -105,6 +104,7 @@ def get_average_model_magnitude(model):
         return 0.0
     return total_magnitude / num_parameters
 
+
 def get_max_model_magnitude(model):
     max_magnitude = 0.0
     for param in model.parameters():
@@ -112,6 +112,7 @@ def get_max_model_magnitude(model):
         if param_max > max_magnitude:
             max_magnitude = param_max
     return max_magnitude
+
 
 def quantizationTable(QF=50, Luminance=True):
     #  Luminance quantization table
@@ -286,7 +287,6 @@ def quantizationTable(QF=50, Luminance=True):
     return quantizationTableData
 
 
-
 def get_zigzag():
     zigzag = torch.tensor(( [[0,   1,   5,  6,   14,  15,  27,  28],
                              [2,   4,   7,  13,  16,  26,  29,  42],
@@ -297,6 +297,7 @@ def get_zigzag():
                              [21,  34, 37,  47,  50,  56,  59,  61],
                              [35,  36, 48,  49,  57,  58,  62,  63]]))
     return zigzag
+
 
 def plot_q(CHANNEL, QT_HUMAN, filename, channel_name):
     plt.figure()
@@ -317,14 +318,11 @@ def plot_q(CHANNEL, QT_HUMAN, filename, channel_name):
 QT_Y = zigzag(quantizationTable(QF=50, Luminance=True))
 QT_C = zigzag(quantizationTable(QF=50, Luminance=False))
 
-
-
 parser = argparse.ArgumentParser('argument for training')
 parser.add_argument('--dir', type=str, default='./save/teacher_Q_tables/*/')
 opt = parser.parse_args()
 
 directory = opt.dir
-
 
 # Using glob to load all files within the directory
 files = glob.glob( directory + '*.pt')
