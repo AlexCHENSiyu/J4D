@@ -34,7 +34,7 @@ def parse_option():
     parser.add_argument('--batch_size', type=int, default=32, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8, help='num of workers to use')
     parser.add_argument('--epochs', type=int, default=200, help='number of training epochs')
-    parser.add_argument('--learning_rate', type=float, default=0.1, help='learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
     parser.add_argument('--lr_decay_epochs', type=str, default='100,150', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
@@ -59,8 +59,8 @@ def parse_option():
     parser.add_argument('--min_Q_Step', type=float, default=1.0, help='Minumum Quantization Step')
     parser.add_argument('--max_Q_Step', type=float, default=255, help='Maximum Quantization Step')
     parser.add_argument('--num_non_zero_q', type=int, default=5, choices=range(2,2**10 - 1), help='Window size for the reconstruction space')
-    parser.add_argument('--weight_lum', type=float, default=1.0, help='weight for lum entropy')
-    parser.add_argument('--weight_chrom', type=float, default=1.0, help='weight for Chrom entropy')
+    parser.add_argument('--weight_lum', type=float, default=0.1, help='weight for lum entropy')
+    parser.add_argument('--weight_chrom', type=float, default=0.1, help='weight for Chrom entropy')
     
     
     parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])

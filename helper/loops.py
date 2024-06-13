@@ -9,7 +9,7 @@ from .util import AverageMeter, accuracy
 from .JPEG_layer import *
 
 from torchvision import transforms
-
+from torchviz import make_dot
 
 def train(epoch, train_loader, model, criterion, optimizer, opt):
     """vanilla training"""
@@ -34,8 +34,11 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
         # ===================forward=====================
         output, dc_entropy, ac_entropy = model(input)
         loss = criterion(output, target) + dc_entropy + ac_entropy
-        
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
+        
+        dot = make_dot(loss, params=dict(model.named_parameters()))
+        dot.format = 'png'
+        dot.render('graph')
         
         losses.update(loss.item(), input.size(0))
         entropy_losses.update(dc_entropy.item() + ac_entropy.item(), input.size(0))

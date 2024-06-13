@@ -124,6 +124,9 @@ class JPEG_layer(nn.Module):
 
     def forward(self, input_RGB):
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
+        print(self.lum_qtable)
+        print(self.chrom_qtable)
+        
         input = input_RGB - 128
         input_DCT_block_batch = block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
 
@@ -161,12 +164,15 @@ class JPEG_layer(nn.Module):
         # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
         norm_img = self.normalize(self.Scale2One(norm_img))    
 
+        assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
+            f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
+        assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
+            f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
+        
         self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-        print(self.weighted_dc_entropy.shape)
         print("dc_entropy", self.weighted_dc_entropy.item())
         
         self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-        print(self.weighted_ac_entropy.shape)
         print("ac_entropy", self.weighted_ac_entropy.item())
         
         if self.analysis:
@@ -188,7 +194,6 @@ class JPEG_layer(nn.Module):
             if self.JPEG_alpha_trainable:
                 self.alpha_lum.copy_(torch.clamp(self.alpha_lum, min=smallest_float32))
                 self.alpha_chrom.copy_(torch.clamp(self.alpha_chrom, min=smallest_float32))
-    
     
     
     def get_diff_indexes(self, indexes, indexes_shifted):
@@ -217,10 +222,10 @@ class JPEG_layer(nn.Module):
         cmpf_chrom = cmpf_mask_chrom
         
         # get DC part, [bs,ch,B,size,size,5] to shape: [bs,ch,B,5]
-        cmpf_lum_dc = cmpf_lum[:,:,:,0,0,:]
-        cmpf_chrom_dc = cmpf_chrom[:,:,:,0,0,:]
         indexes_lum_dc = indexes_lum[:,:,:,0,0,:]
         indexes_chrom_dc = indexes_chrom[:,:,:,0,0,:]
+        cmpf_lum_dc = cmpf_lum[:,:,:,0,0,:]
+        cmpf_chrom_dc = cmpf_chrom[:,:,:,0,0,:]
         
         assert torch.all((indexes_lum_dc >= -2**10+1) & (indexes_lum_dc <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {indexes_lum_dc[~((indexes_lum_dc >= -2**10+1) & (indexes_lum_dc <= 2**10-1))]}"
@@ -229,6 +234,12 @@ class JPEG_layer(nn.Module):
         
         #-----------------------------------------Preparation---------------------------------------------------------
         # shift to right by 1 block and set first to default value. shape: [bs,ch,B,5]
+        indexes_lum_dc_shifted = torch.roll(indexes_lum_dc, shifts=1, dims=2)
+        indexes_lum_dc_shifted[:,:,0,:] = self.q_idx # set first to [0,1,2,3,4]
+        
+        indexes_chrom_dc_shifted = torch.roll(indexes_chrom_dc, shifts=1, dims=2)
+        indexes_chrom_dc_shifted[:,:,0,:] = self.q_idx # set first to [0,1,2,3,4]
+        
         cmpf_lum_dc_shifted = torch.roll(cmpf_lum_dc, shifts=1, dims=2)
         cmpf_lum_dc_shifted[:,:,0,:] = 0
         cmpf_lum_dc_shifted[:,:,0,0] = 1 # set first to [1,0,0,0,0]
@@ -236,13 +247,7 @@ class JPEG_layer(nn.Module):
         cmpf_chrom_dc_shifted = torch.roll(cmpf_chrom_dc, shifts=1, dims=2)
         cmpf_chrom_dc_shifted[:,:,0,:] = 0
         cmpf_chrom_dc_shifted[:,:,0,0] = 1 # set first to [1,0,0,0,0]
-        
-        indexes_lum_dc_shifted = torch.roll(indexes_lum_dc, shifts=1, dims=2)
-        indexes_lum_dc_shifted[:,:,0,:] = self.q_idx # set first to [0,1,2,3,4]
-        
-        indexes_chrom_dc_shifted = torch.roll(indexes_chrom_dc, shifts=1, dims=2)
-        indexes_chrom_dc_shifted[:,:,0,:] = self.q_idx # set first to [0,1,2,3,4]
-        
+
         # reverse first so convolve later is along the right diagonal
         cmpf_lum_dc_shifted_tensor = torch.flip(cmpf_lum_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
         cmpf_diff_lum_dc = convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
@@ -255,26 +260,21 @@ class JPEG_layer(nn.Module):
         indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [bs,ch,B,9]
         
         assert torch.all((indexes_diff_lum_dc >= -2**11+2) & (indexes_diff_lum_dc <= 2**11-2)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >=  -2^11+2) & (indexes_diff_lum_dc <= 2**11-2))]}"
+            f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >=  -2**11+2) & (indexes_diff_lum_dc <= 2**11-2))]}"
         assert torch.all((indexes_diff_chrom_dc >= -2**11+2) & (indexes_diff_chrom_dc <= 2**11-2)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= -2^11+2) & (indexes_diff_chrom_dc <= 2**11-2))]}"
+            f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= -2**11+2) & (indexes_diff_chrom_dc <= 2**11-2))]}"
         
         breakpoint()
         # [-2^11+2,2^11-2] to [0,2^12-4]
         indexes_diff_lum_dc += (2**(self.num_bit)-2)
         indexes_diff_chrom_dc += (2**(self.num_bit)-2)
         
-        assert torch.all((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12 - 4)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12 - 4))]}"
-        assert torch.all((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12 - 4)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12 - 4))]}"
-        
         breakpoint()
         # change to shape: [bs,ch,B*9]
-        indexes_diff_lum_dc = indexes_diff_lum_dc.reshape(self.batch_size, 1, -1)
-        cmpf_diff_lum_dc = cmpf_diff_lum_dc.reshape(self.batch_size, 1, -1)
-        indexes_diff_chrom_dc = indexes_diff_chrom_dc.reshape(self.batch_size, 2, -1)
-        cmpf_diff_chrom_dc = cmpf_diff_chrom_dc.reshape(self.batch_size, 2, -1)
+        indexes_diff_lum_dc = indexes_diff_lum_dc.reshape(input_shape[0], 1, -1)
+        indexes_diff_chrom_dc = indexes_diff_chrom_dc.reshape(input_shape[0], 2, -1)
+        cmpf_diff_lum_dc = cmpf_diff_lum_dc.reshape(input_shape[0], 1, -1)
+        cmpf_diff_chrom_dc = cmpf_diff_chrom_dc.reshape(input_shape[0], 2, -1)
         
         breakpoint()
         #-----------------------------------------DC entropy---------------------------------------------------------
@@ -293,7 +293,6 @@ class JPEG_layer(nn.Module):
         self.chrom_dc_entropy = torch.sum(entr(self.p_chrom_dc), dim=-1).mean()
         
         self.weighted_dc_entropy = self.weight_lum*self.lum_dc_entropy + self.weight_chrom*self.chrom_dc_entropy
-        
         
     
     def visualize_entropy(self, entropy):
