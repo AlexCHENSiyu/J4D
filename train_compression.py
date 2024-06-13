@@ -50,7 +50,7 @@ def parse_option():
     parser.add_argument('--JPEG_enable', action='store_true')
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
-    parser.add_argument('--JEPG_alpha', type=float, default=50.0, help='Tempurature scaling')
+    parser.add_argument('--JEPG_alpha', type=float, default=100.0, help='Tempurature scaling')
     parser.add_argument('--JEPG_learning_rate', type=float, default=0.0125, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')

@@ -32,14 +32,13 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
             target = target.cuda()
 
         # ===================forward=====================
-        output = model(input)
-        entropy_loss = model.jpeg_layer.get_entropy()
-        loss = criterion(output, target) + entropy_loss
+        output, dc_entropy, ac_entropy = model(input)
+        loss = criterion(output, target) + dc_entropy + ac_entropy
         
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
         
         losses.update(loss.item(), input.size(0))
-        entropy_losses.update(entropy_loss.item(), input.size(0))
+        entropy_losses.update(dc_entropy.item() + ac_entropy.item(), input.size(0))
         top1.update(acc1[0], input.size(0))
         top5.update(acc5[0], input.size(0))
 
