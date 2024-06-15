@@ -54,9 +54,9 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
         # breakpoint()
         
         # Clip gradients to the specified range
-        for param in model.parameters():
-            if param.grad is not None:
-                param.grad.data.clamp_(min=-1, max=1)
+        # for param in model.parameters():
+        #     if param.grad is not None:
+        #         param.grad.data.clamp_(min=-1, max=1)
         
         # print(model.jpeg_layer.lum_qtable.grad.squeeze(0).squeeze(1).squeeze(-1)[0, 0, 0])
         # print(model.jpeg_layer.chrom_qtable.grad.squeeze(0).squeeze(1).squeeze(-1)[0, 0, 0])

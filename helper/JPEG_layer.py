@@ -171,6 +171,7 @@ class JPEG_layer(nn.Module):
         # cmpf_mask_lum = F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1) # shape: [bs,ch,B,size,size,5]
         # cmpf_mask_chrom = F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1) # shape: [bs,ch,B,size,size,5] 
 
+        # breakpoint()
         cmpf_mask_lum = torch.clamp(F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5]
         cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
         
