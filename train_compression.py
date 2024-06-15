@@ -14,7 +14,7 @@ import torch.backends.cudnn as cudnn
 from models import load_model
 from dataset.general_dataloader import load_dataset
 from helper.util import adjust_learning_rate, accuracy, AverageMeter
-from helper.loops import train, validate
+from helper.loops import train, validate , validate_jpeg
 from helper.JPEG_layer import *
 
 import numpy as np
@@ -41,7 +41,7 @@ def parse_option():
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
 
     # model
-    parser.add_argument('--model', type=str, default='resnet18', choices=['resnet101', 'densenet121',])
+    parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'densenet121',])
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
 
     parser.add_argument('-t', '--trial', type=int, default=0, help='the experiment id')
@@ -228,7 +228,7 @@ def main(opt):
         # train and validate
         time1 = time.time()
         train_acc, train_loss = train(epoch, train_loader, model, criterion, optimizer, opt)    
-        test_acc, test_acc_top5, test_loss = validate(val_loader, model, criterion, opt)
+        test_acc, test_acc_top5, test_loss = validate_jpeg(val_loader, model, criterion, opt)
         time2 = time.time()
         print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
 
@@ -326,6 +326,7 @@ if __name__ == '__main__':
     else:
         check_val(opt)
     # # profiling()
+
     
     
     # import torch

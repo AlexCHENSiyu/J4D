@@ -60,11 +60,19 @@ class JPEG_layer(nn.Module):
         self.weighted_dc_entropy = None
         self.weighted_ac_entropy = None
         
-        self.p_lum_dc = torch.zeros((self.batch_size, 1, 2**(self.num_bit+1)), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-1]
-        self.p_chrom_dc = torch.zeros((self.batch_size, 2, 2**(self.num_bit+1)), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-1]
-        self.p_lum_ac = torch.zeros((self.batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).cuda() # shape: [bs,size*size-1,2^num_bit-1]
-        self.p_chrom_ac = torch.zeros((self.batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).cuda() # shape: [bs,size*size-1,2^num_bit-1]
+
+
+
+        self.p_lum_dc = torch.zeros((self.batch_size, 1,  2**(self.num_bit+1)-3), dtype=torch.float32) # shape:  [bs,ch,2*(num_bit+1)-3]
+        self.p_chrom_dc = torch.zeros((self.batch_size, 2,  2**(self.num_bit+1)-3), dtype=torch.float32) # shape:  [bs,ch,2*(num_bit+1)-3]
+        self.p_lum_ac = torch.zeros((self.batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32) # shape: [bs,size*size-1,2^num_bit-1]
+        self.p_chrom_ac = torch.zeros((self.batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32) # shape: [bs,size*size-1,2^num_bit-1]
         
+
+        # self.p_lum_ac = torch.zeros((self.batch_size, opt.num_non_zero_q,  2**(self.num_bit)-1), dtype=torch.float32) # shape: [bs,size*size-1,2^num_bit-1]
+        # self.p_chrom_ac = torch.zeros((self.batch_size, opt.num_non_zero_q,  2**(self.num_bit)-1), dtype=torch.float32) # shape: [bs,size*size-1,2^num_bit-1]
+       
+
         if torch.cuda.is_available():
             self.q_idx = self.q_idx.cuda()
             self.p_lum_ac = self.p_lum_ac.cuda()
@@ -124,8 +132,8 @@ class JPEG_layer(nn.Module):
 
     def forward(self, input_RGB):
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
-        print(self.lum_qtable)
-        print(self.chrom_qtable)
+        # print(self.lum_qtable)
+        # print(self.chrom_qtable)
         
         input = input_RGB - 128
         input_DCT_block_batch = block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
@@ -143,8 +151,12 @@ class JPEG_layer(nn.Module):
         idx_lum = idx_lum.expand(-1, -1, -1, -1, -1, self.num_non_zero_q) + self.q_idx  # shape: [bs,ch,B,size,size,5]
         idx_chrom = idx_chrom.expand(-1, 2, -1, -1, -1, self.num_non_zero_q) + self.q_idx  # shape: [bs,ch,B,size,size,5]
         
-        iq_lum = idx_lum.detach() * self.lum_qtable
-        iq_chrom = idx_chrom.detach() * self.chrom_qtable
+        idx_lum = idx_lum.detach()
+        idx_chrom = idx_chrom.detach()
+
+        iq_lum = idx_lum * self.lum_qtable
+        iq_chrom = idx_chrom * self.chrom_qtable
+        
 
         distortion_MSE_mask_lum = F.mse_loss(iq_lum, input_lum.expand(-1, -1, -1, -1, -1, self.num_non_zero_q), reduction='none')  # shape: [bs,ch,B,size,size,5]
         distortion_MSE_mask_chrom = F.mse_loss(iq_chrom, input_chrom.expand(-1, -1, -1, -1, -1, self.num_non_zero_q), reduction='none') # shape: [bs,ch,B,size,size,5] 
@@ -163,22 +175,22 @@ class JPEG_layer(nn.Module):
         
         # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
         norm_img = self.normalize(self.Scale2One(norm_img))    
-
         assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
         assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
         
         self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-        print("dc_entropy", self.weighted_dc_entropy.item())
+        # print("dc_entropy", self.weighted_dc_entropy.item())
         
         self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-        print("ac_entropy", self.weighted_ac_entropy.item())
+        # print("ac_entropy", self.weighted_ac_entropy.item())
         
         if self.analysis:
             return norm_img, self.input_DCT_block_batch, estimated_reconstructed_space, self.weighted_dc_entropy, self.weighted_ac_entropy
         else:
-            return norm_img, self.weighted_dc_entropy, self.weighted_ac_entropy
+            # return norm_img, self.weighted_dc_entropy, self.weighted_ac_entropy
+            return norm_img, torch.tensor(0, dtype=torch.float32).cuda(), torch.tensor(0, dtype=torch.float32).cuda()
 
 
     def reinitialize_q_table_alpha(self, model, input):
@@ -207,14 +219,17 @@ class JPEG_layer(nn.Module):
     def calculate_dc_entropy(self, idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom):
         # get the entropy of DC part.
         input_shape = idx_lum.shape # shape: [bs,ch,B,size,size,5]
-        num_blocks = idx_lum.shape[2] # 748
+        num_blocks = input_shape[2] # 748
+        batch_size = input_shape[0]
         
-        if input_shape[0] != self.batch_size:
-            self.p_lum_dc = torch.zeros((input_shape[0], 1, 2**(self.num_bit+1)-1), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-1]
-            self.p_chrom_dc = torch.zeros((input_shape[0], 2, 2**(self.num_bit+1)-1), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-1]
-        else:
-            self.p_lum_dc.zero_()
-            self.p_lum_dc.zero_()
+        # TODO: it needs to be created once then masked otherwise the initialization will be totally worng and mismatch the batch size in the next epoch 
+        
+        # if input_shape[0] != self.batch_size:
+        #     self.p_lum_dc = torch.zeros((input_shape[0], 1, 2**(self.num_bit+1)-3), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-3] --> batchsize x 4093
+        #     self.p_chrom_dc = torch.zeros((input_shape[0], 2, 2**(self.num_bit+1)-3), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-3]
+        # else:
+        self.p_lum_dc.zero_()
+        self.p_chrom_dc.zero_()
         
         indexes_lum = (idx_lum).to(torch.int64) # [-2^10+1,2^10-1]
         indexes_chrom = (idx_chrom).to(torch.int64) # [-2^10+1,2^10-1]
@@ -255,7 +270,7 @@ class JPEG_layer(nn.Module):
         cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
         cmpf_diff_chrom_dc = convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
         
-        breakpoint()
+        # breakpoint()
         indexes_diff_lum_dc = self.get_diff_indexes(indexes_lum_dc, indexes_lum_dc_shifted) # shape: [bs,ch,B,9]
         indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [bs,ch,B,9]
         
@@ -264,36 +279,36 @@ class JPEG_layer(nn.Module):
         assert torch.all((indexes_diff_chrom_dc >= -2**11+2) & (indexes_diff_chrom_dc <= 2**11-2)), \
             f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= -2**11+2) & (indexes_diff_chrom_dc <= 2**11-2))]}"
         
-        breakpoint()
+        # breakpoint()
         # [-2^11+2,2^11-2] to [0,2^12-4]
         indexes_diff_lum_dc += (2**(self.num_bit)-2)
         indexes_diff_chrom_dc += (2**(self.num_bit)-2)
         
-        breakpoint()
+        # breakpoint()
         # change to shape: [bs,ch,B*9]
         indexes_diff_lum_dc = indexes_diff_lum_dc.reshape(input_shape[0], 1, -1)
         indexes_diff_chrom_dc = indexes_diff_chrom_dc.reshape(input_shape[0], 2, -1)
         cmpf_diff_lum_dc = cmpf_diff_lum_dc.reshape(input_shape[0], 1, -1)
         cmpf_diff_chrom_dc = cmpf_diff_chrom_dc.reshape(input_shape[0], 2, -1)
         
-        breakpoint()
         #-----------------------------------------DC entropy---------------------------------------------------------
         # get distribution of each dc frequency
-        self.p_lum_dc.scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc) # shape: [bs,ch,2*(num_bit+1)]
-        self.p_lum_dc /= num_blocks
+        # self.p_lum_dc[:batch_size].scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc) # shape: [bs,ch,2*(num_bit+1)]
+        self.p_lum_dc[:batch_size] /= num_blocks
         # print("sum lum dc prob:", torch.sum(p_lum_dc, axis=-1, keepdims=True))
         
-        self.p_chrom_dc.scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc) # shape: [bs,ch,2*(num_bit+1)]
-        self.p_chrom_dc /= num_blocks
+        # self.p_chrom_dc[:batch_size].scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc) # shape: [bs,ch,2*(num_bit+1)]
+        self.p_chrom_dc[:batch_size] /= num_blocks
         # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
         
-        breakpoint()
+        # breakpoint()
         # get entropy of each dc frequency and average over batch.
-        self.lum_dc_entropy = torch.sum(entr(self.p_lum_dc), dim=-1).mean()
-        self.chrom_dc_entropy = torch.sum(entr(self.p_chrom_dc), dim=-1).mean()
+        self.lum_dc_entropy = torch.sum(entr(self.p_lum_dc[:batch_size]), dim=-1).mean()
+        self.chrom_dc_entropy = torch.sum(entr(self.p_chrom_dc[:batch_size]), dim=-1).mean()
         
         self.weighted_dc_entropy = self.weight_lum*self.lum_dc_entropy + self.weight_chrom*self.chrom_dc_entropy
-        
+
+
     
     def visualize_entropy(self, entropy):
         # entropy of shape: 
@@ -315,16 +330,18 @@ class JPEG_layer(nn.Module):
         # get the entropy of AC part.
         input_shape = idx_lum.shape # shape: [bs,ch,B,size,size,5]
         num_blocks = input_shape[2] # 748
+        batch_size = input_shape[0]
         
-        if input_shape[0] != self.batch_size:
-            self.p_lum_ac = torch.zeros((input_shape[0], self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).cuda() # shape: [bs,size*size-1,2^num_bit-1]
-            self.p_chrom_ac = torch.zeros((input_shape[0], self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).cuda() # shape: [bs,size*size-1,2^num_bit-1]
-        else:
-            self.p_lum_ac.zero_()
-            self.p_chrom_ac.zero_()
-        
+        # if input_shape[0] != self.batch_size:
+        #     self.p_lum_ac = torch.zeros((input_shape[0], self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).cuda() # shape: [bs,size*size-1,2^num_bit-1]
+        #     self.p_chrom_ac = torch.zeros((input_shape[0], self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).cuda() # shape: [bs,size*size-1,2^num_bit-1]
+        # else:
+        self.p_lum_ac.zero_()
+        self.p_chrom_ac.zero_()
+
         indexes_lum = (idx_lum).to(torch.int64) # [-2^10+1,2^10-1]
         indexes_chrom = (idx_chrom).to(torch.int64) # [-2^10+1,2^10-1]
+
         cmpf_lum = cmpf_mask_lum
         cmpf_chrom = cmpf_mask_chrom
         
@@ -333,8 +350,7 @@ class JPEG_layer(nn.Module):
         indexes_chrom = indexes_chrom.permute(0, 3, 4, 1, 2, 5)
         cmpf_lum = cmpf_lum.permute(0, 3, 4, 1, 2, 5)
         cmpf_chrom = cmpf_chrom.permute(0, 3, 4, 1, 2, 5)
-        
-        # [bs,size,size,ch,B,5] to shape: [bs,size*size,ch*B*5]
+        # [bs,block_size,block_size,ch,B,5] to shape: [bs,block_size*block_size,ch*B*5]
         indexes_lum = indexes_lum.reshape(input_shape[0], input_shape[3] * input_shape[4], 1 * input_shape[2] * input_shape[5])
         indexes_chrom = indexes_chrom.reshape(input_shape[0], input_shape[3] * input_shape[4], 2 * input_shape[2] * input_shape[5])
         cmpf_lum = cmpf_lum.reshape(input_shape[0], input_shape[3] * input_shape[4], 1 * input_shape[2] * input_shape[5])
@@ -346,6 +362,7 @@ class JPEG_layer(nn.Module):
         cmpf_lum = cmpf_lum[:, 1:, :]
         cmpf_chrom = cmpf_chrom[:, 1:, :]
         
+
         # change value range [-2^10+1,2^10-1] to range [0, 2^11-2]
         indexes_lum -= self.low_level
         indexes_chrom -= self.low_level
@@ -355,20 +372,21 @@ class JPEG_layer(nn.Module):
         assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
             f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
         
+
         #----------------------------------------------AC entropy-----------------------------------------------
         # get distribution of each ac frequency
-        self.p_lum_ac.scatter_add_(2, indexes_lum, cmpf_lum)  # shape: [bs,size*size-1,2^num_bit-1]
-        self.p_lum_ac /= num_blocks
-        # print("sum lum ac prob:", torch.sum(p_lum_ac, axis=-1,keepdims=True))
+        # self.p_lum_ac[:batch_size].scatter_add_(2, indexes_lum, cmpf_lum)  # shape: [bs,size*size-1,2^num_bit-1]
+        self.p_lum_ac[:batch_size] /= num_blocks 
+        # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
     
-        self.p_chrom_ac.scatter_add_(2, indexes_chrom, cmpf_chrom)  # shape: [bs,size*size-1,2^num_bit-1]
-        self.p_chrom_ac /= 2 * num_blocks
-        # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+        # self.p_chrom_ac[:batch_size].scatter_add_(2, indexes_chrom, cmpf_chrom)  # shape: [bs,size*size-1,2^num_bit-1]
+        self.p_chrom_ac[:batch_size] /= 2 * num_blocks 
+        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
         
         # get entropy of each ac frequency
-        lum_ac_entropy = torch.sum(entr(self.p_lum_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
+        lum_ac_entropy = torch.sum(entr(self.p_lum_ac[:batch_size]), dim=-1) # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(lum_ac_entropy)
-        chrom_ac_entropy = torch.sum(entr(self.p_chrom_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
+        chrom_ac_entropy = torch.sum(entr(self.p_chrom_ac[:batch_size]), dim=-1) # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(chrom_ac_entropy)
         
         # sum ac entropy and average over batch.
