@@ -59,8 +59,11 @@ def parse_option():
     parser.add_argument('--min_Q_Step', type=float, default=1.0, help='Minumum Quantization Step')
     parser.add_argument('--max_Q_Step', type=float, default=255, help='Maximum Quantization Step')
     parser.add_argument('--num_non_zero_q', type=int, default=5, choices=range(2,2**10 - 1), help='Window size for the reconstruction space')
-    parser.add_argument('--weight_lum', type=float, default=0.1, help='weight for lum entropy')
-    parser.add_argument('--weight_chrom', type=float, default=0.1, help='weight for Chrom entropy')
+    parser.add_argument('--weight_lum', type=float, default=1, help='weight for lum entropy')
+    parser.add_argument('--weight_chrom', type=float, default=1, help='weight for Chrom entropy')
+
+    parser.add_argument('--weight_lum_dc', type=float, default=0.00001, help='weight for lum entropy')
+    parser.add_argument('--weight_chrom_dc', type=float, default=0.0001, help='weight for Chrom entropy')
     
     
     parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])
@@ -175,14 +178,18 @@ def main(opt):
     # model
     underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
     
+    model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
+    underlying_model.load_state_dict(torch.load(model_path)['model'])
+
     if opt.JPEG_enable:
         jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=mean, std=std)        
         model = CustomModel(jpeg_layer, underlying_model)
         
         optimizer_data = [
-                            {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
+                            # {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
                             {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JEPG_learning_rate, 'momentum': opt.momentum,},
-                            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
+                            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate), 'momentum': opt.momentum,},
+                            # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
                          ]
         
         if opt.JPEG_alpha_trainable:

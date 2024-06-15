@@ -44,6 +44,8 @@ class JPEG_layer(nn.Module):
         self.max_Q_Step = opt.max_Q_Step
         self.weight_lum = opt.weight_lum
         self.weight_chrom = opt.weight_chrom
+        self.weight_lum_dc = opt.weight_lum_dc
+        self.weight_chrom_dc = opt.weight_chrom_dc
         self.analysis = False
         self.low_level  = -2**(self.num_bit-1) + 1
         self.high_level =  2**(self.num_bit-1)
@@ -132,8 +134,8 @@ class JPEG_layer(nn.Module):
 
     def forward(self, input_RGB):
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
-        # print(self.lum_qtable)
-        # print(self.chrom_qtable)
+        print(self.lum_qtable.max().item(), self.lum_qtable.min().item())
+        print(self.chrom_qtable.max().item(), self.chrom_qtable.min().item())
         
         input = input_RGB - 128
         input_DCT_block_batch = block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
@@ -189,8 +191,7 @@ class JPEG_layer(nn.Module):
         if self.analysis:
             return norm_img, self.input_DCT_block_batch, estimated_reconstructed_space, self.weighted_dc_entropy, self.weighted_ac_entropy
         else:
-            # return norm_img, weighted_dc_entropy, weighted_ac_entropy
-            return norm_img, torch.tensor(0, dtype=torch.float32).cuda(), torch.tensor(0, dtype=torch.float32).cuda()
+            return norm_img, weighted_dc_entropy, weighted_ac_entropy
             # return norm_img, torch.tensor(0, dtype=torch.float32).cuda(), torch.tensor(0, dtype=torch.float32).cuda()
 
 
@@ -296,19 +297,19 @@ class JPEG_layer(nn.Module):
         # get distribution of each dc frequency
         
         # self.p_lum_dc[:batch_size].scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc) # shape: [bs,ch,2*(num_bit+1)]
-        p_lum_dc = torch.zeros((batch_size, 1,  2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_lum.device).scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc) # shape: [bs,ch,2*(num_bit+1)]
+        p_lum_dc = torch.zeros((batch_size, 1,  2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_lum_dc.device).scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc) # shape: [bs,ch,2*(num_bit+1)]
         p_lum_dc /= num_blocks
         # print("sum lum dc prob:", torch.sum(p_lum_dc, axis=-1, keepdims=True))
         
         # self.p_chrom_dc[:batch_size].scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc) # shape: [bs,ch,2*(num_bit+1)]
-        p_chrom_dc = torch.zeros((batch_size, 2,  2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_lum.device).scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc) # shape: [bs,ch,2*(num_bit+1)]
+        p_chrom_dc = torch.zeros((batch_size, 2,  2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_chrom_dc.device).scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc) # shape: [bs,ch,2*(num_bit+1)]
         p_chrom_dc /= num_blocks
         # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
         
         # breakpoint()
         # get entropy of each dc frequency and average over batch.
-        self.lum_dc_entropy = torch.sum(entr(p_lum_dc[:batch_size]), dim=-1).mean()
-        self.chrom_dc_entropy = torch.sum(entr(p_chrom_dc[:batch_size]), dim=-1).mean()
+        self.lum_dc_entropy = torch.sum(entr(p_lum_dc), dim=-1).mean()
+        self.chrom_dc_entropy = torch.sum(entr(p_chrom_dc), dim=-1).mean()
         
         '''
         self.lum_dc_entropy = cmpf_lum.mean()
@@ -316,7 +317,9 @@ class JPEG_layer(nn.Module):
         
         '''
 
-        weighted_dc_entropy = self.weight_lum*self.lum_dc_entropy + self.weight_chrom*self.chrom_dc_entropy
+        # weighted_dc_entropy = self.weight_lum_dc * self.lum_dc_entropy + self.weight_chrom_dc * self.chrom_dc_entropy
+
+        weighted_dc_entropy = self.weight_lum_dc * self.lum_dc_entropy
 
         return weighted_dc_entropy
 
@@ -377,9 +380,9 @@ class JPEG_layer(nn.Module):
 
         
         # get entropy of each ac frequency
-        lum_ac_entropy = torch.sum(entr(p_lum_ac[:batch_size]), dim=-1) # shape: [bs,size*size-1] type: numpy
+        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(lum_ac_entropy)
-        chrom_ac_entropy = torch.sum(entr(p_chrom_ac[:batch_size]), dim=-1) # shape: [bs,size*size-1] type: numpy
+        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(chrom_ac_entropy)
 
         # sum ac entropy and average over batch.

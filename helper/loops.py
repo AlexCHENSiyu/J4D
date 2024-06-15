@@ -17,7 +17,8 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
 
     batch_time = AverageMeter()
     data_time = AverageMeter()
-    entropy_losses = AverageMeter()
+    entropy_losses_ac = AverageMeter()
+    entropy_losses_dc = AverageMeter()
     losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
@@ -34,6 +35,7 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
         # ===================forward=====================
         output, dc_entropy, ac_entropy = model(input)
         loss = criterion(output, target) + dc_entropy + ac_entropy
+        # loss = criterion(output, target) + ac_entropy
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
         
         # dot = make_dot(loss, params=dict(model.named_parameters()))
@@ -41,7 +43,8 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
         # dot.render('graph')
         
         losses.update(loss.item(), input.size(0))
-        entropy_losses.update(dc_entropy.item() + ac_entropy.item(), input.size(0))
+        entropy_losses_ac.update(ac_entropy.item(), input.size(0))
+        entropy_losses_dc.update(dc_entropy.item(), input.size(0))
         top1.update(acc1[0], input.size(0))
         top5.update(acc5[0], input.size(0))
 
@@ -63,11 +66,12 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
                   'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                   'Data {data_time.val:.3f} ({data_time.avg:.3f})\t'
                   'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
-                  'Entropy Loss {entropy_loss.val:.4f} ({entropy_loss.avg:.4f})\t'
-                  'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                  'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                  'DC: Entropy Loss {entropy_loss_dc.val:.3f} ({entropy_loss_dc.avg:.4f})\t'
+                  'AC: Entropy Loss {entropy_loss_ac.val:.3f} ({entropy_loss_ac.avg:.4f})\t'
+                  'Acc@1 {top1.val:.2f} ({top1.avg:.3f})\t'
+                  'Acc@5 {top5.val:.2f} ({top5.avg:.3f})'.format(
                    epoch, idx, len(train_loader), batch_time=batch_time,
-                   data_time=data_time, loss=losses, entropy_loss=entropy_losses, top1=top1, top5=top5))
+                   data_time=data_time, loss=losses, entropy_loss_dc=entropy_losses_dc, entropy_loss_ac=entropy_losses_ac, top1=top1, top5=top5))
             sys.stdout.flush()
 
     print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
