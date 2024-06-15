@@ -163,6 +163,8 @@ def main(opt):
     if torch.cuda.is_available():
         cudnn.benchmark = True
 
+    torch.autograd.set_detect_anomaly(True)
+    
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
 
@@ -192,6 +194,13 @@ def main(opt):
                             # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
                          ]
         
+        # optimizer_data = [
+        #                     # {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
+        #                     {'params': model.jpeg_layer.lum_qtable, 'momentum': opt.momentum,},
+        #                     {'params': model.jpeg_layer.chrom_qtable,  'momentum': opt.momentum,},
+        #                     # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
+        #                  ]
+        
         if opt.JPEG_alpha_trainable:
             optimizer_data.append({'params': model.jpeg_layer.alpha_lum, 'lr': opt.alpha_learning_rate, 'momentum': opt.momentum,})
             optimizer_data.append({'params': model.jpeg_layer.alpha_chrom, 'lr': (opt.alpha_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,})
@@ -202,6 +211,7 @@ def main(opt):
         ]
     
     optimizer = optim.SGD(optimizer_data)
+    # optimizer = optim.Adam(optimizer_data)
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():

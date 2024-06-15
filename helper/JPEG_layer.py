@@ -91,7 +91,9 @@ class JPEG_layer(nn.Module):
         self.construct(opt)
 
         # Define two q table
+        # self.q_dc = torch.tensor(1, dtype=torch.float32)
         self.lum_qtable = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32)
+        # self.lum_qtable[0,0,0,0] = self.q_dc 
         self.chrom_qtable = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32)
 
         nn.init.constant_(self.lum_qtable , self.Q_inital)
@@ -106,7 +108,7 @@ class JPEG_layer(nn.Module):
         
         self.lum_qtable = nn.Parameter(self.lum_qtable)
         self.chrom_qtable = nn.Parameter(self.chrom_qtable)
-        
+
         # self.rgb_to_ycbcr = rgb_to_ycbcr_batch()
         # self.ycbcr_to_rgb = ycbcr_to_rgb_batch()
 
@@ -134,8 +136,11 @@ class JPEG_layer(nn.Module):
 
     def forward(self, input_RGB):
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
-        print(self.lum_qtable.max().item(), self.lum_qtable.min().item())
-        print(self.chrom_qtable.max().item(), self.chrom_qtable.min().item())
+        # print(self.lum_qtable.max().item(), self.lum_qtable.min().item())
+        # print(self.chrom_qtable.max().item(), self.chrom_qtable.min().item())
+
+        # print(self.lum_qtable)
+        # print(self.chrom_qtable)
         
         input = input_RGB - 128
         input_DCT_block_batch = block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
@@ -163,8 +168,11 @@ class JPEG_layer(nn.Module):
         distortion_MSE_mask_lum = F.mse_loss(iq_lum, input_lum.expand(-1, -1, -1, -1, -1, self.num_non_zero_q), reduction='none')  # shape: [bs,ch,B,size,size,5]
         distortion_MSE_mask_chrom = F.mse_loss(iq_chrom, input_chrom.expand(-1, -1, -1, -1, -1, self.num_non_zero_q), reduction='none') # shape: [bs,ch,B,size,size,5] 
 
-        cmpf_mask_lum = F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1) # shape: [bs,ch,B,size,size,5]
-        cmpf_mask_chrom = F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1) # shape: [bs,ch,B,size,size,5] 
+        # cmpf_mask_lum = F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1) # shape: [bs,ch,B,size,size,5]
+        # cmpf_mask_chrom = F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1) # shape: [bs,ch,B,size,size,5] 
+
+        cmpf_mask_lum = torch.clamp(F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5]
+        cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
         
         # Q_d
         estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
@@ -192,7 +200,7 @@ class JPEG_layer(nn.Module):
             return norm_img, self.input_DCT_block_batch, estimated_reconstructed_space, self.weighted_dc_entropy, self.weighted_ac_entropy
         else:
             return norm_img, weighted_dc_entropy, weighted_ac_entropy
-            # return norm_img, torch.tensor(0, dtype=torch.float32).cuda(), torch.tensor(0, dtype=torch.float32).cuda()
+            # return norm_img, torch.tensor(0, dtype=torch.float32).cuda(), weighted_ac_entropy
 
 
     def reinitialize_q_table_alpha(self, model, input):
@@ -224,14 +232,6 @@ class JPEG_layer(nn.Module):
         num_blocks = input_shape[2] # 748
         batch_size = input_shape[0]
         
-        # TODO: it needs to be created once then masked otherwise the initialization will be totally worng and mismatch the batch size in the next epoch 
-        
-        # if input_shape[0] != self.batch_size:
-        #     self.p_lum_dc = torch.zeros((input_shape[0], 1, 2**(self.num_bit+1)-3), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-3] --> batchsize x 4093
-        #     self.p_chrom_dc = torch.zeros((input_shape[0], 2, 2**(self.num_bit+1)-3), dtype=torch.float32).cuda() # shape: [bs,ch,2*(num_bit+1)-3]
-        # else:
-        # self.p_lum_dc.zero_()
-        # self.p_chrom_dc.zero_()
         
         indexes_lum = (idx_lum).to(torch.int64) # [-2^10+1,2^10-1]
         indexes_chrom = (idx_chrom).to(torch.int64) # [-2^10+1,2^10-1]
@@ -257,22 +257,22 @@ class JPEG_layer(nn.Module):
         indexes_chrom_dc_shifted = torch.roll(indexes_chrom_dc, shifts=1, dims=2)
         indexes_chrom_dc_shifted[:,:,0,:] = self.q_idx # set first to [0,1,2,3,4]
         
-        cmpf_lum_dc_shifted = torch.roll(cmpf_lum_dc, shifts=1, dims=2)
-        cmpf_lum_dc_shifted[:,:,0,:] = 0
-        cmpf_lum_dc_shifted[:,:,0,0] = 1 # set first to [1,0,0,0,0]
+        cmpf_lum_dc_shifted = torch.roll(cmpf_lum_dc, shifts=1, dims=2).detach()
+        cmpf_lum_dc_shifted[:,:,0,:] = 1e-10
+        cmpf_lum_dc_shifted[:,:,0,0] = 1.0  - (self.num_non_zero_q - 1) * (1e-10) # set first to [1,0,0,0,0]
         
         cmpf_chrom_dc_shifted = torch.roll(cmpf_chrom_dc, shifts=1, dims=2)
-        cmpf_chrom_dc_shifted[:,:,0,:] = 0
-        cmpf_chrom_dc_shifted[:,:,0,0] = 1 # set first to [1,0,0,0,0]
+        cmpf_chrom_dc_shifted[:,:,0,:] = 1e-10
+        cmpf_chrom_dc_shifted[:,:,0,0] = 1.0 - (self.num_non_zero_q - 1) * (1e-10) # set first to [1,0,0,0,0]
+
 
         # reverse first so convolve later is along the right diagonal
         cmpf_lum_dc_shifted_tensor = torch.flip(cmpf_lum_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
         cmpf_diff_lum_dc = convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
-
-        cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
-        cmpf_diff_chrom_dc = convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
         
-        # breakpoint()
+        cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
+        cmpf_diff_chrom_dc =convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
+        
         indexes_diff_lum_dc = self.get_diff_indexes(indexes_lum_dc, indexes_lum_dc_shifted) # shape: [bs,ch,B,9]
         indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [bs,ch,B,9]
         
@@ -281,12 +281,10 @@ class JPEG_layer(nn.Module):
         assert torch.all((indexes_diff_chrom_dc >= -2**11+2) & (indexes_diff_chrom_dc <= 2**11-2)), \
             f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= -2**11+2) & (indexes_diff_chrom_dc <= 2**11-2))]}"
         
-        # breakpoint()
         # [-2^11+2,2^11-2] to [0,2^12-4]
         indexes_diff_lum_dc += (2**(self.num_bit)-2)
         indexes_diff_chrom_dc += (2**(self.num_bit)-2)
         
-        # breakpoint()
         # change to shape: [bs,ch,B*9]
         indexes_diff_lum_dc = indexes_diff_lum_dc.reshape(input_shape[0], 1, -1)
         indexes_diff_chrom_dc = indexes_diff_chrom_dc.reshape(input_shape[0], 2, -1)
@@ -306,20 +304,11 @@ class JPEG_layer(nn.Module):
         p_chrom_dc /= num_blocks
         # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
         
-        # breakpoint()
         # get entropy of each dc frequency and average over batch.
         self.lum_dc_entropy = torch.sum(entr(p_lum_dc), dim=-1).mean()
         self.chrom_dc_entropy = torch.sum(entr(p_chrom_dc), dim=-1).mean()
         
-        '''
-        self.lum_dc_entropy = cmpf_lum.mean()
-        self.chrom_ac_entropy = cmpf_chrom.mean()
-        
-        '''
-
-        # weighted_dc_entropy = self.weight_lum_dc * self.lum_dc_entropy + self.weight_chrom_dc * self.chrom_dc_entropy
-
-        weighted_dc_entropy = self.weight_lum_dc * self.lum_dc_entropy
+        weighted_dc_entropy = self.weight_lum_dc * self.lum_dc_entropy + self.weight_chrom_dc * self.chrom_dc_entropy
 
         return weighted_dc_entropy
 
@@ -367,8 +356,6 @@ class JPEG_layer(nn.Module):
 
         #----------------------------------------------AC entropy-----------------------------------------------
         # get distribution of each ac frequency
-        # breakpoint()
-        # self.p_lum_ac[:batch_size].scatter_add_(2, indexes_lum, cmpf_lum)  # shape: [bs,size*size-1,2^num_bit-1]
         p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(2, indexes_lum, cmpf_lum)
         p_lum_ac /= num_blocks 
         # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
