@@ -34,7 +34,7 @@ def parse_option():
     parser.add_argument('--batch_size', type=int, default=32, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8, help='num of workers to use')
     parser.add_argument('--epochs', type=int, default=200, help='number of training epochs')
-    parser.add_argument('--learning_rate', type=float, default=0.001, help='learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.1, help='learning rate')
     parser.add_argument('--lr_decay_epochs', type=str, default='100,150', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
@@ -43,14 +43,13 @@ def parse_option():
     # model
     parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'densenet121',])
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
-
     parser.add_argument('-t', '--trial', type=int, default=0, help='the experiment id')
 
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
-    parser.add_argument('--JEPG_alpha', type=float, default=100.0, help='Tempurature scaling')
+    parser.add_argument('--JEPG_alpha', type=float, default=2, help='Tempurature scaling')
     parser.add_argument('--JEPG_learning_rate', type=float, default=0.0125, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
@@ -59,12 +58,11 @@ def parse_option():
     parser.add_argument('--min_Q_Step', type=float, default=1.0, help='Minumum Quantization Step')
     parser.add_argument('--max_Q_Step', type=float, default=255, help='Maximum Quantization Step')
     parser.add_argument('--num_non_zero_q', type=int, default=5, choices=range(2,2**10 - 1), help='Window size for the reconstruction space')
-    parser.add_argument('--weight_lum', type=float, default=1, help='weight for lum entropy')
-    parser.add_argument('--weight_chrom', type=float, default=1, help='weight for Chrom entropy')
+    parser.add_argument('--weight_lum', type=float, default=0.5, help='weight for lum entropy')
+    parser.add_argument('--weight_chrom', type=float, default=0.5, help='weight for Chrom entropy')
 
-    parser.add_argument('--weight_lum_dc', type=float, default=0.00001, help='weight for lum entropy')
-    parser.add_argument('--weight_chrom_dc', type=float, default=0.0001, help='weight for Chrom entropy')
-    
+    parser.add_argument('--weight_lum_dc', type=float, default=0.5, help='weight for lum entropy')
+    parser.add_argument('--weight_chrom_dc', type=float, default=0.5, help='weight for Chrom entropy')
     
     parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])
     parser.add_argument('--seed', type=int, default=0, help='seed id, set to 0 if do not want to fix the seed')
@@ -194,13 +192,6 @@ def main(opt):
                             # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
                          ]
         
-        # optimizer_data = [
-        #                     # {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
-        #                     {'params': model.jpeg_layer.lum_qtable, 'momentum': opt.momentum,},
-        #                     {'params': model.jpeg_layer.chrom_qtable,  'momentum': opt.momentum,},
-        #                     # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
-        #                  ]
-        
         if opt.JPEG_alpha_trainable:
             optimizer_data.append({'params': model.jpeg_layer.alpha_lum, 'lr': opt.alpha_learning_rate, 'momentum': opt.momentum,})
             optimizer_data.append({'params': model.jpeg_layer.alpha_chrom, 'lr': (opt.alpha_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,})
@@ -211,7 +202,6 @@ def main(opt):
         ]
     
     optimizer = optim.SGD(optimizer_data)
-    # optimizer = optim.Adam(optimizer_data)
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():
@@ -344,8 +334,6 @@ if __name__ == '__main__':
         check_val(opt)
     # # profiling()
 
-    
-    
     # import torch
     # print(torch.cuda.is_available())
     # print(torch.cuda.get_device_name(0))
