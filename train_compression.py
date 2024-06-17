@@ -4,6 +4,7 @@ import os
 import argparse
 import socket
 import time
+import json
 
 # import tensorboard_logger.tensorboard_logger as tb_logger
 import torch
@@ -20,10 +21,20 @@ from helper.JPEG_layer import *
 import numpy as np
 import random
 
-# python train_compression.py --JPEG_enable --freeze_model -t 1
+
+def create_trial_folder(base_folder):
+    trial_num = 1
+    while True:
+        trial_folder = os.path.join(base_folder, f"trial_{trial_num}")
+        if not os.path.exists(trial_folder):
+            os.makedirs(trial_folder)
+            # print(f"Created folder: {trial_folder}")
+            return trial_folder
+        trial_num += 1
+
+# python train_compression.py --JPEG_enable --freeze_model
 def parse_option():
     hostname = socket.gethostname()
-
     parser = argparse.ArgumentParser('argument for training')
 
     parser.add_argument('--print_freq', type=int, default=100, help='print frequency')
@@ -33,9 +44,9 @@ def parse_option():
     # optimization
     parser.add_argument('--batch_size', type=int, default=32, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8, help='num of workers to use')
-    parser.add_argument('--epochs', type=int, default=200, help='number of training epochs')
+    parser.add_argument('--epochs', type=int, default=100, help='number of training epochs')
     parser.add_argument('--learning_rate', type=float, default=0.1, help='learning rate')
-    parser.add_argument('--lr_decay_epochs', type=str, default='100,150', help='where to decay lr, can be a list')
+    parser.add_argument('--lr_decay_epochs', type=str, default='50,80', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
@@ -43,14 +54,14 @@ def parse_option():
     # model
     parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'densenet121',])
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
-    parser.add_argument('-t', '--trial', type=int, default=0, help='the experiment id')
-
+    
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
-    parser.add_argument('--JEPG_alpha', type=float, default=2, help='Tempurature scaling')
-    parser.add_argument('--JEPG_learning_rate', type=float, default=0.0125, help='Quantization Table Learning Rate')
+    
+    parser.add_argument('--JEPG_alpha', type=float, default=2.0, help='Tempurature scaling')
+    parser.add_argument('--JEPG_learning_rate', type=float, default=0.04, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
     parser.add_argument('--block_size', type=int, default=8, help='the experiment id')
@@ -60,9 +71,6 @@ def parse_option():
     parser.add_argument('--num_non_zero_q', type=int, default=5, choices=range(2,2**10 - 1), help='Window size for the reconstruction space')
     parser.add_argument('--weight_lum', type=float, default=0.5, help='weight for lum entropy')
     parser.add_argument('--weight_chrom', type=float, default=0.5, help='weight for Chrom entropy')
-
-    parser.add_argument('--weight_lum_dc', type=float, default=0.5, help='weight for lum entropy')
-    parser.add_argument('--weight_chrom_dc', type=float, default=0.5, help='weight for Chrom entropy')
     
     parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])
     parser.add_argument('--seed', type=int, default=0, help='seed id, set to 0 if do not want to fix the seed')
@@ -70,50 +78,48 @@ def parse_option():
     
     opt = parser.parse_args()
 
-    # set the path according to the environment
-    if hostname.startswith('visiongpu'):
-        opt.model_path = '/path/to/my/model'
-        # opt.tb_path = '/path/to/my/tensorboard'
-    else:
-        opt.model_path = './save/{}/models'.format(opt.dataset)
-        # opt.tb_path = './save/tensorboard'
-        opt.log_pth = './save/{}/log/'.format(opt.dataset)
-        opt.Q_tables_pth = './save/{}/Q_tables/'.format(opt.dataset)
-        opt.alpha_pth = './save/{}/Alpha/'.format(opt.dataset)
-
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
     for it in iterations:
         opt.lr_decay_epochs.append(int(it))
-
+    
     if opt.JPEG_enable:
         opt.added_layer = "JPEG"
-        opt.model_name = '{}_{}_alpha_lr_{}_alpha_{}_JEPG_lr_{}{}_trial_{}'.format(opt.dataset, opt.model, opt.alpha_learning_rate, opt.JEPG_alpha, opt.JEPG_learning_rate, opt.log_file, opt.trial)
+        opt.model_name = 'JEPG_lr_{}_alpha_{}_alpha_lr_{}{}'.format(opt.JEPG_learning_rate, opt.JEPG_alpha, opt.alpha_learning_rate, opt.log_file)
     else:
         opt.added_layer = "vanilla"
-        opt.model_name = '{}_{}_trial_{}'.format(opt.dataset, opt.model,  opt.trial)
+        opt.model_name = '{}'.format(opt.model)
+    
+    base_path = './save/{}/{}'.format(opt.dataset, opt.model)
+    if not os.path.exists(base_path):
+        os.makedirs(base_path)
 
-    # opt.tb_folder = os.path.join(opt.tb_path, opt.model_name)
-    # if not os.path.isdir(opt.tb_folder):
-    #     os.makedirs(opt.tb_folder)
+    base_folder = os.path.join(base_path, opt.model_name)
+    trial_folder = create_trial_folder(base_folder)
 
-    opt.save_folder = os.path.join(opt.model_path, opt.model_name)
-    if not os.path.isdir(opt.save_folder):
-        os.makedirs(opt.save_folder)
-
-    opt.log_key = '{}_lr_{}_decay_{}_log_{}'.format(opt.model, opt.learning_rate, opt.weight_decay, opt.added_layer)
-
-    opt.log_folder = os.path.join(opt.log_pth, opt.log_key)
-    if not os.path.isdir(opt.log_folder):
-        os.makedirs(opt.log_folder)
-
-    opt.alpha_folder = os.path.join(opt.alpha_pth, opt.log_key)
-    if not os.path.isdir(opt.alpha_folder):
-        os.makedirs(opt.alpha_folder)
-
-    opt.Q_tables_folder = os.path.join(opt.Q_tables_pth, opt.log_key)
-    if not os.path.isdir(opt.Q_tables_folder):
-        os.makedirs(opt.Q_tables_folder)
+    opt.logs_fname = os.path.join(trial_folder, "logs.txt")
+    # with open(opt.logs_fname, 'a') as log:
+    #     line =  "epoch" + "\t" + \
+    #             "best_acc" + "\t" +  "test_acc" + "\t" +  "train_acc" + "\t" +  \
+    #             "test_loss" + "\t" + "train_loss" + "\t" + \
+    #             "test_lum_dc" + "\t" + "test_chrom_dc" + "\t" + \
+    #             "test_lum_ac" + "\t" + "test_chrom_ac" + "\t" + \
+    #             "train_lum_dc" + "\t" + "train_chrom_dc" + "\t" + \
+    #             "train_lum_ac" + "\t" + "train_chrom_ac" + "\t" + \
+    #             "q_alpha_min" + "\t" + "q_alpha_max" + '\n'
+    #     log.write(line)
+    
+    opt.q_table_fname = os.path.join(trial_folder, "q_table.pt")
+    
+    opt.alpha_fname = os.path.join(trial_folder, "Alpha.pt")
+    
+    opt.q_tables_folder = os.path.join(trial_folder, "Q_tables")
+    if not os.path.isdir(opt.q_tables_folder):
+        os.makedirs(opt.q_tables_folder)
+    
+    opt.opt_fname = os.path.join(trial_folder, "opt.json")
+    with open(opt.opt_fname, 'w') as f:
+        json.dump(vars(opt), f, indent=4)
 
     return opt
 
@@ -161,7 +167,7 @@ def main(opt):
     if torch.cuda.is_available():
         cudnn.benchmark = True
 
-    torch.autograd.set_detect_anomaly(True)
+    # torch.autograd.set_detect_anomaly(True)
     
     mean = (0.485, 0.456, 0.406)
     std = (0.229, 0.224, 0.225)
@@ -177,7 +183,6 @@ def main(opt):
 
     # model
     underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
-    
     model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
     underlying_model.load_state_dict(torch.load(model_path)['model'])
 
@@ -186,17 +191,17 @@ def main(opt):
         model = CustomModel(jpeg_layer, underlying_model)
         
         optimizer_data = [
-                            # {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
-                            {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JEPG_learning_rate, 'momentum': opt.momentum,},
-                            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate), 'momentum': opt.momentum,},
-                            # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
-                         ]
+            # {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
+            {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JEPG_learning_rate, 'momentum': opt.momentum,},
+            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate), 'momentum': opt.momentum,},
+            # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
+        ]
         
         if opt.JPEG_alpha_trainable:
             optimizer_data.append({'params': model.jpeg_layer.alpha_lum, 'lr': opt.alpha_learning_rate, 'momentum': opt.momentum,})
             optimizer_data.append({'params': model.jpeg_layer.alpha_chrom, 'lr': (opt.alpha_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,})
     else:
-        model =  underlying_model
+        model = underlying_model
         optimizer_data = [
             {'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
         ]
@@ -210,14 +215,22 @@ def main(opt):
         if not opt.seed:
             cudnn.benchmark = True
     
-    # log file
-    log_fname = os.path.join(opt.log_folder, '{experiment}.txt'.format(experiment=opt.model_name))
-
     # routine
     for epoch in range(1, opt.epochs + 1):
         adjust_learning_rate(epoch, opt, optimizer)
-        print("==> training...")
+        print("\n==> training...")
 
+        # train and validate
+        time1 = time.time()
+        train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)    
+        test_acc, test_acc_top5, test_loss, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model, criterion, opt)
+        time2 = time.time()
+        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
+        
+        if test_acc > best_acc:
+            best_acc = test_acc
+        
+        # save q_table
         if opt.JPEG_enable:
             lum_qtable =  model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             chrom_qtable =  model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
@@ -225,92 +238,64 @@ def main(opt):
             print("Quantization Table --> Min: {:.2f}, Max: {:.2f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
             str_q_alpha = str(quantizationTable.min().item())  + "\t" + str(quantizationTable.max().item())
             
+            # save lum and chrom q_table for this epoch
+            lum_qtable = lum_qtable.reshape(8,8)
+            chrom_qtable = chrom_qtable.reshape(8,8)
+            lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
+            with open(lum_q_tables_file, 'a') as f:
+                np.savetxt(f, lum_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
+                f.write('\n')
+            
+            chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
+            with open(chrom_q_tables_file, 'a') as f:
+                np.savetxt(f, chrom_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
+                f.write('\n')
+        
+        # save alpha
         if opt.JPEG_enable and opt.JPEG_alpha_trainable:
             alpha_lum =  model.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alpha_chrom =  model.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alpha = torch.cat((alpha_lum, alpha_chrom), 0)
             print("Alpha --> Min: {:.5f}, Max: {:.5f}".format(alpha.min().item(), alpha.max().item()))
             str_q_alpha += "\t" +  str(alpha.min().item())  + "\t" + str(alpha.max().item())  + "\t" 
-            
-        # train and validate
-        time1 = time.time()
-        train_acc, train_loss = train(epoch, train_loader, model, criterion, optimizer, opt)    
-        test_acc, test_acc_top5, test_loss = validate_jpeg(val_loader, model, criterion, opt)
-        time2 = time.time()
-        print('epoch {}, total time {:.2f}'.format(epoch, time2 - time1))
-
-        # save the best model
-        if test_acc > best_acc:
-            best_acc = test_acc
-            state = {
-                'epoch': epoch,
-                'model': model.state_dict(),
-                'accuracy': test_acc,
-                'best_acc': best_acc,
-                'opt': opt,
-                'optimizer': optimizer.state_dict(),
-            }
-            save_file = os.path.join(opt.save_folder, '{}_best.pth'.format(opt.model))
-            print('saving the best model!')
-            torch.save(state, save_file)
-
-        with open(log_fname, 'a') as log:
-            line = str(epoch) + "\t" + \
-                   str(test_acc.cpu().numpy()) + "\t" +  \
-                   str(best_acc.item()) + "\t" +  \
-                   str(test_loss)   + "\t" + \
-                   str(train_loss)   + "\t" + \
-                   str_q_alpha + '\n'
+        
+        # save test train acc and loss
+        with open(opt.logs_fname, 'a') as log:
+            line =  str(epoch) + "\t" + \
+                    str(best_acc.item()) + "\t" +  \
+                    str(test_acc.cpu().numpy()) + "\t" +  \
+                    str(train_acc.cpu().numpy()) + "\t" +  \
+                    str(test_loss) + "\t" + \
+                    str(train_loss) + "\t" + \
+                    str(test_lum_dc) + "\t" + \
+                    str(test_chrom_dc) + "\t" + \
+                    str(test_lum_ac) + "\t" + \
+                    str(test_chrom_ac) + "\t" + \
+                    str(train_lum_dc) + "\t" + \
+                    str(train_chrom_dc) + "\t" + \
+                    str(train_lum_ac) + "\t" + \
+                    str(train_chrom_ac) + "\t" + \
+                    str_q_alpha + '\n'
             log.write(line)
 
-        # regular saving
-        if epoch % opt.save_freq == 0:
-            print('==> Saving...')
-            state = {
-                'epoch': epoch,
-                'model': model.state_dict(),
-                'accuracy': test_acc,
-                'opt': opt,
-                'optimizer': optimizer.state_dict(),
-            }
-            save_file = os.path.join(opt.save_folder, 'ckpt_epoch_{epoch}.pth'.format(epoch=epoch))
-            # torch.save(state, save_file)
-        
-        # if epoch > 1: break
-
-    # This best accuracy is only for printing purpose.
-    # The results reported in the paper/README is from the last epoch.
-    print('best accuracy:', best_acc.item())
-    QF_fname = os.path.join(opt.Q_tables_folder, '{experiment}.pt'.format(experiment=opt.model_name))
-    alpha_fname = os.path.join(opt.alpha_folder, '{experiment}.pt'.format(experiment=opt.model_name))
+    # After training, save the final q_table and alpha
+    print('Best accuracy:', best_acc.item())
     
     if opt.JPEG_enable:
         lum_qtable =  model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
         chrom_qtable =  model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
         quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
-        torch.save(quantizationTable, QF_fname)
+        torch.save(quantizationTable, opt.q_table_fname)
     
     if opt.JPEG_enable and opt.JPEG_alpha_trainable: 
         alpha_lum =  model.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
         alpha_chrom =  model.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
         alpha = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
-        torch.save(alpha, alpha_fname)
+        torch.save(alpha, opt.alpha_fname)
     
-    exp_txt = open('{}_experimetal_Results_JPEG_DL.txt'.format(opt.dataset), 'a+')
-    exp_txt.write(opt.model_name +"\t"+ str(epoch) + "\t" + str(best_acc.item()) + "\n") # Write some text
-    exp_txt.close() # Close the file
-
-    # save model
-    state = {
-            'epoch': epoch,
-            'model': model.state_dict(),
-            'best_acc': best_acc,
-            'accuracy': test_acc,
-            'opt': opt,
-            'optimizer': optimizer.state_dict(),
-    }
-    save_file = os.path.join(opt.save_folder, '{}_last.pth'.format(opt.model))
-    torch.save(state, save_file)
+    # exp_txt = open('{}_experimetal_Results_JPEG_DL.txt'.format(opt.dataset), 'a+')
+    # exp_txt.write(opt.model_name +"\t"+ str(epoch) + "\t" + str(best_acc.item()) + "\n") # Write some text
+    # exp_txt.close() # Close the file
 
 
 def profiling():
@@ -332,8 +317,8 @@ if __name__ == '__main__':
         main(opt)
     else:
         check_val(opt)
-    # # profiling()
-
+    # profiling()
+    
     # import torch
     # print(torch.cuda.is_available())
     # print(torch.cuda.get_device_name(0))
