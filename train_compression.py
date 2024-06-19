@@ -33,6 +33,18 @@ def create_trial_folder(base_folder):
         trial_num += 1
 
 # python train_compression.py --JPEG_enable --freeze_model
+# /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model
+# tmux
+# tmux detach
+# tmux attach -t 0
+# tmux kill-session -t 0
+# tmux ls
+# tmux switch -t <session-name>
+# tmux rename-session -t 0 <new-name>
+# ctrl+b and press d to detach when running code
+# ps aux | grep tmux
+
+
 def parse_option():
     hostname = socket.gethostname()
     parser = argparse.ArgumentParser('argument for training')
@@ -60,8 +72,8 @@ def parse_option():
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
     
-    parser.add_argument('--JEPG_alpha', type=float, default=50.0, help='Tempurature scaling')
-    parser.add_argument('--JEPG_learning_rate', type=float, default=0.020, help='Quantization Table Learning Rate')
+    parser.add_argument('--JEPG_alpha', type=float, default=20.0, help='Tempurature scaling')
+    parser.add_argument('--JEPG_learning_rate', type=float, default=0.025, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
     parser.add_argument('--block_size', type=int, default=8, help='the experiment id')
