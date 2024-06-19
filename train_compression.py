@@ -45,7 +45,7 @@ def parse_option():
     parser.add_argument('--batch_size', type=int, default=32, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8, help='num of workers to use')
     parser.add_argument('--epochs', type=int, default=100, help='number of training epochs')
-    parser.add_argument('--learning_rate', type=float, default=0.1, help='learning rate')
+    parser.add_argument('--learning_rate', type=float, default=0.15, help='learning rate')
     parser.add_argument('--lr_decay_epochs', type=str, default='50,80', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
@@ -60,8 +60,8 @@ def parse_option():
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
     
-    parser.add_argument('--JEPG_alpha', type=float, default=2.0, help='Tempurature scaling')
-    parser.add_argument('--JEPG_learning_rate', type=float, default=0.04, help='Quantization Table Learning Rate')
+    parser.add_argument('--JEPG_alpha', type=float, default=50.0, help='Tempurature scaling')
+    parser.add_argument('--JEPG_learning_rate', type=float, default=0.020, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
     parser.add_argument('--block_size', type=int, default=8, help='the experiment id')
@@ -69,8 +69,8 @@ def parse_option():
     parser.add_argument('--min_Q_Step', type=float, default=1.0, help='Minumum Quantization Step')
     parser.add_argument('--max_Q_Step', type=float, default=255, help='Maximum Quantization Step')
     parser.add_argument('--num_non_zero_q', type=int, default=5, choices=range(2,2**10 - 1), help='Window size for the reconstruction space')
-    parser.add_argument('--weight_lum', type=float, default=0.5, help='weight for lum entropy')
-    parser.add_argument('--weight_chrom', type=float, default=0.5, help='weight for Chrom entropy')
+    parser.add_argument('--weight_lum', type=float, default=0.0, help='weight for lum entropy')
+    parser.add_argument('--weight_chrom', type=float, default=0.0, help='weight for Chrom entropy')
     
     parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])
     parser.add_argument('--seed', type=int, default=0, help='seed id, set to 0 if do not want to fix the seed')
@@ -85,7 +85,7 @@ def parse_option():
     
     if opt.JPEG_enable:
         opt.added_layer = "JPEG"
-        opt.model_name = 'JEPG_lr_{}_alpha_{}_alpha_lr_{}{}'.format(opt.JEPG_learning_rate, opt.JEPG_alpha, opt.alpha_learning_rate, opt.log_file)
+        opt.model_name = 'JEPG_lr_{}_alpha_{}_alpha_lr_{}_weight_{}_{}{}'.format(opt.JEPG_learning_rate, opt.JEPG_alpha, opt.alpha_learning_rate, opt.weight_lum, opt.weight_chrom, opt.log_file)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
@@ -234,11 +234,15 @@ def main(opt):
         if opt.JPEG_enable:
             lum_qtable =  model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             chrom_qtable =  model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0)
+            quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
             print("Quantization Table --> Min: {:.2f}, Max: {:.2f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
             str_q_alpha = str(quantizationTable.min().item())  + "\t" + str(quantizationTable.max().item())
             
-            # save lum and chrom q_table for this epoch
+            # save the exact q_table
+            q_tables_file = os.path.join(opt.q_tables_folder, 'q_table_epoch_{}.pt'.format(epoch))
+            torch.save(quantizationTable, q_tables_file)
+            
+            # save lum and chrom q_table for ploting trend
             lum_qtable = lum_qtable.reshape(8,8)
             chrom_qtable = chrom_qtable.reshape(8,8)
             lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
@@ -250,7 +254,7 @@ def main(opt):
             with open(chrom_q_tables_file, 'a') as f:
                 np.savetxt(f, chrom_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
                 f.write('\n')
-        
+
         # save alpha
         if opt.JPEG_enable and opt.JPEG_alpha_trainable:
             alpha_lum =  model.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
@@ -281,11 +285,11 @@ def main(opt):
     # After training, save the final q_table and alpha
     print('Best accuracy:', best_acc.item())
     
-    if opt.JPEG_enable:
-        lum_qtable =  model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-        chrom_qtable =  model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-        quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
-        torch.save(quantizationTable, opt.q_table_fname)
+    # if opt.JPEG_enable:
+    #     lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+    #     chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+    #     quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
+    #     torch.save(quantizationTable, opt.q_table_fname)
     
     if opt.JPEG_enable and opt.JPEG_alpha_trainable: 
         alpha_lum =  model.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
