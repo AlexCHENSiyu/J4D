@@ -1,9 +1,9 @@
 GPU_ID=0
 
-# CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-#                                     --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
-#                                     --JPEG_alpha 50 --JPEG_learning_rate 0.02 \
-#                                     --weight_lum 0.0 --weight_chrom 0.0 \
+CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
+                                    --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
+                                    --JPEG_alpha 100 --JPEG_learning_rate 0.01 \
+                                    --weight_lum 0.1 --weight_chrom 0.1 \
 
 # JPEG_learning_rate_list=(0.015 0.020 0.025 0.030 0.035 0.040)
 # for learning_rate in "${JPEG_learning_rate_list[@]}"; do
@@ -21,13 +21,13 @@ GPU_ID=0
 #                                     --weight_lum $weight --weight_chrom $weight
 # done
 
-alpha_lr_pairs=(
-    "10 0.035"
-    "20 0.03"
-    "50 0.02"
-    "100 0.01"
-    "200 0.008"
-)
+# alpha_lr_pairs=(
+#     "10 0.035"
+#     "20 0.03"
+#     "50 0.02"
+#     "100 0.01"
+#     "200 0.008"
+# )
 
 # alpha_lr_pairs=(
 #     "200 0.008"
@@ -37,13 +37,13 @@ alpha_lr_pairs=(
 #     "600 0.004"
 # )
 
-for pair in "${alpha_lr_pairs[@]}"; do
-    read alpha learning_rate <<< "$pair"
-    alpha=$(echo "$alpha" | bc) # Ensures alpha is treated as a number
-    learning_rate=$(echo "$learning_rate" | bc) # Ensures learning_rate is treated as a number
+# for pair in "${alpha_lr_pairs[@]}"; do
+#     read alpha learning_rate <<< "$pair"
+#     alpha=$(echo "$alpha" | bc) # Ensures alpha is treated as a number
+#     learning_rate=$(echo "$learning_rate" | bc) # Ensures learning_rate is treated as a number
 
-    CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-                                    --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
-                                    --JPEG_alpha "$alpha" --JPEG_learning_rate "$learning_rate" \
-                                    --weight_lum 0.1 --weight_chrom 0.1
-done
+#     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
+#                                     --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
+#                                     --JPEG_alpha "$alpha" --JPEG_learning_rate "$learning_rate" \
+#                                     --weight_lum 0.1 --weight_chrom 0.1
+# done
