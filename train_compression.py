@@ -32,6 +32,7 @@ def create_trial_folder(base_folder):
             return trial_folder
         trial_num += 1
 
+
 # python train_compression.py --JPEG_enable --freeze_model
 # /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model
 # tmux
@@ -110,19 +111,7 @@ def parse_option():
     trial_folder = create_trial_folder(base_folder)
 
     opt.logs_fname = os.path.join(trial_folder, "logs.txt")
-    # with open(opt.logs_fname, 'a') as log:
-    #     line =  "epoch" + "\t" + \
-    #             "best_acc" + "\t" +  "test_acc" + "\t" +  "train_acc" + "\t" +  \
-    #             "test_loss" + "\t" + "train_loss" + "\t" + \
-    #             "test_lum_dc" + "\t" + "test_chrom_dc" + "\t" + \
-    #             "test_lum_ac" + "\t" + "test_chrom_ac" + "\t" + \
-    #             "train_lum_dc" + "\t" + "train_chrom_dc" + "\t" + \
-    #             "train_lum_ac" + "\t" + "train_chrom_ac" + "\t" + \
-    #             "q_alpha_min" + "\t" + "q_alpha_max" + '\n'
-    #     log.write(line)
-    
     opt.q_table_fname = os.path.join(trial_folder, "q_table.pt")
-    
     opt.alpha_fname = os.path.join(trial_folder, "Alpha.pt")
     
     opt.q_tables_folder = os.path.join(trial_folder, "Q_tables")
