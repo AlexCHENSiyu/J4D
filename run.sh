@@ -21,21 +21,21 @@ GPU_ID=0
 #                                     --weight_lum $weight --weight_chrom $weight
 # done
 
-# alpha_lr_pairs=(
-#     "10 0.035"
-#     "20 0.03"
-#     "50 0.02"
-#     "100 0.01"
-#     "200 0.008"
-# )
-
 alpha_lr_pairs=(
+    "10 0.035"
+    "20 0.03"
+    "50 0.02"
+    "100 0.01"
     "200 0.008"
-    "300 0.007"
-    "400 0.006"
-    "500 0.005"
-    "600 0.004"
 )
+
+# alpha_lr_pairs=(
+#     "200 0.008"
+#     "300 0.007"
+#     "400 0.006"
+#     "500 0.005"
+#     "600 0.004"
+# )
 
 for pair in "${alpha_lr_pairs[@]}"; do
     read alpha learning_rate <<< "$pair"

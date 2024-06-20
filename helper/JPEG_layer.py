@@ -26,6 +26,7 @@ class CustomModel(nn.Module):
         x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x)
         # Pass the output of jpeg_layer to the underlying_model
         # along with any additional arguments
+        self.underlying_model.eval()
         x = self.underlying_model(x, *args, **kwargs)
         return x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
 
