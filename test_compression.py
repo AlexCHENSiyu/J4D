@@ -22,7 +22,7 @@ import numpy as np
 import random
 
 
-base_path = "./save/CUB200/resnet18/JPEG_lr_0.01_alpha_100.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_1"
+base_path = "./save/CUB200/resnet18/JPEG_lr_0.01_alpha_100.0_alpha_lr_None_weight_0.1_0.1_alpha_untrainable/trial_2"
 
 
 def main(opt):
@@ -35,15 +35,10 @@ def main(opt):
         torch.manual_seed(opt.seed)
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-    
-    mean = (0.485, 0.456, 0.406)
-    std = (0.229, 0.224, 0.225)
-
-    mean_datatloader = (0, 0, 0)
-    std_datatloader = (1/255., 1/255., 1/255.)
+        print("set seed:", opt.seed)
 
     if opt.dataset == 'CUB200':
-        train_loader, val_loader = load_dataset(name="CUB200", mean=mean_datatloader, std=std_datatloader)
+        train_loader, val_loader = load_dataset(name="CUB200", mean=(0, 0, 0), std=(1/255., 1/255., 1/255.))
         targets = []
         for inputs, batch_targets in val_loader:
             targets.extend(batch_targets)
@@ -57,13 +52,13 @@ def main(opt):
     model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth"
     underlying_model.load_state_dict(torch.load(model_path)['model'])
     
-    JPEG_layer_q_table = torch.load(os.path.join(base_path,'Q_tables/q_table_epoch_61.pt'))
-    lum_q_table, chrom_q_table = JPEG_layer_q_table[0].to(dtype=torch.float32), JPEG_layer_q_table[1].to(dtype=torch.float32)
+    JPEG_layer_q_table = torch.load(os.path.join(base_path,'Q_tables/q_table_epoch_100.pt'))
+    lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
     lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
     chrom_q_table = chrom_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
     
     if opt.JPEG_enable:
-        jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=mean, std=std)
+        jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
         jpeg_layer.lum_qtable = nn.Parameter(lum_q_table)
         jpeg_layer.chrom_qtable = nn.Parameter(chrom_q_table)
         model = CustomModel(jpeg_layer, underlying_model)
@@ -76,16 +71,17 @@ def main(opt):
         if not opt.seed:
             cudnn.benchmark = True
     
-    test_acc, test_acc_top5, test_loss, outputs = validate_with_output(val_loader, model, criterion, opt)
+    test_acc, test_acc_top5, test_loss, outputs, lum_dc, chrom_dc, lum_ac, chrom_ac = validate_with_output(val_loader, model, criterion, opt)
     print("test_acc:", test_acc)
+    print("test_acc_top5:", test_acc_top5)
+    print("lum_dc:", lum_dc)
+    print("chrom_dc:", chrom_dc)
+    print("lum_ac:", lum_ac)
+    print("chrom_ac:", chrom_ac)
     print("test_loss:", test_loss)
-    
-    print(len(outputs))
-    print(len(targets))
     
     with open("./save/CUB200/resnet18/output_target.txt", 'w') as f:
         for output, target in zip(outputs, targets):
-            # Write the output and target to the file, formatted as needed
             f.write(f"{output} {target}\n")
 
 
