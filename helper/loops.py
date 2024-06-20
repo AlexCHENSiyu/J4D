@@ -268,6 +268,11 @@ def validate_with_output(val_loader, model, criterion, opt):
     top1 = AverageMeter()
     top5 = AverageMeter()
 
+    losses_lum_dc_entropy = AverageMeter()
+    losses_chrom_dc_entropy = AverageMeter()
+    losses_lum_ac_entropy = AverageMeter()
+    losses_chrom_ac_entropy = AverageMeter()
+    
     # switch to evaluate mode
     model.eval()
 
@@ -290,18 +295,28 @@ def validate_with_output(val_loader, model, criterion, opt):
             acc1, acc5 = accuracy(output, targets, topk=(1, 5))
             
             losses.update(loss.item(), inputs.size(0))
+            losses_lum_dc_entropy.update(lum_dc_entropy.item(), inputs.size(0))
+            losses_chrom_dc_entropy.update(chrom_dc_entropy.item(), inputs.size(0))
+            losses_lum_ac_entropy.update(lum_ac_entropy.item(), inputs.size(0))
+            losses_chrom_ac_entropy.update(chrom_ac_entropy.item(), inputs.size(0))
             top1.update(acc1[0], inputs.size(0))
             top5.update(acc5[0], inputs.size(0))
 
             if idx % opt.print_freq == 0:
                 print(  'Test: [{0}/{1}]\t'
                         'Loss {loss.val:.6f} ({loss.avg:.6f})\t'
+                        'Lum_DC {loss_lum_dc_entropy.val:.2f} ({loss_lum_dc_entropy.avg:.2f})\t'
+                        'Chrom_DC {loss_chrom_dc_entropy.val:.2f} ({loss_chrom_dc_entropy.avg:.2f})\t'
+                        'Lum_AC {loss_lum_ac_entropy.val:.2f} ({loss_lum_ac_entropy.avg:.2f})\t'
+                        'Chrom_AC {loss_chrom_ac_entropy.val:.2f} ({loss_chrom_ac_entropy.avg:.2f})\t'
                         'Acc@1 {top1.val:.6f} ({top1.avg:.6f})\t'
                         'Acc@5 {top5.val:.6f} ({top5.avg:.6f})'.format(
                         idx, len(val_loader),
-                        loss=losses, top1=top1, top5=top5))
+                        loss=losses, loss_lum_dc_entropy=losses_lum_dc_entropy, loss_chrom_dc_entropy=losses_chrom_dc_entropy,
+                        loss_lum_ac_entropy = losses_lum_ac_entropy, loss_chrom_ac_entropy = losses_chrom_ac_entropy,
+                        top1=top1, top5=top5))
 
-        print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
+        print(' * Acc@1 {top1.avg:.6f} Acc@5 {top5.avg:.6f}'
               .format(top1=top1, top5=top5))
 
-    return top1.avg, top5.avg, losses.avg, outputs
+    return top1.avg, top5.avg, losses.avg, outputs, losses_lum_dc_entropy.avg, losses_chrom_dc_entropy.avg, losses_lum_ac_entropy.avg, losses_chrom_ac_entropy.avg
