@@ -299,6 +299,13 @@ def main(opt):
     # exp_txt.write(opt.model_name +"\t"+ str(epoch) + "\t" + str(best_acc.item()) + "\n") # Write some text
     # exp_txt.close() # Close the file
 
+    # save model
+    state = {
+        'model': model.state_dict(),
+    }
+    save_file = os.path.join(opt.q_tables_folder, 'last.pth')
+    torch.save(state, save_file)
+
 
 def profiling():
     import cProfile
