@@ -72,8 +72,8 @@ def parse_option():
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
     
-    parser.add_argument('--JEPG_alpha', type=float, default=20.0, help='Tempurature scaling')
-    parser.add_argument('--JEPG_learning_rate', type=float, default=0.025, help='Quantization Table Learning Rate')
+    parser.add_argument('--JPEG_alpha', type=float, default=20.0, help='Tempurature scaling')
+    parser.add_argument('--JPEG_learning_rate', type=float, default=0.025, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
     parser.add_argument('--block_size', type=int, default=8, help='the experiment id')
@@ -97,7 +97,7 @@ def parse_option():
     
     if opt.JPEG_enable:
         opt.added_layer = "JPEG"
-        opt.model_name = 'JEPG_lr_{}_alpha_{}_alpha_lr_{}_weight_{}_{}{}'.format(opt.JEPG_learning_rate, opt.JEPG_alpha, opt.alpha_learning_rate, opt.weight_lum, opt.weight_chrom, opt.log_file)
+        opt.model_name = 'JPEG_lr_{}_alpha_{}_alpha_lr_{}_weight_{}_{}{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.alpha_learning_rate, opt.weight_lum, opt.weight_chrom, opt.log_file)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
@@ -204,9 +204,9 @@ def main(opt):
         
         optimizer_data = [
             # {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
-            {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JEPG_learning_rate, 'momentum': opt.momentum,},
-            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate), 'momentum': opt.momentum,},
-            # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JEPG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
+            {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
+            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
+            # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
         ]
         
         if opt.JPEG_alpha_trainable:

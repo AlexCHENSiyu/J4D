@@ -30,7 +30,7 @@ def adjust_learning_rate(epoch, opt, optimizer):
     if steps > 0:
         new_lr = opt.learning_rate * (opt.lr_decay_rate ** steps)
         if opt.JPEG_enable:
-            new_lr_JPEG = opt.JEPG_learning_rate * (opt.lr_decay_rate ** steps)
+            new_lr_JPEG = opt.JPEG_learning_rate * (opt.lr_decay_rate ** steps)
             optimizer.param_groups[0]['lr'] = new_lr_JPEG
             optimizer.param_groups[1]['lr'] = new_lr_JPEG
             if opt.JPEG_alpha_trainable: 

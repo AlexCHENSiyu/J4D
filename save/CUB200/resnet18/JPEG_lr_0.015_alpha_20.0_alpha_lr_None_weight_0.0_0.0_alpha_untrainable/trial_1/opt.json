@@ -18,8 +18,8 @@
     "JPEG_enable": true,
     "freeze_model": true,
     "JPEG_alpha_trainable": false,
-    "JEPG_alpha": 20.0,
-    "JEPG_learning_rate": 0.015,
+    "JPEG_alpha": 20.0,
+    "JPEG_learning_rate": 0.015,
     "alpha_learning_rate": null,
     "Q_inital": 1.0,
     "block_size": 8,
@@ -33,10 +33,10 @@
     "seed": 0,
     "accumulation_steps": 1,
     "added_layer": "JPEG",
-    "model_name": "JEPG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable",
-    "logs_fname": "./save/CUB200/resnet18/JEPG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/logs.txt",
-    "q_table_fname": "./save/CUB200/resnet18/JEPG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/q_table.pt",
-    "alpha_fname": "./save/CUB200/resnet18/JEPG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/Alpha.pt",
-    "q_tables_folder": "./save/CUB200/resnet18/JEPG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/Q_tables",
-    "opt_fname": "./save/CUB200/resnet18/JEPG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/opt.json"
+    "model_name": "JPEG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable",
+    "logs_fname": "./save/CUB200/resnet18/JPEG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/logs.txt",
+    "q_table_fname": "./save/CUB200/resnet18/JPEG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/q_table.pt",
+    "alpha_fname": "./save/CUB200/resnet18/JPEG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/Alpha.pt",
+    "q_tables_folder": "./save/CUB200/resnet18/JPEG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/Q_tables",
+    "opt_fname": "./save/CUB200/resnet18/JPEG_lr_0.015_alpha_20.0_alpha_lr_None_weight_0.0_0.0_alpha_untrainable/trial_2/opt.json"
 }
