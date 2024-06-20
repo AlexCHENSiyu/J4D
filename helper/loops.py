@@ -262,3 +262,46 @@ def validate_attack(val_loader, model, criterion, opt, atk):
     return top1.avg, top5.avg, losses.avg
 
 
+def validate_with_output(val_loader, model, criterion, opt):
+    """validation"""
+    losses = AverageMeter()
+    top1 = AverageMeter()
+    top5 = AverageMeter()
+
+    # switch to evaluate mode
+    model.eval()
+
+    with torch.no_grad():
+        outputs = []
+        
+        for idx, (inputs, targets) in enumerate(val_loader):
+            
+            inputs = inputs.float()
+            if torch.cuda.is_available():
+                inputs = inputs.cuda()
+                targets = targets.cuda()
+
+            # compute output
+            output, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(inputs)
+            outputs.extend(torch.argmax(output, dim=1).cpu().tolist()) # type: <class 'torch.Tensor'>, shape: torch.Size([16, 200])
+            
+            loss = criterion(output, targets) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
+                opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
+            acc1, acc5 = accuracy(output, targets, topk=(1, 5))
+            
+            losses.update(loss.item(), inputs.size(0))
+            top1.update(acc1[0], inputs.size(0))
+            top5.update(acc5[0], inputs.size(0))
+
+            if idx % opt.print_freq == 0:
+                print(  'Test: [{0}/{1}]\t'
+                        'Loss {loss.val:.6f} ({loss.avg:.6f})\t'
+                        'Acc@1 {top1.val:.6f} ({top1.avg:.6f})\t'
+                        'Acc@5 {top5.val:.6f} ({top5.avg:.6f})'.format(
+                        idx, len(val_loader),
+                        loss=losses, top1=top1, top5=top5))
+
+        print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
+              .format(top1=top1, top5=top5))
+
+    return top1.avg, top5.avg, losses.avg, outputs
