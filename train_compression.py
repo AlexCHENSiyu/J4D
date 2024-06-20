@@ -85,7 +85,7 @@ def parse_option():
     parser.add_argument('--weight_chrom', type=float, default=0.0, help='weight for Chrom entropy')
     
     parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])
-    parser.add_argument('--seed', type=int, default=0, help='seed id, set to 0 if do not want to fix the seed')
+    parser.add_argument('--seed', type=int, default=42, help='seed id, set to 0 if do not want to fix the seed')
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of micro-batches to accumulate')
     
     opt = parser.parse_args()
@@ -175,9 +175,6 @@ def main(opt):
         torch.manual_seed(opt.seed)
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-    
-    if torch.cuda.is_available():
-        cudnn.benchmark = True
 
     # torch.autograd.set_detect_anomaly(True)
     

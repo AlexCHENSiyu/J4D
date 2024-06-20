@@ -2,7 +2,7 @@ GPU_ID=0
 
 # CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
 #                                     --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
-#                                     --JPEG_alpha 50 --JPEG_learning_rate 0.025 \
+#                                     --JPEG_alpha 50 --JPEG_learning_rate 0.02 \
 #                                     --weight_lum 0.0 --weight_chrom 0.0 \
 
 # JPEG_learning_rate_list=(0.015 0.020 0.025 0.030 0.035 0.040)
@@ -21,12 +21,20 @@ GPU_ID=0
 #                                     --weight_lum $weight --weight_chrom $weight
 # done
 
+# alpha_lr_pairs=(
+#     "10 0.035"
+#     "20 0.03"
+#     "50 0.02"
+#     "100 0.01"
+#     "200 0.008"
+# )
+
 alpha_lr_pairs=(
-    "10 0.35"
-    "20 0.3"
-    "50 0.2"
-    "100 0.1"
-    "200 0.05"
+    "200 0.008"
+    "300 0.007"
+    "400 0.006"
+    "500 0.005"
+    "600 0.004"
 )
 
 for pair in "${alpha_lr_pairs[@]}"; do
