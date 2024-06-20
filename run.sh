@@ -36,6 +36,6 @@ for pair in "${alpha_lr_pairs[@]}"; do
 
     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
                                     --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
-                                    --JEPG_alpha "$alpha" --JEPG_learning_rate "$learning_rate" \
+                                    --JPEG_alpha "$alpha" --JPEG_learning_rate "$learning_rate" \
                                     --weight_lum 0.1 --weight_chrom 0.1
 done
