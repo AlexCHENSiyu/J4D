@@ -84,8 +84,8 @@ class JPEG_layer(nn.Module):
         # Define alpha
         self.alpha_lum = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
         self.alpha_chrom = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
-        nn.init.constant_(self.alpha_lum, opt.JEPG_alpha)
-        nn.init.constant_(self.alpha_chrom, opt.JEPG_alpha)
+        nn.init.constant_(self.alpha_lum, opt.JPEG_alpha)
+        nn.init.constant_(self.alpha_chrom, opt.JPEG_alpha)
         
         if opt.JPEG_alpha_trainable:
             print("==> Alpha is trainable per quantization step")
