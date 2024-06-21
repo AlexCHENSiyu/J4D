@@ -101,6 +101,7 @@ def validate_jpeg(val_loader, model, criterion, opt):
     losses_chrom_ac_entropy = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
+    BPP = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
@@ -115,7 +116,7 @@ def validate_jpeg(val_loader, model, criterion, opt):
                 target = target.cuda()
 
             # compute output
-            output, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(input)
+            output, bpp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(input)
             loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
                 opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
@@ -132,6 +133,7 @@ def validate_jpeg(val_loader, model, criterion, opt):
             
             top1.update(acc1[0], input.size(0))
             top5.update(acc5[0], input.size(0))
+            BPP.update(bpp, input.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -141,6 +143,7 @@ def validate_jpeg(val_loader, model, criterion, opt):
                 print(  'Test: [{0}/{1}]\t'
                         'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                         'Loss {loss.val:.3f} ({loss.avg:.3f})\t'
+                        'BPP {BPP.val:.2f} ({BPP.avg:.2f})\t'
                         'Lum_DC {loss_lum_dc_entropy.val:.2f} ({loss_lum_dc_entropy.avg:.2f})\t'
                         'Chrom_DC {loss_chrom_dc_entropy.val:.2f} ({loss_chrom_dc_entropy.avg:.2f})\t'
                         'Lum_AC {loss_lum_ac_entropy.val:.2f} ({loss_lum_ac_entropy.avg:.2f})\t'
@@ -148,14 +151,14 @@ def validate_jpeg(val_loader, model, criterion, opt):
                         'Acc@1 {top1.val:.2f} ({top1.avg:.2f})\t'
                         'Acc@5 {top5.val:.2f} ({top5.avg:.2f})'.format(
                         idx, len(val_loader), batch_time=batch_time, 
-                        loss=losses, loss_lum_dc_entropy=losses_lum_dc_entropy, loss_chrom_dc_entropy=losses_chrom_dc_entropy,
+                        loss=losses, BPP=BPP, loss_lum_dc_entropy=losses_lum_dc_entropy, loss_chrom_dc_entropy=losses_chrom_dc_entropy,
                         loss_lum_ac_entropy = losses_lum_ac_entropy, loss_chrom_ac_entropy = losses_chrom_ac_entropy,
                         top1=top1, top5=top5))
 
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
-    return top1.avg, top5.avg, losses.avg, losses_lum_dc_entropy.avg, losses_chrom_dc_entropy.avg, losses_lum_ac_entropy.avg, losses_chrom_ac_entropy.avg
+    return top1.avg, top5.avg, losses.avg, BPP.avg, losses_lum_dc_entropy.avg, losses_chrom_dc_entropy.avg, losses_lum_ac_entropy.avg, losses_chrom_ac_entropy.avg
 
 
 

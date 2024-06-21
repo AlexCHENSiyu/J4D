@@ -221,7 +221,7 @@ def main(opt):
         # train and validate
         time1 = time.time()
         train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)    
-        test_acc, test_acc_top5, test_loss, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model, criterion, opt)
+        test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model, criterion, opt)
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         

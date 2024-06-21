@@ -21,14 +21,18 @@ class CustomModel(nn.Module):
         self.jpeg_layer = jpeg_layer
         self.underlying_model = underlying_model
 
-    def forward(self, x, *args, **kwargs):
-        # Pass input through jpeg_layer
-        x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x)
-        # Pass the output of jpeg_layer to the underlying_model
-        # along with any additional arguments
-        self.underlying_model.eval()
-        x = self.underlying_model(x, *args, **kwargs)
-        return x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+    def forward(self, x, huffman_entropy=False, *args, **kwargs):
+        if huffman_entropy:
+            x, bbp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x, huffman_entropy)
+            self.underlying_model.eval()
+            x = self.underlying_model(x, *args, **kwargs)
+            return x, bbp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+        else:
+            x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x, huffman_entropy)
+            self.underlying_model.eval()
+            x = self.underlying_model(x, *args, **kwargs)
+            return x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+
 
 
 # Define your neural network
@@ -104,7 +108,7 @@ class JPEG_layer(nn.Module):
         self.register_forward_pre_hook(self.reinitialize_q_table_alpha)
 
 
-    def forward(self, input_RGB):
+    def forward(self, input_RGB, huffman_entropy=False):
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
         # print("lum max:", self.lum_qtable.max().item(), "lum min:", self.lum_qtable.min().item(), "chrom max:", self.chrom_qtable.max().item(), "chrom max", self.chrom_qtable.min().item())
         # print("lum_qtable:", self.lum_qtable, "chrom_qtable", self.chrom_qtable)
@@ -138,14 +142,15 @@ class JPEG_layer(nn.Module):
         cmpf_mask_lum = torch.clamp(F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5]
         cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
         
-        breakpoint()
-        cmpf_mask_lum.sum(dim=-1)
-        
         # Q_d
         estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
         estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1)
         
         estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 1)
+        
+        if huffman_entropy:
+            bpp = 0
+            pass
         
         norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(estimated_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
         norm_img += 128
@@ -160,17 +165,19 @@ class JPEG_layer(nn.Module):
         assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
         
-        lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-        # print("dc_entropy", weighted_dc_entropy.item())
-        
-        lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-        # print("ac_entropy", weighted_ac_entropy.item())
+        if not huffman_entropy:
+            lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
+            # print("dc_entropy", weighted_dc_entropy.item())
+            
+            lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
+            # print("ac_entropy", weighted_ac_entropy.item())
         
         if self.analysis:
-            return norm_img, self.input_DCT_block_batch, estimated_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+            return norm_img, estimated_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+        elif huffman_entropy:
+            return norm_img, bpp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
         else:
             return norm_img, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
-            # return norm_img, torch.tensor(0, dtype=torch.float32).cuda(), weighted_ac_entropy
 
 
     def reinitialize_q_table_alpha(self, model, input):
