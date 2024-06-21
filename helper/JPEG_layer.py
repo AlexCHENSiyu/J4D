@@ -138,6 +138,9 @@ class JPEG_layer(nn.Module):
         cmpf_mask_lum = torch.clamp(F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5]
         cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
         
+        breakpoint()
+        cmpf_mask_lum.sum(dim=-1)
+        
         # Q_d
         estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
         estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1)
@@ -146,6 +149,8 @@ class JPEG_layer(nn.Module):
         
         norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(estimated_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
         norm_img += 128
+        
+        # print("norm_img.shape:", norm_img.shape) # torch.Size([2, 3, 224, 224])
         
         # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
         norm_img = self.normalize(self.Scale2One(norm_img))
