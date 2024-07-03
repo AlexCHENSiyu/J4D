@@ -108,15 +108,18 @@ def validate_jpeg(val_loader, model, criterion, opt):
 
     with torch.no_grad():
         end = time.time()
-        for idx, (input, target) in enumerate(val_loader):
-
+        for idx, data in enumerate(val_loader):
+            breakpoint()
+            # (input, bpp, psnr), target = data
+            (input, bpp, psnr, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy), target = data
+            
             input = input.float()
             if torch.cuda.is_available():
                 input = input.cuda()
                 target = target.cuda()
 
             # compute output
-            output, bpp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(input)
+            output = model(input)
             loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
                 opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
@@ -169,13 +172,15 @@ def validate(val_loader, model, criterion, opt):
     entropy_losses = AverageMeter()
     top1 = AverageMeter()
     top5 = AverageMeter()
+    BPP = AverageMeter()
+    PSNR = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
-
     with torch.no_grad():
         end = time.time()
-        for idx, (input, target) in enumerate(val_loader):
+        for idx, data in enumerate(val_loader):
+            (input, bpp, psnr), target = data
 
             input = input.float()
             if torch.cuda.is_available():
@@ -183,21 +188,24 @@ def validate(val_loader, model, criterion, opt):
                 target = target.cuda()
 
             # compute output
+            # breakpoint()
             output = model(input)
 
             loss = criterion(output, target) 
             
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
             # measure accuracy and record loss
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
             
             losses.update(loss.item(), input.size(0))
             top1.update(acc1[0], input.size(0))
             top5.update(acc5[0], input.size(0))
+            BPP.update(bpp.mean(), input.size(0))
+            PSNR.update(psnr.mean(), input.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
+
 
             if idx % opt.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
@@ -205,14 +213,17 @@ def validate(val_loader, model, criterion, opt):
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'
                       'Entropy Loss {entropy_loss.val:.4f} ({entropy_loss.avg:.4f})\t'
                       'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
-                      'Acc@5 {top5.val:.3f} ({top5.avg:.3f})'.format(
+                      'Acc@5 {top5.val:.3f} ({top5.avg:.3f})\t'
+                      'BPP {BPP.val:.3f} ({BPP.avg:.3f})\t'
+                      'PSNR {PSNR.val:.3f} ({PSNR.avg:.3f})'
+                      .format(
                        idx, len(val_loader), batch_time=batch_time, loss=losses, entropy_loss=entropy_losses, 
-                       top1=top1, top5=top5))
+                       top1=top1, top5=top5, BPP=BPP, PSNR=PSNR))
 
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))
 
-    return top1.avg, top5.avg, losses.avg
+    return top1.avg, top5.avg, losses.avg, BPP.avg
 
 
 def validate_attack(val_loader, model, criterion, opt, atk):

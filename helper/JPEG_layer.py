@@ -7,6 +7,8 @@ import torch.nn as nn
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from torch.special import entr
+import HDQ
+import cv2
 # from matplotlib.pyplot import figure
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -21,17 +23,125 @@ class CustomModel(nn.Module):
         self.jpeg_layer = jpeg_layer
         self.underlying_model = underlying_model
 
-    def forward(self, x, huffman_entropy=False, *args, **kwargs):
-        if huffman_entropy:
-            x, bbp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x, huffman_entropy)
+    def forward(self, x, validation=False, *args, **kwargs):
+        if validation:
+            x, bbp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x, validation)
             self.underlying_model.eval()
             x = self.underlying_model(x, *args, **kwargs)
             return x, bbp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
         else:
-            x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x, huffman_entropy)
+            x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(x, validation)
             self.underlying_model.eval()
             x = self.underlying_model(x, *args, **kwargs)
             return x, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+
+def colorSpace_machineSenstivity():
+    ColorSpaceW =  np.array( [
+                                [  0.299, 0.587, 0.114 ],
+                                [ -0.168736, -0.331264, 0.5  ],
+                                [ 0.5, -0.418688, -0.081312]
+                             ], dtype=float)
+    InvColorSpaceW = np.linalg.inv(ColorSpaceW).astype(float)
+    
+    eps = 1e-5
+    InvColorSpaceW[np.abs(InvColorSpaceW) < eps] = 0 # adjust the weight matrix in the color matrix
+    sen_map = np.ones((3,64), dtype=float)
+    BiasPerImageFlag = False
+    return ColorSpaceW, InvColorSpaceW, sen_map, BiasPerImageFlag
+
+
+def PSNR_cal_RGB(s, r, max_value=255):
+    s = np.array(s, dtype=np.float64) 
+    r = np.array(r, dtype=np.float64)
+    
+    height, width, channel = np.shape(s)
+    size = height*width 
+
+    sb,sg,sr = cv2.split(s)
+    rb,rg,rr = cv2.split(r)
+    
+    
+    mseb = ((sb-rb)**2).sum()
+    mseg = ((sg-rg)**2).sum()
+    mser = ((sr-rr)**2).sum()
+    mse = (mseb+mseg+mser)
+    
+    if mse == 0:
+        return float('inf')
+    
+    MSE = mse/(3*size)
+    psnr = 10*math.log10(255**2/MSE)
+    return round(psnr,2)
+
+class resize_compression(object):
+    def __init__(self, compressor, Resize_value=256, centerCrop_value=224, interpolation_method=transforms.InterpolationMode.BILINEAR):
+        super().__init__()
+        self.compressor = compressor
+        self.Resize_value = Resize_value
+        self.centerCrop_value = centerCrop_value
+        self.interpolation_method = interpolation_method
+
+    def  __call__(self, sample_org):
+        
+        sample_org = transforms.Resize(self.Resize_value, interpolation=self.interpolation_method)(sample_org)
+        sample_org = transforms.CenterCrop([self.centerCrop_value, self.centerCrop_value])(sample_org)
+        sample = self.compressor(sample_org)
+        BPP = sample['BPP']
+        sample = sample['image']
+        PSNR   = PSNR_cal_RGB(sample_org, sample)
+        sample = transforms.ToTensor()(sample)
+        sample = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(sample)
+        return sample, BPP, PSNR
+
+
+class HDQ_transforms(object):
+    def __init__(self, QF_Y, QF_C ):
+        self.QF_Y = QF_Y
+        self.QF_C = QF_C
+        self.J = 4
+        self.a = 4
+        self.b = 4
+        # Sensivity is ignored in this case as we do not need in the HDQ
+        self.ColorSpaceW, self.InvColorSpaceW, _ , self.BiasPerImageFlag = colorSpace_machineSenstivity()
+        self.comparsionRunner = HDQ.__call__
+    def __call__(self, sample):
+        # breakpoint()
+        sample = np.asarray(sample, dtype=float)
+        sample = np.transpose(sample, (2,0,1))
+        compressed_img, BPP = self.comparsionRunner(    sample, 
+                                                        self.ColorSpaceW,
+                                                        self.InvColorSpaceW,
+                                                        self.BiasPerImageFlag,
+                                                        self.J, self.a, self.b,
+                                                        self.QF_Y, self.QF_C)
+        compressed_img = np.round(compressed_img)    
+        compressed_img = np.uint8(compressed_img) 
+        compressed_img = np.transpose(compressed_img, (1,2,0))
+        return {'image': compressed_img, 'BPP': BPP}
+
+    def __repr__(self):
+        return 'HDQ_transforms!'
+
+class JPEG_layer_transforms(object):
+    def __init__(self, opt , img_shape=(224, 224, 3), mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+        self.jpeg_layer = JPEG_layer(opt, img_shape, mean, std, validation=True)
+        self.jpeg_layer.lum_qtable = self.jpeg_layer.lum_qtable.squeeze(0)
+        self.jpeg_layer.chrom_qtable = self.jpeg_layer.chrom_qtable.squeeze(0)
+
+        self.jpeg_layer.alpha_lum = self.jpeg_layer.alpha_lum.squeeze(0)
+        self.jpeg_layer.alpha_chrom = self.jpeg_layer.alpha_chrom.squeeze(0)
+
+    def __call__(self, sample):
+        BPP = 0.0
+        sample = np.asarray(sample, dtype=float)
+        sample = np.transpose(sample, (2,0,1))
+        sample = torch.tensor(sample, dtype=torch.float32)
+        
+        compressed_img = self.jpeg_layer(sample, validation=True).numpy()
+
+
+        compressed_img = np.transpose(compressed_img, (1,2,0))
+        return {'image': compressed_img, 'BPP': BPP}
 
 
 
@@ -51,70 +161,139 @@ class JPEG_layer(nn.Module):
         self.low_level  = -2**(self.num_bit-1) + 1
         self.high_level =  2**(self.num_bit-1)
 
+        # self.low_level  = -2**(self.num_bit-1) - 2
+        # self.high_level =  2**(self.num_bit-1) + 3
+
         self.num_non_zero_q = opt.num_non_zero_q # 5
         self.num_non_zero_q_on_1_side = math.floor(self.num_non_zero_q/2) # 2
         self.q_idx = torch.arange(0, self.num_non_zero_q) #[0, 1, ... , 4]
 
-        if torch.cuda.is_available():
+        if (not self.validation) and torch.cuda.is_available():
             self.q_idx = self.q_idx.cuda()
     
     
-    def __init__(self, opt, img_shape, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]):
+    def __init__(self, opt, img_shape, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], validation=False):
         super(JPEG_layer, self).__init__()
         self.JPEG_alpha_trainable = opt.JPEG_alpha_trainable
         self.img_shape = img_shape
+        self.validation = validation
         
         self.construct(opt)
 
         # Define two q table
         self.lum_qtable = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
         self.chrom_qtable = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
+        self.alpha_lum = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
+        self.alpha_chrom = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
 
         nn.init.constant_(self.lum_qtable , self.Q_inital)
         nn.init.constant_(self.chrom_qtable , self.Q_inital)
+        nn.init.constant_(self.alpha_lum, opt.JPEG_alpha)
+        nn.init.constant_(self.alpha_chrom, opt.JPEG_alpha)
 
         # QT_Y = torch.tensor(quantizationTable(QF=50, Luminance=True))
         # QT_C = torch.tensor(quantizationTable(QF=50, Luminance=False))
         # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
 
-        self.block_dct = block_dct_callable(self.lum_qtable)
-        self.block_idct = block_idct_callable(self.lum_qtable)
+        self.block_dct = block_dct_callable(self.lum_qtable, validation)
+        self.block_idct = block_idct_callable(self.lum_qtable, validation)
         
-        self.lum_qtable = nn.Parameter(self.lum_qtable)
-        self.chrom_qtable = nn.Parameter(self.chrom_qtable)
 
         # self.rgb_to_ycbcr = rgb_to_ycbcr_batch()
         # self.ycbcr_to_rgb = ycbcr_to_rgb_batch()
 
         # Define alpha
-        self.alpha_lum = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
-        self.alpha_chrom = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
-        nn.init.constant_(self.alpha_lum, opt.JPEG_alpha)
-        nn.init.constant_(self.alpha_chrom, opt.JPEG_alpha)
         
-        if opt.JPEG_alpha_trainable:
-            print("==> Alpha is trainable per quantization step")
-            self.alpha_lum = nn.Parameter(self.alpha_lum)
-            self.alpha_chrom = nn.Parameter(self.alpha_chrom)
-        else:
-            print("==> Alpha is not trainable")
-            if torch.cuda.is_available():
-                self.alpha_lum = self.alpha_lum.cuda()
-                self.alpha_chrom = self.alpha_chrom.cuda()
+        if not validation:
+            self.lum_qtable = nn.Parameter(self.lum_qtable)
+            self.chrom_qtable = nn.Parameter(self.chrom_qtable)
+            
+            if opt.JPEG_alpha_trainable:
+                print("==> Alpha is trainable per quantization step")
+                self.alpha_lum = nn.Parameter(self.alpha_lum)
+                self.alpha_chrom = nn.Parameter(self.alpha_chrom)
+            else:
+                print("==> Alpha is not trainable")
+                if torch.cuda.is_available():
+                    self.alpha_lum = self.alpha_lum.cuda()
+                    self.alpha_chrom = self.alpha_chrom.cuda()
 
         self.Scale2One = transforms.Normalize(mean=[0, 0, 0], std=[255., 255., 255.])
         self.normalize = transforms.Normalize(mean=mean, std=std)
 
         self.register_forward_pre_hook(self.reinitialize_q_table_alpha)
 
+    def forward(self, x, validation=False):
+        if validation:
+            return self.val(x)
+        else:
+            return self.train(x)
 
-    def forward(self, input_RGB, huffman_entropy=False):
+        
+    def val(self, input_RGB):
+        # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
+        # print("lum max:", self.lum_qtable.max().item(), "lum min:", self.lum_qtable.min().item(), "chrom max:", self.chrom_qtable.max().item(), "chrom max", self.chrom_qtable.min().item())
+        # print("lum_qtable:", self.lum_qtable, "chrom_qtable", self.chrom_qtable)
+        input = input_RGB - 128
+        input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
+
+        input_lum   = input_DCT_block_batch[0:1, ...] 
+        input_chrom = input_DCT_block_batch[1:3, ...] 
+
+        # Quantization
+        idx_lum   = torch.round(input_lum / self.lum_qtable) # shape: [bs,ch,B,size,size,1]
+        idx_chrom = torch.round(input_chrom / self.chrom_qtable.expand(2, 1, self.block_size, self.block_size, 1)) # shape: [bs,ch,B,size,size,1]
+        
+        idx_lum   =  torch.clamp(idx_lum   - self.num_non_zero_q_on_1_side, min=self.low_level, max=self.high_level - self.num_non_zero_q) # shape: [bs,ch,B,size,size,1]
+        idx_chrom =  torch.clamp(idx_chrom - self.num_non_zero_q_on_1_side, min=self.low_level, max=self.high_level - self.num_non_zero_q) # shape: [bs,ch,B,size,size,1]
+    
+        idx_lum = idx_lum.expand(-1, -1, -1, -1, self.num_non_zero_q) + self.q_idx # shape: [bs,ch,B,size,size,5]
+        idx_chrom = idx_chrom.expand(2, -1, -1, -1, self.num_non_zero_q) + self.q_idx  # shape: [bs,ch,B,size,size,5]
+
+        iq_lum = idx_lum * self.lum_qtable
+        iq_chrom = idx_chrom * self.chrom_qtable
+        
+        distortion_MSE_mask_lum = F.mse_loss(iq_lum, input_lum.expand(-1, -1, -1, -1, self.num_non_zero_q), reduction='none')  # shape: [bs,ch,B,size,size,5]
+        distortion_MSE_mask_chrom = F.mse_loss(iq_chrom, input_chrom.expand(-1, -1, -1, -1, self.num_non_zero_q), reduction='none') # shape: [bs,ch,B,size,size,5] 
+
+        # clamp due to softmax will generate Nan in certain cases.
+        cmpf_mask_lum = torch.clamp(F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5]
+        cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
+        
+        # Q_d
+        estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
+        estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1)
+        
+        estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 0)
+        
+        norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(estimated_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
+        norm_img += 128
+        
+        # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
+        norm_img = self.normalize(self.Scale2One(norm_img))
+
+        
+        assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
+            f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
+        assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
+            f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
+        
+
+        if self.analysis:
+            return norm_img, estimated_reconstructed_space
+        else:
+            return norm_img
+
+
+
+        
+    def train(self, input_RGB):
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
         # print("lum max:", self.lum_qtable.max().item(), "lum min:", self.lum_qtable.min().item(), "chrom max:", self.chrom_qtable.max().item(), "chrom max", self.chrom_qtable.min().item())
         # print("lum_qtable:", self.lum_qtable, "chrom_qtable", self.chrom_qtable)
         
         input = input_RGB - 128
-        input_DCT_block_batch = block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
+        input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
 
         input_lum   = input_DCT_block_batch[:, 0:1, ...] 
         input_chrom = input_DCT_block_batch[:, 1:3, ...] 
@@ -148,34 +327,29 @@ class JPEG_layer(nn.Module):
         
         estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 1)
         
-        if huffman_entropy:
-            bpp = 0
-            pass
+
         
         norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(estimated_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
         norm_img += 128
         
-        # print("norm_img.shape:", norm_img.shape) # torch.Size([2, 3, 224, 224])
-        
         # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
         norm_img = self.normalize(self.Scale2One(norm_img))
+
         
         assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
         assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
         
-        if not huffman_entropy:
-            lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-            # print("dc_entropy", weighted_dc_entropy.item())
-            
-            lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-            # print("ac_entropy", weighted_ac_entropy.item())
+
+        lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
+        # print("dc_entropy", weighted_dc_entropy.item())
+        
+        lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
+        # print("ac_entropy", weighted_ac_entropy.item())
         
         if self.analysis:
             return norm_img, estimated_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
-        elif huffman_entropy:
-            return norm_img, bpp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
         else:
             return norm_img, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
 
@@ -523,7 +697,7 @@ def get_zigzag():
 
 
 def _normalize(N: int) -> torch.Tensor:
-    n = torch.ones((N, 1)).to(device)
+    n = torch.ones((N, 1))
     n[0, 0] = 1 / math.sqrt(2)
     
     return n @ n.t()
@@ -542,12 +716,12 @@ def _harmonics(N: int) -> torch.Tensor:
 def block_dct(blocks: torch.Tensor) -> torch.Tensor:
     N = blocks.shape[3]
 
-    n = _normalize(N).float()
-    h = _harmonics(N).float()
+    n = _normalize(N).float().to(blocks.device)
+    h = _harmonics(N).float().to(blocks.device)
 
-    if blocks.is_cuda:
-        n = n.cuda()
-        h = h.cuda()
+    # if blocks.is_cuda:
+    #     n = n.cuda()
+    #     h = h.cuda()
     
     coeff = (1 / math.sqrt(2 * N)) * n * (h.t() @ blocks @ h)
 
@@ -557,12 +731,12 @@ def block_dct(blocks: torch.Tensor) -> torch.Tensor:
 def block_idct(coeff: torch.Tensor) -> torch.Tensor:
     N = coeff.shape[3]
 
-    n = _normalize(N)
-    h = _harmonics(N)
+    n = _normalize(N).to(coeff.device)
+    h = _harmonics(N).to(coeff.device)
 
-    if coeff.is_cuda:
-        n = n.cuda()
-        h = h.cuda()
+    # if coeff.is_cuda:
+    #     n = n.cuda()
+    #     h = h.cuda()
 
     im = (1 / math.sqrt(2 * N)) * (h @ (n * coeff) @ h.t())
     return im
@@ -571,13 +745,12 @@ def block_idct(coeff: torch.Tensor) -> torch.Tensor:
 class block_dct_callable(nn.Module):
     """Callable class."""
     
-    def __init__(self,blocks):
+    def __init__(self, blocks: torch.Tensor, validation: bool):
         super(block_dct_callable, self).__init__()
         self.N = blocks.shape[3]
         self.n = _normalize(self.N).float()
         self.h = _harmonics(self.N).float()
-
-        if torch.cuda.is_available():
+        if (not validation) and torch.cuda.is_available():
             self.n = self.n.cuda()
             self.h = self.h.cuda()
 
@@ -587,13 +760,13 @@ class block_dct_callable(nn.Module):
 
 
 class block_idct_callable(nn.Module):   
-    def __init__(self, blocks: torch.Tensor):
+    def __init__(self, blocks: torch.Tensor, validation: bool):
         super(block_idct_callable, self).__init__()
         self.N = blocks.shape[3]
         self.n = _normalize(self.N).float()
         self.h = _harmonics(self.N).float()
     
-        if torch.cuda.is_available():
+        if (not validation) and torch.cuda.is_available():
             self.n = self.n.cuda()
             self.h = self.h.cuda()
 
@@ -735,27 +908,45 @@ def blockify(im: torch.Tensor, size: int) -> torch.Tensor:
     shape = im.shape[-2:]
     padded_shape = [pad_shape(shape[0]),pad_shape(shape[1])]
     paded_im = F.pad(im, (0,padded_shape[1]-shape[1], 0,padded_shape[0]-shape[0]), 'constant',0)
-    bs = paded_im.shape[0]
-    ch = paded_im.shape[1]
-    h = paded_im.shape[2]
-    w = paded_im.shape[3]
-    paded_im = paded_im.reshape(bs * ch, 1, h, w)
-    paded_im = F.unfold(paded_im, kernel_size=(size, size), stride=(size, size))
-    paded_im = paded_im.transpose(1, 2)
-    paded_im = paded_im.reshape(bs, ch, -1, size, size)
+    if  paded_im.dim() == 3 :
+        ch = paded_im.shape[0]
+        h = paded_im.shape[1]
+        w = paded_im.shape[2]
+        paded_im = paded_im.reshape(ch, 1, h, w)
+        paded_im = F.unfold(paded_im, kernel_size=(size, size), stride=(size, size))
+        paded_im = paded_im.transpose(1, 2)
+        paded_im = paded_im.reshape(ch, -1, size, size)
+    else:
+        bs = paded_im.shape[0]
+        ch = paded_im.shape[1]
+        h = paded_im.shape[2]
+        w = paded_im.shape[3]
+        paded_im = paded_im.reshape(bs * ch, 1, h, w)
+        paded_im = F.unfold(paded_im, kernel_size=(size, size), stride=(size, size))
+        paded_im = paded_im.transpose(1, 2)
+        paded_im = paded_im.reshape(bs, ch, -1, size, size)
     return paded_im
 
 
 def deblockify(blocks: torch.Tensor, size) -> torch.Tensor:
     padded_shape = pad_shape(size[0]),pad_shape(size[1])
-    bs = blocks.shape[0]
-    ch = blocks.shape[1]
-    block_size = blocks.shape[3]
-    blocks = blocks.reshape(bs * ch, -1, int(block_size ** 2))
-    blocks = blocks.transpose(1, 2)
-    blocks = torch.nn.functional.fold(blocks, output_size=padded_shape, kernel_size=(block_size, block_size), stride=(block_size, block_size))
-    blocks = blocks.reshape(bs, ch, padded_shape[0], padded_shape[1])
-    blocks = blocks[:,:,:size[0],:size[1]]
+    if  blocks.dim() == 4 :
+        ch = blocks.shape[0]
+        block_size = blocks.shape[3]
+        blocks = blocks.reshape(ch, -1, int(block_size ** 2))
+        blocks = blocks.transpose(1, 2)
+        blocks = torch.nn.functional.fold(blocks, output_size=padded_shape, kernel_size=(block_size, block_size), stride=(block_size, block_size))
+        blocks = blocks.reshape(ch, padded_shape[0], padded_shape[1])
+        blocks = blocks[:,:size[0],:size[1]]
+    else:
+        bs = blocks.shape[0]
+        ch = blocks.shape[1]
+        block_size = blocks.shape[3]
+        blocks = blocks.reshape(bs * ch, -1, int(block_size ** 2))
+        blocks = blocks.transpose(1, 2)
+        blocks = torch.nn.functional.fold(blocks, output_size=padded_shape, kernel_size=(block_size, block_size), stride=(block_size, block_size))
+        blocks = blocks.reshape(bs, ch, padded_shape[0], padded_shape[1])
+        blocks = blocks[:,:,:size[0],:size[1]]
     return blocks
 
 

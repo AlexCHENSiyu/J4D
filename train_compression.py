@@ -11,13 +11,13 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
-
+from torch.utils.data import DataLoader 
 from models import load_model
 from dataset.general_dataloader import load_dataset
 from helper.util import adjust_learning_rate, accuracy, AverageMeter
 from helper.loops import train, validate , validate_jpeg
 from helper.JPEG_layer import *
-
+from dataset.cub2011 import *
 import numpy as np
 import random
 
@@ -212,7 +212,14 @@ def main(opt):
         criterion = criterion.cuda()
         if not opt.seed:
             cudnn.benchmark = True
-    
+   
+    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y = 10, QF_C = 10 ))
+    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=mean, std=std))
+    val_set  = Cub2011('./data/cub2011', transform=HDQ_preprocess, train=False, download=True)
+    val_loader = DataLoader(val_set,
+                            batch_size=opt.batch_size,
+                            shuffle=False,
+                            num_workers=opt.num_workers)
     # routine
     for epoch in range(1, opt.epochs + 1):
         adjust_learning_rate(epoch, opt, optimizer)
@@ -220,13 +227,19 @@ def main(opt):
 
         # train and validate
         time1 = time.time()
-        train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)    
-        test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model, criterion, opt)
+        # train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)    
+        print("\n==> validating...")
+        # breakpoint()
+        # val_loader.dataset.transform
+        test_acc, test_acc_top5, test_loss, bpp = validate(val_loader, model.underlying_model, criterion, opt)
+        # test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model.underlying_model, criterion, opt)
         time2 = time.time()
-        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         
         if test_acc > best_acc:
             best_acc = test_acc
+
+        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
+        print('Best Accuracy: {:.2f} %'.format(best_acc))
         
         # save q_table
         if opt.JPEG_enable:
@@ -262,23 +275,23 @@ def main(opt):
             str_q_alpha += "\t" +  str(alpha.min().item())  + "\t" + str(alpha.max().item())  + "\t" 
         
         # save test train acc and loss
-        with open(opt.logs_fname, 'a') as log:
-            line =  str(epoch) + "\t" + \
-                    str(best_acc.item()) + "\t" +  \
-                    str(test_acc.cpu().numpy()) + "\t" +  \
-                    str(train_acc.cpu().numpy()) + "\t" +  \
-                    str(test_loss) + "\t" + \
-                    str(train_loss) + "\t" + \
-                    str(test_lum_dc) + "\t" + \
-                    str(test_chrom_dc) + "\t" + \
-                    str(test_lum_ac) + "\t" + \
-                    str(test_chrom_ac) + "\t" + \
-                    str(train_lum_dc) + "\t" + \
-                    str(train_chrom_dc) + "\t" + \
-                    str(train_lum_ac) + "\t" + \
-                    str(train_chrom_ac) + "\t" + \
-                    str_q_alpha + '\n'
-            log.write(line)
+        # with open(opt.logs_fname, 'a') as log:
+        #     line =  str(epoch) + "\t" + \
+        #             str(best_acc.item()) + "\t" +  \
+        #             str(test_acc.cpu().numpy()) + "\t" +  \
+        #             str(train_acc.cpu().numpy()) + "\t" +  \
+        #             str(test_loss) + "\t" + \
+        #             str(train_loss) + "\t" + \
+        #             str(test_lum_dc) + "\t" + \
+        #             str(test_chrom_dc) + "\t" + \
+        #             str(test_lum_ac) + "\t" + \
+        #             str(test_chrom_ac) + "\t" + \
+        #             str(train_lum_dc) + "\t" + \
+        #             str(train_chrom_dc) + "\t" + \
+        #             str(train_lum_ac) + "\t" + \
+        #             str(train_chrom_ac) + "\t" + \
+        #             str_q_alpha + '\n'
+        #     log.write(line)
 
     # After training, save the final q_table and alpha
     print('Best accuracy:', best_acc.item())
