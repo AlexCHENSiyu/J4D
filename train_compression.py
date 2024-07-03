@@ -226,8 +226,11 @@ def main(opt):
         time1 = time.time()
         
         train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)    
+        time2 = time.time()
+        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         print("\n==> validating...")
 
+        time1 = time.time()
         val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
         val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
 
@@ -236,12 +239,12 @@ def main(opt):
 
         test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model.underlying_model, criterion, opt)
         time2 = time.time()
+        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         
         if test_acc > best_acc:
             best_acc = test_acc
             best_bpp = bpp
 
-        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         print('Best Accuracy: {:.2f} % \t BPP: {:.5f} '.format(best_acc, best_bpp))
         
         # save q_table
