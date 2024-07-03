@@ -115,7 +115,6 @@ class HDQ_transforms(object):
         compressed_img = np.round(compressed_img)    
         compressed_img = np.uint8(compressed_img) 
         compressed_img = np.transpose(compressed_img, (1,2,0))
-        # PSNR   = PSNR_cal_RGB(compressed_img, sample)
         compressed_img = transforms.ToTensor()(compressed_img)
         compressed_img = transforms.Normalize(mean=self.mean, std=self.std)(compressed_img)
         return {'image': compressed_img, 'BPP': BPP}
@@ -138,9 +137,7 @@ class JPEG_layer_transforms(object):
         sample = np.transpose(sample, (2,0,1))
         sample = torch.tensor(sample, dtype=torch.float32)
         compressed_img, sampled_reconstructed_space = self.jpeg_layer(sample, validation=True)
-        # ----------------------------------------------------------------------------
         BPP = self.comparsionRunner(sampled_reconstructed_space)
-        # ----------------------------------------------------------------------------
         return {'image': compressed_img, 'BPP': BPP}
 
 

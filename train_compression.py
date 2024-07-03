@@ -215,11 +215,7 @@ def main(opt):
    
     # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y = 10, QF_C = 10 ))
     HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=mean, std=std))
-    val_set  = Cub2011('./data/cub2011', transform=HDQ_preprocess, train=False, download=True)
-    val_loader = DataLoader(val_set,
-                            batch_size=opt.batch_size,
-                            shuffle=False,
-                            num_workers=opt.num_workers)
+    val_loader.dataset.transform = HDQ_preprocess
     # routine
     for epoch in range(1, opt.epochs + 1):
         adjust_learning_rate(epoch, opt, optimizer)
@@ -229,8 +225,13 @@ def main(opt):
         time1 = time.time()
         # train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)    
         print("\n==> validating...")
-        # breakpoint()
-        # val_loader.dataset.transform
+        breakpoint()
+        val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0)
+        val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0)
+
+        val_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model.jpeg_layer.alpha_lum.squeeze(0)
+        val_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model.jpeg_layer.alpha_chrom.squeeze(0)
+
         test_acc, test_acc_top5, test_loss, bpp = validate(val_loader, model.underlying_model, criterion, opt)
         # test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model.underlying_model, criterion, opt)
         time2 = time.time()
