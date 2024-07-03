@@ -288,6 +288,7 @@ def main(opt):
                     str(train_acc.cpu().numpy()) + "\t" +  \
                     str(test_loss) + "\t" + \
                     str(train_loss) + "\t" + \
+                    str(bpp) + "\t" + \
                     str(test_lum_dc) + "\t" + \
                     str(test_chrom_dc) + "\t" + \
                     str(test_lum_ac) + "\t" + \
