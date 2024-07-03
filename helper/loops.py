@@ -173,14 +173,13 @@ def validate(val_loader, model, criterion, opt):
     top1 = AverageMeter()
     top5 = AverageMeter()
     BPP = AverageMeter()
-    PSNR = AverageMeter()
 
     # switch to evaluate mode
     model.eval()
     with torch.no_grad():
         end = time.time()
         for idx, data in enumerate(val_loader):
-            (input, bpp, psnr), target = data
+            (input, bpp), target = data
 
             input = input.float()
             if torch.cuda.is_available():
@@ -200,7 +199,6 @@ def validate(val_loader, model, criterion, opt):
             top1.update(acc1[0], input.size(0))
             top5.update(acc5[0], input.size(0))
             BPP.update(bpp.mean(), input.size(0))
-            PSNR.update(psnr.mean(), input.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
@@ -214,11 +212,10 @@ def validate(val_loader, model, criterion, opt):
                       'Entropy Loss {entropy_loss.val:.4f} ({entropy_loss.avg:.4f})\t'
                       'Acc@1 {top1.val:.3f} ({top1.avg:.3f})\t'
                       'Acc@5 {top5.val:.3f} ({top5.avg:.3f})\t'
-                      'BPP {BPP.val:.3f} ({BPP.avg:.3f})\t'
-                      'PSNR {PSNR.val:.3f} ({PSNR.avg:.3f})'
+                      'BPP {BPP.val:.3f} ({BPP.avg:.3f})'
                       .format(
                        idx, len(val_loader), batch_time=batch_time, loss=losses, entropy_loss=entropy_losses, 
-                       top1=top1, top5=top5, BPP=BPP, PSNR=PSNR))
+                       top1=top1, top5=top5, BPP=BPP))
 
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'
               .format(top1=top1, top5=top5))

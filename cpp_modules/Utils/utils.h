@@ -142,7 +142,7 @@ void img2seq(vector<vector<vector<float>>> img, vector<float>& pos, int nrow, in
   }
 }
 
-void Subsampling(vector<vector<float>>& img,int img_shape_Y[2],
+void Subsampling(vector<vector<float>>& img, int img_shape_Y[2],
                  int img_shape_C[2], int J, int a, int b){
     int Nrows = img_shape_Y[0];
     int Ncols = img_shape_Y[1];

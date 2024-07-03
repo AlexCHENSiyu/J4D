@@ -5,6 +5,7 @@
 using namespace std;
 // using namespace cv;
 
+
 int pad_shape(int Num, int size=8){
     /*
     :Fn  pad_shape: calculate the padded shape
@@ -76,6 +77,26 @@ void blockify(vector<vector<float>> img, int img_size[2], float v_im[][8][8]){
         }
     }
 }
+
+
+
+void block_2_seq(float blockified_img_Y[][8][8],
+                    float seq_dct_coefs_Y[][64],
+                    int N_block){
+    //tested
+    float tmp_Y[8];
+    float res_Y[8][8];
+    int idx, N, i, j;
+    for (N=0; N<N_block; N++){ 
+        for (i=0; i<8; i++){
+            for (j=0; j<8; j++){
+                idx = ZIGZAG[i][j];
+                seq_dct_coefs_Y[N][idx] = blockified_img_Y[N][i][j];
+            }
+        }
+    }
+}
+
 
 void deblockify(float blockified_img[][8][8], vector<vector<float>>& deblockify_image, int img_size[2]){
     int pad_row = pad_shape(img_size[0])/8;

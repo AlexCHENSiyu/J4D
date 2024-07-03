@@ -8,6 +8,7 @@ from torchvision import transforms
 import matplotlib.pyplot as plt
 from torch.special import entr
 import HDQ
+import rate_calc
 import cv2
 # from matplotlib.pyplot import figure
 
@@ -82,20 +83,18 @@ class resize_compression(object):
         self.interpolation_method = interpolation_method
 
     def  __call__(self, sample_org):
-        
         sample_org = transforms.Resize(self.Resize_value, interpolation=self.interpolation_method)(sample_org)
         sample_org = transforms.CenterCrop([self.centerCrop_value, self.centerCrop_value])(sample_org)
         sample = self.compressor(sample_org)
         BPP = sample['BPP']
         sample = sample['image']
-        PSNR   = PSNR_cal_RGB(sample_org, sample)
-        sample = transforms.ToTensor()(sample)
-        sample = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])(sample)
-        return sample, BPP, PSNR
+        return sample, BPP
 
 
 class HDQ_transforms(object):
-    def __init__(self, QF_Y, QF_C ):
+    def __init__(self, QF_Y, QF_C, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225] ):
+        self.mean = mean
+        self.std = std
         self.QF_Y = QF_Y
         self.QF_C = QF_C
         self.J = 4
@@ -105,7 +104,6 @@ class HDQ_transforms(object):
         self.ColorSpaceW, self.InvColorSpaceW, _ , self.BiasPerImageFlag = colorSpace_machineSenstivity()
         self.comparsionRunner = HDQ.__call__
     def __call__(self, sample):
-        # breakpoint()
         sample = np.asarray(sample, dtype=float)
         sample = np.transpose(sample, (2,0,1))
         compressed_img, BPP = self.comparsionRunner(    sample, 
@@ -117,6 +115,9 @@ class HDQ_transforms(object):
         compressed_img = np.round(compressed_img)    
         compressed_img = np.uint8(compressed_img) 
         compressed_img = np.transpose(compressed_img, (1,2,0))
+        # PSNR   = PSNR_cal_RGB(compressed_img, sample)
+        compressed_img = transforms.ToTensor()(compressed_img)
+        compressed_img = transforms.Normalize(mean=self.mean, std=self.std)(compressed_img)
         return {'image': compressed_img, 'BPP': BPP}
 
     def __repr__(self):
@@ -130,17 +131,16 @@ class JPEG_layer_transforms(object):
 
         self.jpeg_layer.alpha_lum = self.jpeg_layer.alpha_lum.squeeze(0)
         self.jpeg_layer.alpha_chrom = self.jpeg_layer.alpha_chrom.squeeze(0)
+        self.comparsionRunner = rate_calc.__call__
 
     def __call__(self, sample):
-        BPP = 0.0
         sample = np.asarray(sample, dtype=float)
         sample = np.transpose(sample, (2,0,1))
         sample = torch.tensor(sample, dtype=torch.float32)
-        
-        compressed_img = self.jpeg_layer(sample, validation=True).numpy()
-
-
-        compressed_img = np.transpose(compressed_img, (1,2,0))
+        compressed_img, sampled_reconstructed_space = self.jpeg_layer(sample, validation=True)
+        # ----------------------------------------------------------------------------
+        BPP = self.comparsionRunner(sampled_reconstructed_space)
+        # ----------------------------------------------------------------------------
         return {'image': compressed_img, 'BPP': BPP}
 
 
@@ -160,9 +160,6 @@ class JPEG_layer(nn.Module):
         self.analysis = False
         self.low_level  = -2**(self.num_bit-1) + 1
         self.high_level =  2**(self.num_bit-1)
-
-        # self.low_level  = -2**(self.num_bit-1) - 2
-        # self.high_level =  2**(self.num_bit-1) + 3
 
         self.num_non_zero_q = opt.num_non_zero_q # 5
         self.num_non_zero_q_on_1_side = math.floor(self.num_non_zero_q/2) # 2
@@ -260,14 +257,34 @@ class JPEG_layer(nn.Module):
         cmpf_mask_lum = torch.clamp(F.softmax(-self.alpha_lum * distortion_MSE_mask_lum, dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5]
         cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
         
+        # Q_p
+        Y_shape = cmpf_mask_lum.shape
+        Y_indices_sampled = torch.multinomial(cmpf_mask_lum.view(-1, Y_shape[-1]), num_samples=1, replacement=False).view(Y_shape[:-1])
+        Y_indices_sampled = Y_indices_sampled.unsqueeze(-1).expand(*Y_shape[:-1], Y_shape[-1])
+        sampled_reconstructed_space_lum = iq_lum.gather(-1, Y_indices_sampled).squeeze(-1)[..., 0]
+
+
+        CbCr_shape = cmpf_mask_chrom.shape
+        CbCr_indices_sampled = torch.multinomial(cmpf_mask_chrom.view(-1, CbCr_shape[-1]), num_samples=1, replacement=False).view(CbCr_shape[:-1])
+        CbCr_indices_sampled = CbCr_indices_sampled.unsqueeze(-1).expand(*CbCr_shape[:-1], CbCr_shape[-1])
+        sampled_reconstructed_space_chrom = iq_chrom.gather(-1, CbCr_indices_sampled).squeeze(-1)[..., 0]
+
         # Q_d
-        estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
-        estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1)
+        # estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
+        # estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1)
         
-        estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 0)
         
-        norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(estimated_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
+        sampled_reconstructed_space = torch.cat((sampled_reconstructed_space_lum, sampled_reconstructed_space_chrom), 0)
+        
+        norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(sampled_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
         norm_img += 128
+
+        sampled_reconstructed_space = deblockify(sampled_reconstructed_space, (self.img_shape[0], self.img_shape[1]))
+        
+        # print(self.lum_qtable.squeeze((0,1,-1)))
+        # print(self.chrom_qtable.squeeze((0,1,-1)))
+        # print(self.alpha_lum.squeeze((0,1,-1)))
+        # print(self.alpha_chrom.squeeze((0,1,-1)))
         
         # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
         norm_img = self.normalize(self.Scale2One(norm_img))
@@ -278,11 +295,8 @@ class JPEG_layer(nn.Module):
         assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
         
-
-        if self.analysis:
-            return norm_img, estimated_reconstructed_space
-        else:
-            return norm_img
+        
+        return norm_img, sampled_reconstructed_space
 
 
 
