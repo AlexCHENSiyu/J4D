@@ -4,7 +4,7 @@ CUDA_VISIBLE_DEVICES=${GPU_ID} python3.8 train_compression.py --JPEG_enable --fr
                                     --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
                                     --JPEG_alpha 1 --JPEG_learning_rate 0.01 \
                                     --weight_lum 0.1 --weight_chrom 0.1 \
-                                    --num_workers 0
+                                    --num_workers 32
 
 # JPEG_learning_rate_list=(0.015 0.020 0.025 0.030 0.035 0.040)
 # for learning_rate in "${JPEG_learning_rate_list[@]}"; do

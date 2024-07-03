@@ -213,7 +213,7 @@ def main(opt):
         criterion = criterion.cuda()
         if not opt.seed:
             cudnn.benchmark = True
-   
+    
     # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y = 10, QF_C = 10 ))
     HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=mean, std=std))
     val_loader.dataset.transform = HDQ_preprocess

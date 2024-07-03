@@ -575,7 +575,6 @@ class JPEG_layer_transformer(nn.Module):
         norm_img = torch.clamp(norm_img, min=0.0, max=255.0)
         norm_img = self.normalize(self.Scale2One(norm_img))
 
-
         
         assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
             f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
@@ -583,13 +582,160 @@ class JPEG_layer_transformer(nn.Module):
             f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
         
         # TODO: ALEX fix this ... here we provide image not batch of images
-        # lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-        # lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
-
-        lum_dc_entropy, chrom_dc_entropy =  0.0 , 0.0
-        lum_ac_entropy, chrom_ac_entropy =  0.0 , 0.0
+        lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
+        # print("calculate_dc_entropy", lum_dc_entropy, chrom_dc_entropy)
+        lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
+        # print("calculate_ac_entropy", lum_ac_entropy, chrom_ac_entropy )
 
         return norm_img, sampled_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+
+    def calculate_dc_entropy(self, idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom):
+        # get the entropy of DC part.
+        input_shape = idx_lum.shape # shape: [ch,B,size,size,5]
+        num_blocks = input_shape[-4] # 748
+        batch_size = 1
+        
+        cmpf_lum = cmpf_mask_lum
+        cmpf_chrom = cmpf_mask_chrom
+        indexes_lum = (idx_lum).to(torch.int64) # [-2^10+1,2^10-1]
+        indexes_chrom = (idx_chrom).to(torch.int64) # [-2^10+1,2^10-1]
+        
+        # get DC part, [bs,ch,B,size,size,5] to shape: [bs,ch,B,5]
+        cmpf_lum_dc = cmpf_lum[:,:,0,0,:]
+        cmpf_chrom_dc = cmpf_chrom[:,:,0,0,:]
+        indexes_lum_dc = indexes_lum[:,:,0,0,:]
+        indexes_chrom_dc = indexes_chrom[:,:,0,0,:]
+
+        #-----------------------------------------Preparation---------------------------------------------------------
+        # shift to right by 1 block and set first to default value. shape: [bs,ch,B,5]
+        cmpf_lum_dc_shifted = torch.roll(cmpf_lum_dc, shifts=1, dims=2).detach()
+        cmpf_lum_dc_shifted[:,0,:] = 1e-10
+        cmpf_lum_dc_shifted[:,0,0] = 1.0  - (self.num_non_zero_q - 1) * (1e-10) # set first to [1,0,0,0,0]
+        
+        cmpf_chrom_dc_shifted = torch.roll(cmpf_chrom_dc, shifts=1, dims=2)
+        cmpf_chrom_dc_shifted[:,0,:] = 1e-10
+        cmpf_chrom_dc_shifted[:,0,0] = 1.0 - (self.num_non_zero_q - 1) * (1e-10) # set first to [1,0,0,0,0]
+        
+        indexes_lum_dc_shifted = torch.roll(indexes_lum_dc, shifts=1, dims=2)
+        indexes_lum_dc_shifted[:,0,:] = self.q_idx # set first to [0,1,2,3,4]
+        
+        indexes_chrom_dc_shifted = torch.roll(indexes_chrom_dc, shifts=1, dims=2)
+        indexes_chrom_dc_shifted[:,0,:] = self.q_idx # set first to [0,1,2,3,4]
+        
+        # reverse first so convolve later is along the right diagonal
+        cmpf_lum_dc_shifted_tensor = torch.flip(cmpf_lum_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
+        cmpf_diff_lum_dc = convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
+        
+        cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
+        cmpf_diff_chrom_dc = convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
+        
+        indexes_diff_lum_dc = self.get_diff_indexes(indexes_lum_dc, indexes_lum_dc_shifted) # shape: [bs,ch,B,9]
+        indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [bs,ch,B,9]
+        
+        # change to shape: [bs,ch,B*9]
+        cmpf_diff_lum_dc = cmpf_diff_lum_dc.reshape(1, 1, -1)
+        cmpf_diff_chrom_dc = cmpf_diff_chrom_dc.reshape(1, 2, -1)
+        
+        indexes_diff_lum_dc = indexes_diff_lum_dc.reshape(1, 1, -1)
+        indexes_diff_chrom_dc = indexes_diff_chrom_dc.reshape(1, 2, -1)
+        
+        # [-2^11+2,2^11-2] to [0,2^12-4]
+        indexes_diff_lum_dc += (2**(self.num_bit)-2)
+        indexes_diff_chrom_dc += (2**(self.num_bit)-2)
+        
+        assert torch.all((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4)), \
+            f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4))]}"
+        assert torch.all((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4)), \
+            f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4))]}"
+
+        #-----------------------------------------DC entropy---------------------------------------------------------
+        
+        # get distribution of each dc frequency, shape: [bs,ch,2*(num_bit+1)-3]
+        p_lum_dc = torch.zeros((batch_size, 1, 2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_lum_dc.device).scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc)
+        p_lum_dc /= num_blocks
+        # print("sum lum dc prob:", torch.sum(p_lum_dc, axis=-1, keepdims=True))
+        
+        # shape: [bs,ch,2*(num_bit+1)-3]
+        p_chrom_dc = torch.zeros((batch_size, 2, 2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_chrom_dc.device).scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc)
+        p_chrom_dc /= num_blocks
+        # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
+        
+        # get entropy of each dc frequency and average over batch.
+        lum_dc_entropy = torch.sum(entr(p_lum_dc), dim=-1).mean()
+        chrom_dc_entropy = torch.sum(entr(p_chrom_dc), dim=-1).mean()
+
+        return lum_dc_entropy, chrom_dc_entropy
+
+    
+    def calculate_ac_entropy(self, idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom):
+        # get the entropy of AC part.
+        input_shape = idx_lum.shape # shape: [ch,B,size,size,5]
+        num_blocks = input_shape[-4] # 748
+        batch_size = 1
+       
+        cmpf_lum = cmpf_mask_lum
+        cmpf_chrom = cmpf_mask_chrom
+        indexes_lum = (idx_lum).to(torch.int64) # [-2^10+1,2^10-1]
+        indexes_chrom = (idx_chrom).to(torch.int64) # [-2^10+1,2^10-1]
+
+        # [ch,B,size,size,5] to shape: [size,size,ch,B,5]
+        cmpf_lum = cmpf_lum.permute(2, 3, 0, 1, 4)
+        cmpf_chrom = cmpf_chrom.permute(2, 3, 0, 1, 4)
+        indexes_lum = indexes_lum.permute(2, 3, 0, 1, 4)
+        indexes_chrom = indexes_chrom.permute(2, 3, 0, 1, 4)
+        
+        # [block_size,block_size,ch,B,5] to shape: [block_size*block_size,ch*B*5]
+        cmpf_lum = cmpf_lum.reshape(input_shape[2] * input_shape[3], 1 * input_shape[1] * input_shape[4])
+        cmpf_chrom = cmpf_chrom.reshape(input_shape[2] * input_shape[3], 2 * input_shape[1] * input_shape[4])
+        indexes_lum = indexes_lum.reshape(input_shape[2] * input_shape[3], 1 * input_shape[1] * input_shape[4])
+        indexes_chrom = indexes_chrom.reshape(input_shape[2] * input_shape[3], 2 * input_shape[1] * input_shape[4])
+
+        # delete DC to shape: [size*size-1,ch*B*5]
+        cmpf_lum = cmpf_lum[1:, :]
+        cmpf_chrom = cmpf_chrom[1:, :]
+        indexes_lum = indexes_lum[1:, :]
+        indexes_chrom = indexes_chrom[1:, :]
+
+        # change value range [-2^10+1,2^10-1] to range [0, 2^11-2]
+        indexes_lum -= self.low_level
+        indexes_chrom -= self.low_level
+        
+        assert torch.all((indexes_lum >= 0) & (indexes_lum <= 2**11-2)), \
+            f"Indexes out of bounds: invalid values found {indexes_lum[~((indexes_lum >= 0) & (indexes_lum <= 2**11-2))]}"
+        assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
+            f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
+
+        #----------------------------------------------AC entropy-----------------------------------------------
+        
+        # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
+        p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
+        p_lum_ac /= num_blocks 
+        # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
+    
+        # shape: [size*size-1,2^num_bit-1]
+        p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
+        p_chrom_ac /= (2 * num_blocks)
+        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+        
+        # get entropy of each ac frequency
+        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [size*size-1] type: numpy
+        # self.visualize_entropy(lum_ac_entropy)
+        
+        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [size*size-1] type: numpy
+        # self.visualize_entropy(chrom_ac_entropy)
+
+        # sum ac entropy
+        lum_ac_entropy = lum_ac_entropy.sum()
+        chrom_ac_entropy = chrom_ac_entropy.sum()
+        
+        return lum_ac_entropy, chrom_ac_entropy
+    
+    def get_diff_indexes(self, indexes, indexes_shifted):
+        middle = indexes[:,:,0] - indexes_shifted[:,:,0] # shape: [bs,ch,B]
+        diff_indexes = middle.unsqueeze(-1) # shape: [bs,ch,B,1]
+        add_index = torch.arange(-self.num_non_zero_q + 1, self.num_non_zero_q) # [-4,-3,-2,-1,0,1,2,3,4]
+        diff_indexes = diff_indexes.expand(-1, -1, 2*self.num_non_zero_q-1) + add_index # shape: [bs,ch,B,9]
+        return diff_indexes
 
 
 def zigzag(matrix):
