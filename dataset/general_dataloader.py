@@ -114,7 +114,9 @@ def load_dataset(name, batch_size=32, num_workers=8, mean=(0.485, 0.456, 0.406),
             valset = DataLoader(val_set,
                                     batch_size=int(batch_size/2),
                                     shuffle=False,
-                                    num_workers=int(num_workers/2))
+                                    # num_workers=int(num_workers/2),
+                                    num_workers=int(num_workers),
+                                    )
         else:
             transform_train = transforms.Compose([
                 transforms.RandomResizedCrop(224),

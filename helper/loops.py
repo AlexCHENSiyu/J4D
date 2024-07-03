@@ -28,14 +28,12 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
     end = time.time()
     for idx, (input, target) in enumerate(train_loader):
         data_time.update(time.time() - end)
-
         input = input.float()
         if torch.cuda.is_available():
             input = input.cuda()
             target = target.cuda()
 
         # ===================forward=====================
-        
         output, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(input)
         loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
                 opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
@@ -109,19 +107,22 @@ def validate_jpeg(val_loader, model, criterion, opt):
     with torch.no_grad():
         end = time.time()
         for idx, data in enumerate(val_loader):
-            breakpoint()
             # (input, bpp, psnr), target = data
-            (input, bpp, psnr, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy), target = data
+            (input, bpp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy), target = data
             
             input = input.float()
             if torch.cuda.is_available():
                 input = input.cuda()
                 target = target.cuda()
+                lum_dc_entropy = lum_dc_entropy.cuda().mean() 
+                chrom_dc_entropy = chrom_dc_entropy.cuda().mean() 
+                lum_ac_entropy = lum_ac_entropy.cuda().mean() 
+                chrom_ac_entropy = chrom_ac_entropy.cuda().mean() 
 
             # compute output
             output = model(input)
-            loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
-                opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
+            loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy+ lum_ac_entropy) + \
+                    opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
             acc1, acc5 = accuracy(output, target, topk=(1, 5))
             
             # dot = make_dot(loss, params=dict(model.named_parameters()))
@@ -136,7 +137,7 @@ def validate_jpeg(val_loader, model, criterion, opt):
             
             top1.update(acc1[0], input.size(0))
             top5.update(acc5[0], input.size(0))
-            BPP.update(bpp, input.size(0))
+            BPP.update(bpp.mean(), input.size(0))
 
             # measure elapsed time
             batch_time.update(time.time() - end)
