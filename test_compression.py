@@ -22,11 +22,10 @@ import numpy as np
 import random
 
 
-base_path = "./save/CUB200/resnet18/JPEG_lr_0.01_alpha_100.0_alpha_lr_None_weight_0.1_0.1_alpha_untrainable/trial_3"
+base_path = "./save/CUB200/resnet18/JPEG_lr_0.005_alpha_100.0_weight_0.1_0.1/trial_2"
 
 
 def main(opt):
-    opt.seed=0
     if opt.seed:
         torch.manual_seed(opt.seed)
         torch.cuda.manual_seed(opt.seed)
@@ -53,7 +52,7 @@ def main(opt):
     model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth"
     underlying_model.load_state_dict(torch.load(model_path)['model'])
     
-    JPEG_layer_q_table = torch.load(os.path.join(base_path,'Q_tables/q_table_epoch_100.pt'))
+    JPEG_layer_q_table = torch.load(os.path.join(base_path,'Q_tables/q_table_epoch_28.pt'))
     lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
 
     lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
@@ -74,8 +73,8 @@ def main(opt):
             cudnn.benchmark = True
     
     test_acc, test_acc_top5, test_loss, outputs, lum_dc, chrom_dc, lum_ac, chrom_ac = validate_with_output(val_loader, model, criterion, opt)
-    print("test_acc:", test_acc)
-    print("test_acc_top5:", test_acc_top5)
+    print("test_acc:", test_acc.item())
+    print("test_acc_top5:", test_acc_top5.item())
     print("lum_dc:", lum_dc)
     print("chrom_dc:", chrom_dc)
     print("lum_ac:", lum_ac)

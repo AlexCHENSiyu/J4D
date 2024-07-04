@@ -58,8 +58,8 @@ def parse_option():
     parser.add_argument('--batch_size', type=int, default=32, help='batch_size')
     parser.add_argument('--num_workers', type=int, default=8, help='num of workers to use')
     parser.add_argument('--epochs', type=int, default=100, help='number of training epochs')
-    parser.add_argument('--learning_rate', type=float, default=0.15, help='learning rate')
-    parser.add_argument('--lr_decay_epochs', type=str, default='50,80', help='where to decay lr, can be a list')
+    parser.add_argument('--learning_rate', type=float, default=0.4, help='learning rate')
+    parser.add_argument('--lr_decay_epochs', type=str, default='110', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
     parser.add_argument('--weight_decay', type=float, default=1e-4, help='weight decay')
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
@@ -86,7 +86,7 @@ def parse_option():
     parser.add_argument('--weight_chrom', type=float, default=0.0, help='weight for Chrom entropy')
     
     parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])
-    parser.add_argument('--seed', type=int, default=42, help='seed id, set to 0 if do not want to fix the seed')
+    parser.add_argument('--seed', type=int, default=0, help='seed id, set to 0 if do not want to fix the seed')
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of micro-batches to accumulate')
     
     opt = parser.parse_args()
@@ -98,7 +98,7 @@ def parse_option():
     
     if opt.JPEG_enable:
         opt.added_layer = "JPEG"
-        opt.model_name = 'JPEG_lr_{}_alpha_{}_alpha_lr_{}_weight_{}_{}{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.alpha_learning_rate, opt.weight_lum, opt.weight_chrom, opt.log_file)
+        opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
@@ -111,6 +111,18 @@ def parse_option():
     trial_folder = create_trial_folder(base_folder)
 
     opt.logs_fname = os.path.join(trial_folder, "logs.txt")
+    with open(opt.logs_fname, 'a') as log:
+        line =  'ep' + "\t" + \
+                'best_acc' + "\t\t\t" +  \
+                'test_acc' + "\t\t\t" + 'train_acc' + "\t\t\t" +  \
+                'test_loss' + "\t\t\t" + 'train_loss' + "\t\t\t" + \
+                'bpp' + "\t\t\t\t\t" + \
+                'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + \
+                'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + \
+                'train_lum_dc' + "\t\t" + 'train_chrom_dc' + "\t\t" + \
+                'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + \
+                'q_min' + "\t\t\t\t" + 'q_max' + '\n'
+        log.write(line)
     opt.q_table_fname = os.path.join(trial_folder, "q_table.pt")
     opt.alpha_fname = os.path.join(trial_folder, "Alpha.pt")
     
@@ -123,34 +135,6 @@ def parse_option():
         json.dump(vars(opt), f, indent=4)
 
     return opt
-
-
-def check_val(opt):
-    opt = parse_option()
-    
-    mean = (0.485, 0.456, 0.406)
-    std = (0.229, 0.224, 0.225)
-    
-    if opt.dataset == 'CUB200':
-        train_loader, val_loader = load_dataset(name="CUB200", mean=mean, std=std)
-        n_cls = len(train_loader.dataset.class_names)
-    else:
-        raise NotImplementedError(opt.dataset)
-    
-    # model
-    model = load_model(opt.model, num_classes=n_cls, pretrained=False)
-    
-    # validate teacher accuracy
-    model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
-    model.load_state_dict(torch.load(model_path)['model'])
-    criterion = nn.CrossEntropyLoss()
-    
-    if torch.cuda.is_available():
-        model = model.cuda()
-        criterion = criterion.cuda()
-    teacher_acc, _, _ = validate(val_loader, model, criterion, opt)
-    
-    print('Model accuracy: ', teacher_acc)
 
 
 def main(opt):
@@ -217,26 +201,27 @@ def main(opt):
     # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y = 10, QF_C = 10 ))
     HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=mean, std=std))
     val_loader.dataset.transform = HDQ_preprocess
+    
     # routine
     for epoch in range(1, opt.epochs + 1):
         adjust_learning_rate(epoch, opt, optimizer)
-        print("\n==> training...")
-
-        # train and validate
-        time1 = time.time()
         
-        train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)    
+        # train
+        print("\n==> training...")
+        time1 = time.time()
+        train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
-        print("\n==> validating...")
-
-        time1 = time.time()
+        
+        # catch the q_table and alpha for validate
         val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
         val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
-
         val_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
         val_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
-
+        
+        # validate
+        print("\n==> validating...")
+        time1 = time.time()
         test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = validate_jpeg(val_loader, model.underlying_model, criterion, opt)
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
@@ -244,7 +229,6 @@ def main(opt):
         if test_acc > best_acc:
             best_acc = test_acc
             best_bpp = bpp
-
         print('Best Accuracy: {:.2f} % \t BPP: {:.5f} '.format(best_acc, best_bpp))
         
         # save q_table
@@ -280,28 +264,27 @@ def main(opt):
             print("Alpha --> Min: {:.5f}, Max: {:.5f}".format(alpha.min().item(), alpha.max().item()))
             str_q_alpha += "\t" +  str(alpha.min().item())  + "\t" + str(alpha.max().item())  + "\t" 
         
+        # 1     2        3        4         5         6          7   8           9             
+        # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc 
+        # 10          11            12           13             14           15             16    17   
+        # test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
+        
         # save test train acc and loss
         with open(opt.logs_fname, 'a') as log:
-            line =  str(epoch) + "\t" + \
-                    str(best_acc.item()) + "\t" +  \
-                    str(test_acc.cpu().numpy()) + "\t" +  \
-                    str(train_acc.cpu().numpy()) + "\t" +  \
-                    str(test_loss) + "\t" + \
-                    str(train_loss) + "\t" + \
-                    str(bpp) + "\t" + \
-                    str(test_lum_dc) + "\t" + \
-                    str(test_chrom_dc) + "\t" + \
-                    str(test_lum_ac) + "\t" + \
-                    str(test_chrom_ac) + "\t" + \
-                    str(train_lum_dc) + "\t" + \
-                    str(train_chrom_dc) + "\t" + \
-                    str(train_lum_ac) + "\t" + \
-                    str(train_chrom_ac) + "\t" + \
+            line =  f"{epoch}\t" + \
+                    f"{best_acc.item():.15f}\t" +  \
+                    f"{test_acc.cpu().numpy():.15f}\t" + f"{train_acc.cpu().numpy():.15f}\t" +  \
+                    f"{test_loss:.15f}\t" + f"{train_loss:.15f}\t" + \
+                    f"{bpp:.15f}\t" + \
+                    f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
+                    f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + \
+                    f"{train_lum_dc:.15f}\t" + f"{train_chrom_dc:.15f}\t" + \
+                    f"{train_lum_ac:.15f}\t" + f"{train_chrom_ac:.15f}\t" + \
                     str_q_alpha + '\n'
             log.write(line)
 
     # After training, save the final q_table and alpha
-    print('Best accuracy:', best_acc.item())
+    # print('Best accuracy:', best_acc.item())
     
     # if opt.JPEG_enable:
     #     lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
@@ -314,17 +297,39 @@ def main(opt):
         alpha_chrom =  model.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
         alpha = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
         torch.save(alpha, opt.alpha_fname)
-    
-    # exp_txt = open('{}_experimetal_Results_JPEG_DL.txt'.format(opt.dataset), 'a+')
-    # exp_txt.write(opt.model_name +"\t"+ str(epoch) + "\t" + str(best_acc.item()) + "\n") # Write some text
-    # exp_txt.close() # Close the file
 
-    # save model
-    state = {
-        'model': model.state_dict(),
-    }
+    # save model of last epoch
+    state = { 'model': model.state_dict(),}
     save_file = os.path.join(opt.q_tables_folder, 'last.pth')
     torch.save(state, save_file)
+
+
+def check_val(opt):
+    opt = parse_option()
+    
+    mean = (0.485, 0.456, 0.406)
+    std = (0.229, 0.224, 0.225)
+    
+    if opt.dataset == 'CUB200':
+        train_loader, val_loader = load_dataset(name="CUB200", mean=mean, std=std)
+        n_cls = len(train_loader.dataset.class_names)
+    else:
+        raise NotImplementedError(opt.dataset)
+    
+    # model
+    model = load_model(opt.model, num_classes=n_cls, pretrained=False)
+    
+    # validate teacher accuracy
+    model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
+    model.load_state_dict(torch.load(model_path)['model'])
+    criterion = nn.CrossEntropyLoss()
+    
+    if torch.cuda.is_available():
+        model = model.cuda()
+        criterion = criterion.cuda()
+    teacher_acc, _, _ = validate(val_loader, model, criterion, opt)
+    
+    print('Model accuracy: ', teacher_acc)
 
 
 def profiling():
