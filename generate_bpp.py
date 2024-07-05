@@ -22,8 +22,8 @@ import numpy as np
 import random
 
 
-base_path = "./save/CUB200/resnet18/JPEG_lr_0.005_alpha_100.0_weight_0.5_0.5/trial_1"
-
+# base_path = "./save/CUB200/resnet18/JPEG_lr_0.005_alpha_100.0_weight_0.5_0.5/trial_1"
+base_path ="./save/CUB200"
 
 def main(opt):
     if opt.seed:
@@ -49,7 +49,7 @@ def main(opt):
     underlying_model.load_state_dict(torch.load(model_path)['model'])
     
     # load q_table stored
-    JPEG_layer_q_table = torch.load(os.path.join(base_path,'Q_tables/q_table_epoch_2.pt'))
+    JPEG_layer_q_table = torch.load(os.path.join(base_path,'q_table_epoch_44.pt'))
     lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
 
     lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
