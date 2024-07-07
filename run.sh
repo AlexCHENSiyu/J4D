@@ -1,8 +1,7 @@
 GPU_ID=0
 
 CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-                                    --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
-                                    --JPEG_alpha 10 --JPEG_learning_rate 0.015 \
+                                    --JPEG_alpha 10 --hardness 3.0 --JPEG_learning_rate 0.025 \
                                     --weight_lum 0.005 --weight_chrom 0.005 \
                                     --num_workers 16
 

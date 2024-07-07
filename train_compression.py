@@ -71,9 +71,11 @@ def parse_option():
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
     parser.add_argument('--freeze_model', action='store_true')
+    parser.add_argument('--fixed_alpha', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
     
     parser.add_argument('--JPEG_alpha', type=float, default=20.0, help='Tempurature scaling')
+    parser.add_argument('--hardness', type=float, default=3.0, help='Tempurature scaling')
     parser.add_argument('--JPEG_learning_rate', type=float, default=0.025, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
@@ -98,7 +100,10 @@ def parse_option():
     
     if opt.JPEG_enable:
         opt.added_layer = "JPEG"
-        opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom)
+        if opt.fixed_alpha:
+            opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom)
+        else:
+            opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}_hardness_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom, opt.hardness)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
@@ -108,9 +113,13 @@ def parse_option():
         os.makedirs(base_path)
 
     base_folder = os.path.join(base_path, opt.model_name)
-    trial_folder = create_trial_folder(base_folder)
+    opt.trial_folder = create_trial_folder(base_folder)
 
-    opt.logs_fname = os.path.join(trial_folder, "logs.txt")
+    # 1     2        3        4         5         6          7   8           9             
+    # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc 
+    # 10          11            12           13             14           15             16    17   
+    # test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
+    opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
     with open(opt.logs_fname, 'a') as log:
         line =  'ep' + "\t" + \
                 'best_acc' + "\t\t\t" +  \
@@ -123,14 +132,16 @@ def parse_option():
                 'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + \
                 'q_min' + "\t\t\t\t" + 'q_max' + '\n'
         log.write(line)
-    opt.q_table_fname = os.path.join(trial_folder, "q_table.pt")
-    opt.alpha_fname = os.path.join(trial_folder, "Alpha.pt")
     
-    opt.q_tables_folder = os.path.join(trial_folder, "Q_tables")
+    opt.q_tables_folder = os.path.join(opt.trial_folder, "Q_tables")
     if not os.path.isdir(opt.q_tables_folder):
         os.makedirs(opt.q_tables_folder)
     
-    opt.opt_fname = os.path.join(trial_folder, "opt.json")
+    opt.alpha_folder = os.path.join(opt.trial_folder, "Alpha_tables")
+    if not os.path.isdir(opt.alpha_folder):
+        os.makedirs(opt.alpha_folder)
+    
+    opt.opt_fname = os.path.join(opt.trial_folder, "opt.json")
     with open(opt.opt_fname, 'w') as f:
         json.dump(vars(opt), f, indent=4)
 
@@ -198,7 +209,7 @@ def main(opt):
         if not opt.seed:
             cudnn.benchmark = True
     
-    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y = 10, QF_C = 10 ))
+    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=10, QF_C=10))
     HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=mean, std=std))
     val_loader.dataset.transform = HDQ_preprocess
     
@@ -236,7 +247,7 @@ def main(opt):
             lum_qtable =  model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             chrom_qtable =  model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
-            print("Quantization Table --> Min: {:.2f}, Max: {:.2f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
+            print("Quantization Table --> Min: {:.5f}, Max: {:.5f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
             str_q_alpha = str(quantizationTable.min().item())  + "\t" + str(quantizationTable.max().item())
             
             # save the exact q_table
@@ -246,28 +257,40 @@ def main(opt):
             # save lum and chrom q_table for ploting trend
             lum_qtable = lum_qtable.reshape(8,8)
             chrom_qtable = chrom_qtable.reshape(8,8)
+            
             lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
             with open(lum_q_tables_file, 'a') as f:
                 np.savetxt(f, lum_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
                 f.write('\n')
-            
             chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
             with open(chrom_q_tables_file, 'a') as f:
                 np.savetxt(f, chrom_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
                 f.write('\n')
 
-        # save alpha
-        if opt.JPEG_enable and opt.JPEG_alpha_trainable:
+        # save alpha_table
+        if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha):
             alpha_lum =  model.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alpha_chrom =  model.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            alpha = torch.cat((alpha_lum, alpha_chrom), 0)
-            print("Alpha --> Min: {:.5f}, Max: {:.5f}".format(alpha.min().item(), alpha.max().item()))
-            str_q_alpha += "\t" +  str(alpha.min().item())  + "\t" + str(alpha.max().item())  + "\t" 
+            alphaTable = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
+            print("Alpha --> Min: {:.5f}, Max: {:.5f}".format(alphaTable.min().item(), alphaTable.max().item()))
+            str_q_alpha += "\t" +  str(alphaTable.min().item())  + "\t" + str(alphaTable.max().item())  + "\t" 
         
-        # 1     2        3        4         5         6          7   8           9             
-        # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc 
-        # 10          11            12           13             14           15             16    17   
-        # test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
+            # save the exact alpha_table
+            alpha_tables_file = os.path.join(opt.alpha_folder, 'alpha_table_epoch_{}.pt'.format(epoch))
+            torch.save(alphaTable, alpha_tables_file)
+            
+            # save lum and chrom alpha_table for ploting trend
+            alpha_lum = alpha_lum.reshape(8,8)
+            alpha_chrom = alpha_chrom.reshape(8,8)
+            
+            lum_alpha_tables_file = os.path.join(opt.alpha_folder, 'lum_alpha_table.txt')
+            with open(lum_alpha_tables_file, 'a') as f:
+                np.savetxt(f, alpha_lum.cpu().numpy(), delimiter=',', fmt='%.04f')
+                f.write('\n')
+            chrom_alpha_tables_file = os.path.join(opt.alpha_folder, 'chrom_alpha_table.txt')
+            with open(chrom_alpha_tables_file, 'a') as f:
+                np.savetxt(f, alpha_chrom.cpu().numpy(), delimiter=',', fmt='%.04f')
+                f.write('\n')
         
         # save test train acc and loss
         with open(opt.logs_fname, 'a') as log:
@@ -283,25 +306,14 @@ def main(opt):
                     str_q_alpha + '\n'
             log.write(line)
 
-    # After training, save the final q_table and alpha
-    # print('Best accuracy:', best_acc.item())
-    
-    # if opt.JPEG_enable:
-    #     lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-    #     chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-    #     quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
-    #     torch.save(quantizationTable, opt.q_table_fname)
-    
-    if opt.JPEG_enable and opt.JPEG_alpha_trainable: 
-        alpha_lum =  model.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-        alpha_chrom =  model.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-        alpha = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
-        torch.save(alpha, opt.alpha_fname)
-
     # save model of last epoch
     state = { 'model': model.state_dict(),}
-    save_file = os.path.join(opt.q_tables_folder, 'last.pth')
+    save_file = os.path.join(opt.trial_folder, 'last.pth')
     torch.save(state, save_file)
+    
+    # After training, save the final q_table and alpha
+    print("\n==> Finish training: ", opt.model_name)
+    print('Best accuracy:', best_acc.item())
 
 
 def check_val(opt):

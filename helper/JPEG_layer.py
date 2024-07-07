@@ -138,6 +138,10 @@ class JPEG_layer_transforms(object):
         return {'image': compressed_img, 'BPP': BPP, 'Entropy_calc': [lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy]}
 
 
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------#
+#                                                                       JPEG_layer                                                                          #
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------#
+
 class JPEG_layer(nn.Module):
     def construct(self, opt):
         self.num_bit = opt.num_bit
@@ -152,7 +156,9 @@ class JPEG_layer(nn.Module):
         self.analysis = False
         self.low_level  = -2**(self.num_bit-1) + 1
         self.high_level =  2**(self.num_bit-1)
-
+        self.fixed_alpha = opt.fixed_alpha
+        self.hardness  = opt.hardness
+        
         self.num_non_zero_q = opt.num_non_zero_q # 5
         self.num_non_zero_q_on_1_side = math.floor(self.num_non_zero_q/2) # 2
         self.q_idx = torch.arange(0, self.num_non_zero_q) #[0, 1, ... , 4]
@@ -168,7 +174,12 @@ class JPEG_layer(nn.Module):
         self.validation = validation
         
         self.construct(opt)
-
+        
+        if self.fixed_alpha:
+            self.JEPG_alpha = self.hardness
+        else:
+            self.JEPG_alpha = 1.0
+        
         # Define two q table
         self.lum_qtable = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
         self.chrom_qtable = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
@@ -177,8 +188,8 @@ class JPEG_layer(nn.Module):
 
         nn.init.constant_(self.lum_qtable , self.Q_inital)
         nn.init.constant_(self.chrom_qtable , self.Q_inital)
-        nn.init.constant_(self.alpha_lum, opt.JPEG_alpha)
-        nn.init.constant_(self.alpha_chrom, opt.JPEG_alpha)
+        nn.init.constant_(self.alpha_lum, self.JEPG_alpha)
+        nn.init.constant_(self.alpha_chrom, self.JEPG_alpha)
 
         # QT_Y = torch.tensor(quantizationTable(QF=50, Luminance=True))
         # QT_C = torch.tensor(quantizationTable(QF=50, Luminance=False))
@@ -281,6 +292,12 @@ class JPEG_layer(nn.Module):
                 self.lum_qtable.copy_(torch.clamp(self.lum_qtable, min=self.min_Q_Step, max=self.max_Q_Step))
                 self.chrom_qtable.copy_(torch.clamp(self.chrom_qtable, min=self.min_Q_Step, max=self.max_Q_Step))
 
+            if not self.fixed_alpha:
+                self.alpha_lum.copy_(self.hardness / (self.lum_qtable ** 2))
+                self.alpha_chrom.copy_(self.hardness / (self.chrom_qtable ** 2))
+                self.alpha_lum.copy_(torch.clamp(self.alpha_lum, min=smallest_float32, max=largest_float32))
+                self.alpha_chrom.copy_(torch.clamp(self.alpha_chrom, min=smallest_float32, max=largest_float32))
+            
             if self.JPEG_alpha_trainable:
                 self.alpha_lum.copy_(torch.clamp(self.alpha_lum, min=smallest_float32))
                 self.alpha_chrom.copy_(torch.clamp(self.alpha_chrom, min=smallest_float32))
@@ -454,6 +471,11 @@ class JPEG_layer(nn.Module):
         plt.xticks(np.arange(0, len(flattened_entropy)+1, 8))
         plt.grid(True)
         plt.show()
+
+
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------#
+#                                                                    JPEG_layer_transformer                                                                 #
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------#
 
 
 class JPEG_layer_transformer(nn.Module):
@@ -718,7 +740,10 @@ class JPEG_layer_transformer(nn.Module):
 
 
 
-#-----------------------------------------------helper function------------------------------------------------
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------#
+#                                                                       Helper functions                                                                    #
+#-----------------------------------------------------------------------------------------------------------------------------------------------------------#
+
 
 def zigzag(matrix):
     zigzag = np.array([[0, 1, 5, 6, 14, 15, 27, 28],
