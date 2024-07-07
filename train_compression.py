@@ -103,7 +103,7 @@ def parse_option():
         if opt.fixed_alpha:
             opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom)
         else:
-            opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}_hardness_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom, opt.hardness)
+            opt.model_name = 'JPEG_lr_{}_weight_{}_{}_hardness_{}'.format(opt.JPEG_learning_rate, opt.weight_lum, opt.weight_chrom, opt.hardness)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
