@@ -200,6 +200,7 @@ def main(opt):
             {'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
         ]
     
+    # optimizer = optim.Adam(optimizer_data, betas=(0.9, 0.999), eps=1e-08)
     optimizer = optim.SGD(optimizer_data)
     criterion = nn.CrossEntropyLoss()
     
