@@ -1,7 +1,7 @@
 GPU_ID=0
 
 CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-                                    --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.05 \
+                                    --JPEG_alpha 10 --hardness 100.0 --JPEG_learning_rate 0.04 \
                                     --weight_lum 0.005 --weight_chrom 0.005 \
                                     --num_workers 16
 
@@ -13,12 +13,12 @@ CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --J
 #                                     --weight_lum 0.1 --weight_chrom 0.1
 # done
 
-# weight_list=(0.01 0.03 0.05 0.07 0.09 0.11 0.13 0.15 0.17)
+# weight_list=(0.001 0.002 0.003 0.004 0.005 0.006 0.007 0.008 0.009)
 # for weight in "${weight_list[@]}"; do
 #     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-#                                     --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
-#                                     --JPEG_alpha 20 --JPEG_learning_rate 0.01 \
-#                                     --weight_lum $weight --weight_chrom $weight
+#                                     --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.05 \
+#                                     --weight_lum $weight --weight_chrom $weight \
+#                                     --num_workers 16
 # done
 
 # alpha_lr_pairs=(

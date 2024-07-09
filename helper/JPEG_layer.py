@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from torch.special import entr
 import HDQ
 import rate_calc
+import os
 # import cv2
 # from matplotlib.pyplot import figure
 
@@ -175,10 +176,10 @@ class JPEG_layer(nn.Module):
         
         self.construct(opt)
         
-        if self.fixed_alpha:
+        if not self.fixed_alpha:
             self.JEPG_alpha = self.hardness
         else:
-            self.JEPG_alpha = 1.0
+            self.JEPG_alpha = opt.JPEG_alpha
         
         # Define two q table
         self.lum_qtable = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
@@ -191,6 +192,26 @@ class JPEG_layer(nn.Module):
         nn.init.constant_(self.alpha_lum, self.JEPG_alpha)
         nn.init.constant_(self.alpha_chrom, self.JEPG_alpha)
 
+        # save the inital q table
+        lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
+        with open(lum_q_tables_file, 'a') as f:
+            np.savetxt(f, self.lum_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+            f.write('\n')
+        chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
+        with open(chrom_q_tables_file, 'a') as f:
+            np.savetxt(f, self.chrom_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+            f.write('\n')
+
+        # save the inital alpha table
+        lum_alpha_tables_file = os.path.join(opt.alpha_folder, 'lum_alpha_table.txt')
+        with open(lum_alpha_tables_file, 'a') as f:
+            np.savetxt(f, self.alpha_lum.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+            f.write('\n')
+        chrom_alpha_tables_file = os.path.join(opt.alpha_folder, 'chrom_alpha_table.txt')
+        with open(chrom_alpha_tables_file, 'a') as f:
+            np.savetxt(f, self.alpha_chrom.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+            f.write('\n')
+        
         # QT_Y = torch.tensor(quantizationTable(QF=50, Luminance=True))
         # QT_C = torch.tensor(quantizationTable(QF=50, Luminance=False))
         # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
@@ -220,6 +241,27 @@ class JPEG_layer(nn.Module):
         self.normalize = transforms.Normalize(mean=mean, std=std)
 
         self.register_forward_pre_hook(self.reinitialize_q_table_alpha)
+
+
+    def reinitialize_q_table_alpha(self, model, input):
+        # re-initialize the q table before each forward propagation
+        with torch.no_grad():
+            if self.min_Q_Step == 0:
+                self.lum_qtable.copy_(torch.clamp(self.lum_qtable, min=smallest_float32, max=self.max_Q_Step))
+                self.chrom_qtable.copy_(torch.clamp(self.chrom_qtable, min=smallest_float32, max=self.max_Q_Step))
+            else:
+                self.lum_qtable.copy_(torch.clamp(self.lum_qtable, min=self.min_Q_Step, max=self.max_Q_Step))
+                self.chrom_qtable.copy_(torch.clamp(self.chrom_qtable, min=self.min_Q_Step, max=self.max_Q_Step))
+
+            if not self.fixed_alpha:
+                self.alpha_lum.copy_(self.hardness / (self.lum_qtable ** 2))
+                self.alpha_chrom.copy_(self.hardness / (self.chrom_qtable ** 2))
+                self.alpha_lum.copy_(torch.clamp(self.alpha_lum, min=smallest_float32, max=largest_float32))
+                self.alpha_chrom.copy_(torch.clamp(self.alpha_chrom, min=smallest_float32, max=largest_float32))
+            
+            if self.JPEG_alpha_trainable:
+                self.alpha_lum.copy_(torch.clamp(self.alpha_lum, min=smallest_float32))
+                self.alpha_chrom.copy_(torch.clamp(self.alpha_chrom, min=smallest_float32))
 
 
     def forward(self, input_RGB):
@@ -280,27 +322,6 @@ class JPEG_layer(nn.Module):
             return norm_img, estimated_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
         else:
             return norm_img, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
-
-
-    def reinitialize_q_table_alpha(self, model, input):
-        # re-initialize the q table before each forward propagation
-        with torch.no_grad():
-            if self.min_Q_Step == 0:
-                self.lum_qtable.copy_(torch.clamp(self.lum_qtable, min=smallest_float32, max=self.max_Q_Step))
-                self.chrom_qtable.copy_(torch.clamp(self.chrom_qtable, min=smallest_float32, max=self.max_Q_Step))
-            else:
-                self.lum_qtable.copy_(torch.clamp(self.lum_qtable, min=self.min_Q_Step, max=self.max_Q_Step))
-                self.chrom_qtable.copy_(torch.clamp(self.chrom_qtable, min=self.min_Q_Step, max=self.max_Q_Step))
-
-            if not self.fixed_alpha:
-                self.alpha_lum.copy_(self.hardness / (self.lum_qtable ** 2))
-                self.alpha_chrom.copy_(self.hardness / (self.chrom_qtable ** 2))
-                self.alpha_lum.copy_(torch.clamp(self.alpha_lum, min=smallest_float32, max=largest_float32))
-                self.alpha_chrom.copy_(torch.clamp(self.alpha_chrom, min=smallest_float32, max=largest_float32))
-            
-            if self.JPEG_alpha_trainable:
-                self.alpha_lum.copy_(torch.clamp(self.alpha_lum, min=smallest_float32))
-                self.alpha_chrom.copy_(torch.clamp(self.alpha_chrom, min=smallest_float32))
     
     
     def get_diff_indexes(self, indexes, indexes_shifted):
