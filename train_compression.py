@@ -359,11 +359,17 @@ def profiling():
 
 
 if __name__ == '__main__':
+    timeStart = time.time()
+    
     opt = parse_option()
     if opt.JPEG_enable:
         main(opt)
     else:
         check_val(opt)
+        
+    timeEnd = time.time()
+    print('\nTotal time {:.2f} s'.format(timeEnd - timeStart))
+    
     # profiling()
     
     # import torch
