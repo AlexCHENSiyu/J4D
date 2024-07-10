@@ -13,6 +13,7 @@
 # source $SLURM_TMPDIR/env/bin/activate
 # pip install --no-index --upgrade pip
 # pip install --no-index -r requirements.txt
+# source ~/newenv/bin/activate
 
 CUDA_VISIBLE_DEVICES=${GPU_ID} python train_compression.py --JPEG_enable --freeze_model \
                                     --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.01 \
