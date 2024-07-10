@@ -5,5 +5,5 @@ Pillow==10.0.0+computecanada
 scipy==1.11.2+computecanada
 torch==2.1.0+computecanada
 torchvision==0.16.0+computecanada
-torchaudio==2.1.0+computecanada
+torchaudio==2.0.1+computecanada
 tqdm==4.60.0
