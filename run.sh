@@ -1,22 +1,22 @@
 GPU_ID=0
 
-CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-                                    --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.1 \
-                                    --weight_lum 0.005 --weight_chrom 0.005 \
-                                    --num_workers 16
+# CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
+#                                     --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.1 \
+#                                     --weight_lum 0.005 --weight_chrom 0.005 \
+#                                     --num_workers 16
 
-CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-                                    --JPEG_alpha 10 --hardness 10.0 --JPEG_learning_rate 0.025 \
-                                    --weight_lum 0.005 --weight_chrom 0.005 \
-                                    --num_workers 16
+# CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
+#                                     --JPEG_alpha 10 --hardness 10.0 --JPEG_learning_rate 0.025 \
+#                                     --weight_lum 0.005 --weight_chrom 0.005 \
+#                                     --num_workers 16
 
-# JPEG_learning_rate_list=(0.015 0.020 0.025 0.030 0.035 0.040)
-# for learning_rate in "${JPEG_learning_rate_list[@]}"; do
-#     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-#                                     --num_bit 11 --num_non_zero_q 5 --momentum 0.9 \
-#                                     --JPEG_alpha 20 --JPEG_learning_rate $learning_rate \
-#                                     --weight_lum 0.1 --weight_chrom 0.1
-# done
+JPEG_learning_rate_list=(0.01 0.02 0.05 0.1 0.2 0.5 1.0 2.0 5.0)
+for learning_rate in "${JPEG_learning_rate_list[@]}"; do
+    CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
+                                    --JPEG_alpha 20 --hardness 20.0 --JPEG_learning_rate $learning_rate \
+                                    --weight_lum 0.1 --weight_chrom 0.1 \
+                                    --num_workers 16
+done
 
 # weight_list=(0.001 0.002 0.003 0.004 0.005 0.006 0.007 0.008 0.009)
 # for weight in "${weight_list[@]}"; do
