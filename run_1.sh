@@ -17,6 +17,6 @@ pip install --no-index -r requirements.txt
 # source ~/newenv/bin/activate
 
 python train_compression.py --JPEG_enable --freeze_model \
-                                    --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.01 \
-                                    --weight_lum 0.005 --weight_chrom 0.005 \
-                                    --num_workers 16
+                            --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.01 \
+                            --weight_lum 0.005 --weight_chrom 0.005 \
+                            --num_workers 16
