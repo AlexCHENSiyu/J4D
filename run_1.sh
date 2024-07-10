@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=p100:1
+#SBATCH --gpus-per-node=a100:1
 #SBATCH --ntasks-per-node=32
 #SBATCH --mem=16G
 #SBATCH --time=2:00
@@ -8,8 +8,8 @@
 
 module load StdEnv/2020
 module load python/3.9
-virtualenv --no-download $SLURM_TMPDIR/env
-source $SLURM_TMPDIR/env/bin/activate
+virtualenv --no-download /scratch/s875chen/env
+source /scratch/s875chen/env/bin/activate
 pip install --no-index --upgrade pip
 pip install --no-index -r requirements.txt
 
