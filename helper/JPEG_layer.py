@@ -164,8 +164,13 @@ class JPEG_layer(nn.Module):
         self.alpha_lum = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
         self.alpha_chrom = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
 
-        nn.init.constant_(self.lum_qtable , self.Q_inital)
-        nn.init.constant_(self.chrom_qtable , self.Q_inital)
+        if opt.QF_Inital:
+            self.lum_qtable = torch.tensor(quantizationTable(QF=50, Luminance=True), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            self.chrom_qtable = torch.tensor(quantizationTable(QF=50, Luminance=False), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+        # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
+        else:
+            nn.init.constant_(self.lum_qtable , self.Q_inital)
+            nn.init.constant_(self.chrom_qtable , self.Q_inital)
         nn.init.constant_(self.alpha_lum, self.JEPG_alpha)
         nn.init.constant_(self.alpha_chrom, self.JEPG_alpha)
 
@@ -188,10 +193,6 @@ class JPEG_layer(nn.Module):
         with open(chrom_alpha_tables_file, 'a') as f:
             np.savetxt(f, self.alpha_chrom.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
             f.write('\n')
-        
-        # QT_Y = torch.tensor(quantizationTable(QF=50, Luminance=True))
-        # QT_C = torch.tensor(quantizationTable(QF=50, Luminance=False))
-        # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
 
         self.block_dct = block_dct_callable(self.lum_qtable, self.validation)
         self.block_idct = block_idct_callable(self.lum_qtable, self.validation)

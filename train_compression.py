@@ -75,7 +75,9 @@ def parse_option():
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--fixed_alpha', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
+    parser.add_argument('--QF_Inital', action='store_true')
     
+    # JPEG Hyper
     parser.add_argument('--JPEG_alpha', type=float, default=20.0, help='Tempurature scaling')
     parser.add_argument('--hardness', type=float, default=3.0, help='Tempurature scaling')
     parser.add_argument('--JPEG_learning_rate', type=float, default=0.025, help='Quantization Table Learning Rate')
@@ -186,13 +188,18 @@ def main(opt):
         jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=mean, std=std)        
         model = CustomModel(jpeg_layer, underlying_model)
         
+        # for SGD optimizer
+        # optimizer_data = [
+        #     {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
+        #     {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
+        # ]
+
+        # for Adam optimizer
         optimizer_data = [
-            # {'params': model.underlying_model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
-            {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
-            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
-            # {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,},
+            {'params': model.jpeg_layer.lum_qtable, },
+            {'params': model.jpeg_layer.chrom_qtable, },
         ]
-        
+      
         if opt.JPEG_alpha_trainable:
             optimizer_data.append({'params': model.jpeg_layer.alpha_lum, 'lr': opt.alpha_learning_rate, 'momentum': opt.momentum,})
             optimizer_data.append({'params': model.jpeg_layer.alpha_chrom, 'lr': (opt.alpha_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,})
@@ -201,9 +208,9 @@ def main(opt):
         optimizer_data = [
             {'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
         ]
-    
-    # optimizer = optim.Adam(optimizer_data, betas=(0.9, 0.999), eps=1e-08)
-    optimizer = optim.SGD(optimizer_data)
+
+    optimizer = optim.Adam(optimizer_data, lr=1e-4, betas=(0.9, 0.999), eps=1e-08)
+    # optimizer = optim.SGD(optimizer_data)
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():

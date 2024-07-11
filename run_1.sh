@@ -8,11 +8,9 @@
 #SBATCH --job-name=resnet18
 #SBATCH --account=def-ehyangit
 
-mkdir $SLURM_TMPDIR/data
-mkdir $SLURM_TMPDIR/data/cub2011
-ls $SLURM_TMPDIR/data/cub2011
-time cp -rf ./data/cub2011/CUB_200_2011.tgz $SLURM_TMPDIR/data/cub2011 && ls
-cd $SLURM_TMPDIR/data/cub2011
+ls $SLURM_TMPDIR
+time cp -rf ./data/cub2011/CUB_200_2011.tgz $SLURM_TMPDIR && ls
+cd $SLURM_TMPDIR
 tar -xzf CUB_200_2011.tgz
 rm CUB_200_2011.tgz
 cd /scratch/s875chen/JPEG-Inspired-Compression
@@ -25,7 +23,7 @@ pip install --no-index --upgrade pip
 pip install --no-index -r requirements.txt
 pip list
 
-python3.9 train_compression.py --JPEG_enable --freeze_model --num_workers 16 \
-                            --hardness 20.0 --JPEG_learning_rate 0.01 \
-                            --weight_lum 0.005 --weight_chrom 0.005  \
-                            --root $SLURM_TMPDIR/data/cub2011
+python3.9 train_compression.py --JPEG_enable --freeze_model --QF_Inital --fixed_alpha \
+                                --JPEG_alpha 10 --JPEG_learning_rate 0.01 \
+                                --weight_lum 5.0 --weight_chrom 5.0 --epochs 10 \
+                                --num_workers 16

@@ -1,0 +1,1 @@
+ep	best_acc			test_acc			train_acc			test_loss			train_loss			bpp					test_lum_dc			test_chrom_dc		test_lum_ac			test_chrom_ac		train_lum_dc		train_chrom_dc		train_lum_ac		train_chrom_ac		q_min				q_max

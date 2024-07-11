@@ -23,7 +23,7 @@ import random
 
 
 # base_path = "./save/CUB200/resnet18/JPEG_lr_0.005_alpha_100.0_weight_0.5_0.5/trial_1"
-base_path ="./save/CUB200"
+base_path ="./save/CUB200/resnet18/JPEG_lr_0.01_weight_0.1_0.1_hardness_20.0/trial_1"
 
 def main(opt):
     if opt.seed:
@@ -43,51 +43,55 @@ def main(opt):
     else:
         raise NotImplementedError(opt.dataset)
 
-    # load underlying model
-    underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
-    model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth"
-    underlying_model.load_state_dict(torch.load(model_path)['model'])
-    
-    # load q_table stored
-    JPEG_layer_q_table = torch.load(os.path.join(base_path,'q_table_epoch_44.pt'))
-    lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
+    for epoch in [7, 21, 40]:
+        # load underlying model
+        underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
+        model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth"
+        underlying_model.load_state_dict(torch.load(model_path)['model'])
+        
+        # load q_table stored
+        JPEG_layer_q_table = torch.load(os.path.join(base_path,'Q_tables/q_table_epoch_{}.pt'.format(epoch)))
+        lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
+        lum_q_table /= 1.5
+        chrom_q_table /= 1.5
+        lum_q_table = torch.clamp(lum_q_table, min=1.0, max=255.0)
+        lum_q_table = torch.clamp(chrom_q_table, min=1.0, max=255.0)
+        lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+        chrom_q_table = chrom_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+        
+        if opt.JPEG_enable:
+            jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+            jpeg_layer.lum_qtable = nn.Parameter(lum_q_table)
+            jpeg_layer.chrom_qtable = nn.Parameter(chrom_q_table)
+            model = CustomModel(jpeg_layer, underlying_model)
+        
+        criterion = nn.CrossEntropyLoss()
 
-    lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
-    chrom_q_table = chrom_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
-    
-    if opt.JPEG_enable:
-        jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        jpeg_layer.lum_qtable = nn.Parameter(lum_q_table)
-        jpeg_layer.chrom_qtable = nn.Parameter(chrom_q_table)
-        model = CustomModel(jpeg_layer, underlying_model)
-    
-    criterion = nn.CrossEntropyLoss()
-
-    if torch.cuda.is_available():
-        model = model.cuda()
-        criterion = criterion.cuda()
-        if not opt.seed:
-            cudnn.benchmark = True
-    
-    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y = 10, QF_C = 10))
-    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
-    val_loader.dataset.transform = HDQ_preprocess
-    
-    val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
-    val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
-    val_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
-    val_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
-    
-    test_acc, test_acc_top5, test_loss, bpp, lum_dc, chrom_dc, lum_ac, chrom_ac = validate_jpeg(val_loader, model.underlying_model, criterion, opt)
-    
-    print("test_acc:", test_acc.item())
-    print("test_acc_top5:", test_acc_top5.item())
-    print("test_loss:", test_loss)
-    print("bpp:", bpp)
-    print("lum_dc:", lum_dc)
-    print("chrom_dc:", chrom_dc)
-    print("lum_ac:", lum_ac)
-    print("chrom_ac:", chrom_ac)
+        if torch.cuda.is_available():
+            model = model.cuda()
+            criterion = criterion.cuda()
+            if not opt.seed:
+                cudnn.benchmark = True
+        
+        # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y = 10, QF_C = 10))
+        HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
+        val_loader.dataset.transform = HDQ_preprocess
+        
+        val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
+        val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
+        val_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
+        val_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
+        
+        test_acc, test_acc_top5, test_loss, bpp, lum_dc, chrom_dc, lum_ac, chrom_ac = validate_jpeg(val_loader, model.underlying_model, criterion, opt)
+        
+        print("test_acc:", test_acc.item())
+        # print("test_acc_top5:", test_acc_top5.item())
+        # print("test_loss:", test_loss)
+        print("bpp:", bpp)
+        # print("lum_dc:", lum_dc)
+        # print("chrom_dc:", chrom_dc)
+        # print("lum_ac:", lum_ac)
+        # print("chrom_ac:", chrom_ac)
 
 
 if __name__ == '__main__':
