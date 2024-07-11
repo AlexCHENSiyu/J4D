@@ -8,8 +8,9 @@
 #SBATCH --job-name=resnet18
 #SBATCH --account=def-ehyangit
 
+mkdir $SLURM_TMPDIR/data
 mkdir $SLURM_TMPDIR/data/cub2011
-ls $SLURM_TMPDIR/data
+ls $SLURM_TMPDIR/data/cub2011
 time cp -rf ./data/cub2011/CUB_200_2011.tgz $SLURM_TMPDIR/data/cub2011 && ls
 cd $SLURM_TMPDIR/data/cub2011
 tar -xzf CUB_200_2011.tgz
