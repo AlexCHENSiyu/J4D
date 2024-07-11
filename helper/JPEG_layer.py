@@ -51,29 +51,6 @@ def colorSpace_machineSenstivity():
     return ColorSpaceW, InvColorSpaceW, sen_map, BiasPerImageFlag
 
 
-# def PSNR_cal_RGB(s, r, max_value=255):
-#     s = np.array(s, dtype=np.float64) 
-#     r = np.array(r, dtype=np.float64)
-    
-#     height, width, channel = np.shape(s)
-#     size = height*width 
-
-#     sb,sg,sr = cv2.split(s)
-#     rb,rg,rr = cv2.split(r)
-    
-#     mseb = ((sb-rb)**2).sum()
-#     mseg = ((sg-rg)**2).sum()
-#     mser = ((sr-rr)**2).sum()
-#     mse = (mseb+mseg+mser)
-    
-#     if mse == 0:
-#         return float('inf')
-    
-#     MSE = mse/(3*size)
-#     psnr = 10*math.log10(255**2/MSE)
-#     return round(psnr,2)
-
-
 class resize_compression(object):
     def __init__(self, compressor, Resize_value=256, centerCrop_value=224, interpolation_method=transforms.InterpolationMode.BILINEAR):
         super().__init__()

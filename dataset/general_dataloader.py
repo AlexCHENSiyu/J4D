@@ -48,7 +48,7 @@ class DatasetWrapper(Dataset):
     def get_class(self, i):
         return self.base_dataset.targets[self.indices[i]]
 
-def load_dataset(name, batch_size=32, num_workers=8, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), root='', sample='default', **kwargs):
+def load_dataset(name, batch_size=32, num_workers=8, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225), root='./data/cub2011', sample='default', **kwargs):
     # Dataset
     if name in ['imagenet','tinyimagenet', 'CUB200', 'STANFORD120', 'MIT67']:
         # TODO
@@ -104,8 +104,8 @@ def load_dataset(name, batch_size=32, num_workers=8, mean=(0.485, 0.456, 0.406),
                 transforms.Normalize(mean, std)
             ])
 
-            train_set = Cub2011('./data/cub2011', transform=transform_train, train=True, download=True)
-            val_set  = Cub2011('./data/cub2011', transform=transform_test, train=False, download=True)
+            train_set = Cub2011(root, transform=transform_train, train=True, download=True)
+            val_set  = Cub2011(root, transform=transform_test, train=False, download=True)
             trainset = DataLoader(train_set,
                                     batch_size=batch_size,
                                     shuffle=True,

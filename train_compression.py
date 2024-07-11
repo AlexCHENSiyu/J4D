@@ -44,6 +44,7 @@ def create_trial_folder(base_folder):
 # tmux rename-session -t 0 <new-name>
 # ctrl+b and press d to detach when running code
 # ps aux | grep tmux
+# salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit
 
 
 def parse_option():
@@ -67,6 +68,7 @@ def parse_option():
     # model
     parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'densenet121',])
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
+    parser.add_argument('--root', type=str, default='./data/cub2011', help='path to dataset')
     
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
@@ -170,7 +172,7 @@ def main(opt):
     std_datatloader = (1/255., 1/255., 1/255.)
 
     if opt.dataset == 'CUB200':
-        train_loader, val_loader = load_dataset(name="CUB200", mean=mean_datatloader, std=std_datatloader)
+        train_loader, val_loader = load_dataset(name="CUB200", mean=mean_datatloader, std=std_datatloader, root=opt.root)
         n_cls = len(train_loader.dataset.class_names)
     else:
         raise NotImplementedError(opt.dataset)
