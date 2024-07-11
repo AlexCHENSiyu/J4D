@@ -10,11 +10,11 @@ GPU_ID=0
 #                                     --weight_lum 0.005 --weight_chrom 0.005 \
 #                                     --num_workers 16
 
-JPEG_learning_rate_list=(0.02 0.05 0.1 0.2 0.5 1.0 2.0 5.0)
+JPEG_learning_rate_list=(0.01 0.02 0.05 0.1 0.2 0.5 1.0 2.0 5.0)
 for learning_rate in "${JPEG_learning_rate_list[@]}"; do
     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
                                     --JPEG_alpha 20 --hardness 20.0 --JPEG_learning_rate $learning_rate \
-                                    --weight_lum 0.001 --weight_chrom 0.001 \
+                                    --weight_lum 2.0 --weight_chrom 2.0 \
                                     --num_workers 16
 done
 
