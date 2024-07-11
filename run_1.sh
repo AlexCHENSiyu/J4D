@@ -11,7 +11,7 @@
 mkdir $SLURM_TMPDIR/data/cub2011
 ls $SLURM_TMPDIR/data
 time cp -rf ./data/cub2011/CUB_200_2011.tgz $SLURM_TMPDIR/data/cub2011 && ls
-cd $SLURM_TMPDIR/data
+cd $SLURM_TMPDIR/data/cub2011
 tar -xzf CUB_200_2011.tgz
 rm CUB_200_2011.tgz
 cd /scratch/s875chen/JPEG-Inspired-Compression
