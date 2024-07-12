@@ -44,7 +44,7 @@ def create_trial_folder(base_folder):
 # tmux rename-session -t 0 <new-name>
 # ctrl+b and press d to detach when running code
 # ps aux | grep tmux
-# salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit
+# salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit --mem=8G
 
 
 def parse_option():
@@ -189,16 +189,16 @@ def main(opt):
         model = CustomModel(jpeg_layer, underlying_model)
         
         # for SGD optimizer
-        # optimizer_data = [
-        #     {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
-        #     {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
-        # ]
+        optimizer_data = [
+            {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
+            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
+        ]
 
         # for Adam optimizer
-        optimizer_data = [
-            {'params': model.jpeg_layer.lum_qtable, },
-            {'params': model.jpeg_layer.chrom_qtable, },
-        ]
+        # optimizer_data = [
+        #     {'params': model.jpeg_layer.lum_qtable, },
+        #     {'params': model.jpeg_layer.chrom_qtable, },
+        # ]
       
         if opt.JPEG_alpha_trainable:
             optimizer_data.append({'params': model.jpeg_layer.alpha_lum, 'lr': opt.alpha_learning_rate, 'momentum': opt.momentum,})
@@ -209,8 +209,8 @@ def main(opt):
             {'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
         ]
 
-    optimizer = optim.Adam(optimizer_data, lr=1e-4, betas=(0.9, 0.999), eps=1e-08)
-    # optimizer = optim.SGD(optimizer_data)
+    # optimizer = optim.Adam(optimizer_data, lr=1e-4, betas=(0.9, 0.999), eps=1e-08)
+    optimizer = optim.SGD(optimizer_data)
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():
