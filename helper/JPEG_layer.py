@@ -435,14 +435,14 @@ class JPEG_layer(nn.Module):
         # shape:[bs,2^11-1]
         p_lum_ac = torch.sum(p_lum_ac, dim=1)
         p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks 
-        print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
+        # print("sum lum ac prob:", torch.sum(p_lum_ac, axis=-1, keepdims=True))
     
         # shape: [bs,size*size-1,2^num_bit-1]
         p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(2, indexes_chrom, cmpf_chrom)
         # shape:[bs,2^11-1]
         p_chrom_ac = torch.sum(p_chrom_ac, dim=1)
         p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
-        print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+        # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1, keepdims=True))
         
         # get entropy of each ac frequency
         lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs] type: numpy
