@@ -708,24 +708,28 @@ class JPEG_layer_transformer(nn.Module):
         
         # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
         p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
-        p_lum_ac /= num_blocks 
-        # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
+        # shape: [2^num_bit-1]
+        p_lum_ac = torch.sum(p_lum_ac, dim=0)
+        p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks
+        print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
     
         # shape: [size*size-1,2^num_bit-1]
         p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
-        p_chrom_ac /= (2 * num_blocks)
-        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+        # shape: [2^num_bit-1]
+        p_chrom_ac = torch.sum(p_chrom_ac, dim=0) 
+        p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
+        print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
         
         # get entropy of each ac frequency
-        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [size*size-1] type: numpy
+        lum_ac_entropy = torch.sum(entr(p_lum_ac)) # shape: []
         # self.visualize_entropy(lum_ac_entropy)
         
-        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [size*size-1] type: numpy
+        chrom_ac_entropy = torch.sum(entr(p_chrom_ac)) # shape: []
         # self.visualize_entropy(chrom_ac_entropy)
 
         # sum ac entropy
-        lum_ac_entropy = lum_ac_entropy.sum()
-        chrom_ac_entropy = chrom_ac_entropy.sum()
+        # lum_ac_entropy = lum_ac_entropy.sum()
+        # chrom_ac_entropy = chrom_ac_entropy.sum()
         
         return lum_ac_entropy, chrom_ac_entropy
     
