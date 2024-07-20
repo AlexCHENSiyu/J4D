@@ -6,16 +6,16 @@ GPU_ID=0
 #                                     --num_workers 16
 
 
-CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model --fixed_alpha \
-                                    --JPEG_alpha 10 --JPEG_learning_rate 0.01 \
-                                    --weight_lum 5.0 --weight_chrom 5.0 \
-                                    --num_workers 16
-
-
-# CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
-#                                     --JPEG_alpha 10 --hardness 10.0 --JPEG_learning_rate 0.2 \
-#                                     --weight_lum 5.0 --weight_chrom 5.0 \
+# CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model --fixed_alpha \
+#                                     --JPEG_alpha 100 --JPEG_learning_rate 0.1 \
+#                                     --weight_lum 1.0 --weight_chrom 1.0 \
 #                                     --num_workers 16
+
+
+CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model --fixed_alpha \
+                                    --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
+                                    --weight_lum 0.1 --weight_chrom 0.1 \
+                                    --num_workers 16
 
 # JPEG_learning_rate_list=(0.01 0.02 0.05 0.1 0.2 0.5 1.0 2.0 5.0)
 # for learning_rate in "${JPEG_learning_rate_list[@]}"; do

@@ -64,7 +64,7 @@ class resize_compression(object):
         sample_org = transforms.CenterCrop([self.centerCrop_value, self.centerCrop_value])(sample_org)
         sample = self.compressor(sample_org)
         BPP = sample['BPP']
-        lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy =  sample['Entropy_calc']
+        lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = sample['Entropy_calc']
         sample = sample['image']
         return sample, BPP, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
 
@@ -79,7 +79,7 @@ class HDQ_transforms(object):
         self.a = 4
         self.b = 4
         # Sensivity is ignored in this case as we do not need in the HDQ
-        self.ColorSpaceW, self.InvColorSpaceW, _ , self.BiasPerImageFlag = colorSpace_machineSenstivity()
+        self.ColorSpaceW, self.InvColorSpaceW, _ ,self.BiasPerImageFlag = colorSpace_machineSenstivity()
         self.comparsionRunner = HDQ.__call__
         
     def __call__(self, sample):
@@ -428,32 +428,80 @@ class JPEG_layer(nn.Module):
         assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
             f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
 
-        #----------------------------------------------AC entropy-----------------------------------------------
+
+        #----------------------------------------------AC entropy method 1-----------------------------------------------
         
         # get distribution of each ac frequency, shape:[bs,size*size-1,2^11-1]
         p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(2, indexes_lum, cmpf_lum)
-        # shape:[bs,2^11-1]
-        p_lum_ac = torch.sum(p_lum_ac, dim=1)
-        p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks 
-        # print("sum lum ac prob:", torch.sum(p_lum_ac, axis=-1, keepdims=True))
+        p_lum_ac /= num_blocks 
+        # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
     
         # shape: [bs,size*size-1,2^num_bit-1]
         p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(2, indexes_chrom, cmpf_chrom)
-        # shape:[bs,2^11-1]
-        p_chrom_ac = torch.sum(p_chrom_ac, dim=1)
-        p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
-        # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1, keepdims=True))
+        p_chrom_ac /= (2 * num_blocks)
+        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
         
         # get entropy of each ac frequency
-        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs] type: numpy
+        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(lum_ac_entropy)
         
-        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs] type: numpy
+        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(chrom_ac_entropy)
 
-        # average over batch.
-        lum_ac_entropy = lum_ac_entropy.mean()
-        chrom_ac_entropy = chrom_ac_entropy.mean()
+        # sum ac entropy and average over batch.
+        lum_ac_entropy = lum_ac_entropy.sum(axis=1).mean()
+        chrom_ac_entropy = chrom_ac_entropy.sum(axis=1).mean()
+        
+        #----------------------------------------------AC entropy method 2-----------------------------------------------
+        
+        # # get distribution of each ac frequency, shape:[bs,size*size-1,2^11-1]
+        # p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(2, indexes_lum, cmpf_lum)
+        # p_lum_ac /= num_blocks 
+        # # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
+    
+        # # shape: [bs,size*size-1,2^num_bit-1]
+        # p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(2, indexes_chrom, cmpf_chrom)
+        # p_chrom_ac /= (2 * num_blocks)
+        # # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+        
+        # # get entropy of each ac frequency
+        # lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
+        # # self.visualize_entropy(lum_ac_entropy)
+        
+        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
+        # # self.visualize_entropy(chrom_ac_entropy)
+
+        # # sum ac entropy and average over batch.
+        # lum_ac_entropy = lum_ac_entropy.mean(axis=1).mean()
+        # chrom_ac_entropy = chrom_ac_entropy.mean(axis=1).mean()
+
+        #----------------------------------------------AC entropy method 3-----------------------------------------------
+        
+        # # get distribution of each ac frequency, shape:[bs,size*size-1,2^11-1]
+        # p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(2, indexes_lum, cmpf_lum)
+        # # shape:[bs,2^11-1]
+        # p_lum_ac = torch.sum(p_lum_ac, dim=1)
+        # p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks 
+        # # print("sum lum ac prob:", torch.sum(p_lum_ac, axis=-1, keepdims=True))
+    
+        # # shape: [bs,size*size-1,2^num_bit-1]
+        # p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(2, indexes_chrom, cmpf_chrom)
+        # # shape:[bs,2^11-1]
+        # p_chrom_ac = torch.sum(p_chrom_ac, dim=1)
+        # p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
+        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1, keepdims=True))
+        
+        # # get entropy of each ac frequency
+        # lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs] type: numpy
+        # # self.visualize_entropy(lum_ac_entropy)
+        
+        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs] type: numpy
+        # # self.visualize_entropy(chrom_ac_entropy)
+
+        # # average over batch.
+        # lum_ac_entropy = lum_ac_entropy.mean()
+        # chrom_ac_entropy = chrom_ac_entropy.mean()
+        
         
         return lum_ac_entropy, chrom_ac_entropy
 
@@ -487,7 +535,6 @@ class JPEG_layer_transformer(nn.Module):
         self.Q_inital = opt.Q_inital
         self.batch_size = opt.batch_size
         self.block_size = opt.block_size
-        # self.num_channels = self.img_shape[-1]
         self.num_channels = 3
         self.num_block = int((self.img_shape[0]*self.img_shape[1])/(self.block_size**2))
         self.min_Q_Step = opt.min_Q_Step
@@ -519,7 +566,7 @@ class JPEG_layer_transformer(nn.Module):
         self.alpha_chrom = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
 
         nn.init.constant_(self.lum_qtable , self.Q_inital)
-        nn.init.constant_(self.chrom_qtable , self.Q_inital)
+        nn.init.constant_(self.chrom_qtable, self.Q_inital)
         nn.init.constant_(self.alpha_lum, opt.JPEG_alpha)
         nn.init.constant_(self.alpha_chrom, opt.JPEG_alpha)
 
@@ -708,32 +755,75 @@ class JPEG_layer_transformer(nn.Module):
         assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
             f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
 
-        #----------------------------------------------AC entropy-----------------------------------------------
-        
+        #----------------------------------------------AC entropy method 1-----------------------------------------------
+
         # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
         p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
-        # shape: [2^num_bit-1]
-        p_lum_ac = torch.sum(p_lum_ac, dim=0)
-        p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks
-        # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
-    
+        p_lum_ac /= num_blocks 
+        # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
+
         # shape: [size*size-1,2^num_bit-1]
         p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
-        # shape: [2^num_bit-1]
-        p_chrom_ac = torch.sum(p_chrom_ac, dim=0) 
-        p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
-        # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
-        
+        p_chrom_ac /= (2 * num_blocks)
+        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+
         # get entropy of each ac frequency
-        lum_ac_entropy = torch.sum(entr(p_lum_ac)) # shape: []
+        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [size*size-1] type: numpy
         # self.visualize_entropy(lum_ac_entropy)
-        
-        chrom_ac_entropy = torch.sum(entr(p_chrom_ac)) # shape: []
+
+        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [size*size-1] type: numpy
         # self.visualize_entropy(chrom_ac_entropy)
 
         # sum ac entropy
-        # lum_ac_entropy = lum_ac_entropy.sum()
-        # chrom_ac_entropy = chrom_ac_entropy.sum()
+        lum_ac_entropy = lum_ac_entropy.sum()
+        chrom_ac_entropy = chrom_ac_entropy.sum()
+        
+        #----------------------------------------------AC entropy method 2-----------------------------------------------
+
+        # # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
+        # p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
+        # p_lum_ac /= num_blocks 
+        # # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
+
+        # # shape: [size*size-1,2^num_bit-1]
+        # p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
+        # p_chrom_ac /= (2 * num_blocks)
+        # # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+
+        # # get entropy of each ac frequency
+        # lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [size*size-1] type: numpy
+        # # self.visualize_entropy(lum_ac_entropy)
+
+        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [size*size-1] type: numpy
+        # # self.visualize_entropy(chrom_ac_entropy)
+
+        # # sum ac entropy
+        # lum_ac_entropy = lum_ac_entropy.mean()
+        # chrom_ac_entropy = chrom_ac_entropy.mean()
+        
+        #----------------------------------------------AC entropy method 3-----------------------------------------------
+        
+        # # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
+        # p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
+        # # shape: [2^num_bit-1]
+        # p_lum_ac = torch.sum(p_lum_ac, dim=0)
+        # p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks
+        # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
+    
+        # # shape: [size*size-1,2^num_bit-1]
+        # p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
+        # # shape: [2^num_bit-1]
+        # p_chrom_ac = torch.sum(p_chrom_ac, dim=0) 
+        # p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
+        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
+        
+        # # get entropy of each ac frequency
+        # lum_ac_entropy = torch.sum(entr(p_lum_ac)) # shape: []
+        # # self.visualize_entropy(lum_ac_entropy)
+        
+        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac)) # shape: []
+        # # self.visualize_entropy(chrom_ac_entropy)
+        
         
         return lum_ac_entropy, chrom_ac_entropy
     

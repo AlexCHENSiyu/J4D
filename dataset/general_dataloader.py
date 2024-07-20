@@ -106,17 +106,10 @@ def load_dataset(name, batch_size=32, num_workers=8, mean=(0.485, 0.456, 0.406),
 
             train_set = Cub2011(root, transform=transform_train, train=True, download=True)
             val_set  = Cub2011(root, transform=transform_test, train=False, download=True)
-            trainset = DataLoader(train_set,
-                                    batch_size=batch_size,
-                                    shuffle=True,
-                                    num_workers=num_workers)
-
-            valset = DataLoader(val_set,
-                                    batch_size=int(batch_size/2),
-                                    shuffle=False,
+            trainset = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+            valset = DataLoader(val_set, batch_size=int(batch_size/2), shuffle=False,
                                     # num_workers=int(num_workers/2),
-                                    num_workers=int(num_workers),
-                                    )
+                                    num_workers=int(num_workers),)
         else:
             transform_train = transforms.Compose([
                 transforms.RandomResizedCrop(224),

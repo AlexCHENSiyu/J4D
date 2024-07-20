@@ -134,7 +134,8 @@ def parse_option():
                 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + \
                 'train_lum_dc' + "\t\t" + 'train_chrom_dc' + "\t\t" + \
                 'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + \
-                'q_min' + "\t\t\t\t" + 'q_max' + '\n'
+                'q_min' + "\t\t\t\t" + 'q_max' + '\t\t' + \
+                'alpha_min' + "\t\t\t" + 'alpha_max' + '\n'
         log.write(line)
     
     opt.q_tables_folder = os.path.join(opt.trial_folder, "Q_tables")
@@ -174,7 +175,7 @@ def main(opt):
     std_datatloader = (1/255., 1/255., 1/255.)
 
     if opt.dataset == 'CUB200':
-        train_loader, val_loader = load_dataset(name="CUB200", mean=mean_datatloader, std=std_datatloader, root=opt.root)
+        train_loader, val_loader = load_dataset(name="CUB200", batch_size=opt.batch_size, mean=mean_datatloader, std=std_datatloader, root=opt.root)
         n_cls = len(train_loader.dataset.class_names)
     else:
         raise NotImplementedError(opt.dataset)
@@ -189,16 +190,16 @@ def main(opt):
         model = CustomModel(jpeg_layer, underlying_model)
         
         # for SGD optimizer
-        optimizer_data = [
-            {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
-            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
-        ]
+        # optimizer_data = [
+        #     {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
+        #     {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
+        # ]
 
         # for Adam optimizer
-        # optimizer_data = [
-        #     {'params': model.jpeg_layer.lum_qtable, },
-        #     {'params': model.jpeg_layer.chrom_qtable, },
-        # ]
+        optimizer_data = [
+            {'params': model.jpeg_layer.lum_qtable, },
+            {'params': model.jpeg_layer.chrom_qtable, },
+        ]
       
         if opt.JPEG_alpha_trainable:
             optimizer_data.append({'params': model.jpeg_layer.alpha_lum, 'lr': opt.alpha_learning_rate, 'momentum': opt.momentum,})
@@ -209,8 +210,8 @@ def main(opt):
             {'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
         ]
 
-    # optimizer = optim.Adam(optimizer_data, lr=1e-4, betas=(0.9, 0.999), eps=1e-08)
-    optimizer = optim.SGD(optimizer_data)
+    optimizer = optim.Adam(optimizer_data, lr=1e-2, betas=(0.9, 0.999), eps=1e-08)
+    # optimizer = optim.SGD(optimizer_data)
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():
