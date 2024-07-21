@@ -13,7 +13,7 @@ import os
 # import cv2
 # from matplotlib.pyplot import figure
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 smallest_float32 = torch.finfo(torch.float32).tiny
 largest_float32 = torch.finfo(torch.float32).max
 
@@ -142,11 +142,12 @@ class JPEG_layer(nn.Module):
         self.q_idx = torch.arange(0, self.num_non_zero_q) #[0, 1, ... , 4]
 
         if (not self.validation) and torch.cuda.is_available():
-            self.q_idx = self.q_idx.cuda()
-    
+            self.q_idx = self.q_idx.to(opt.device)
+
     
     def __init__(self, opt, img_shape, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], validation=False):
         super(JPEG_layer, self).__init__()
+        self.device = opt.device
         self.JPEG_alpha_trainable = opt.JPEG_alpha_trainable
         self.img_shape = img_shape
         self.validation = validation
@@ -194,8 +195,8 @@ class JPEG_layer(nn.Module):
             np.savetxt(f, self.alpha_chrom.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
             f.write('\n')
 
-        self.block_dct = block_dct_callable(self.lum_qtable, self.validation)
-        self.block_idct = block_idct_callable(self.lum_qtable, self.validation)
+        self.block_dct = block_dct_callable(self.lum_qtable, self.device, self.validation)
+        self.block_idct = block_idct_callable(self.lum_qtable, self.device, self.validation)
 
         # self.rgb_to_ycbcr = rgb_to_ycbcr_batch()
         # self.ycbcr_to_rgb = ycbcr_to_rgb_batch()
@@ -212,8 +213,8 @@ class JPEG_layer(nn.Module):
             else:
                 print("==> Alpha is not trainable")
                 if torch.cuda.is_available():
-                    self.alpha_lum = self.alpha_lum.cuda()
-                    self.alpha_chrom = self.alpha_chrom.cuda()
+                    self.alpha_lum = self.alpha_lum.to(self.device)
+                    self.alpha_chrom = self.alpha_chrom.to(self.device)
 
         self.Scale2One = transforms.Normalize(mean=[0, 0, 0], std=[255., 255., 255.])
         self.normalize = transforms.Normalize(mean=mean, std=std)
@@ -305,7 +306,7 @@ class JPEG_layer(nn.Module):
     def get_diff_indexes(self, indexes, indexes_shifted):
         middle = indexes[:,:,:,0] - indexes_shifted[:,:,:,0] # shape: [bs,ch,B]
         diff_indexes = middle.unsqueeze(-1) # shape: [bs,ch,B,1]
-        add_index = torch.arange(-self.num_non_zero_q + 1, self.num_non_zero_q).cuda() # [-4,-3,-2,-1,0,1,2,3,4]
+        add_index = torch.arange(-self.num_non_zero_q + 1, self.num_non_zero_q).to(self.device) # [-4,-3,-2,-1,0,1,2,3,4]
         diff_indexes = diff_indexes.expand(-1, -1, -1, 2*self.num_non_zero_q-1) + add_index # shape: [bs,ch,B,9]
         return diff_indexes
     
@@ -372,13 +373,13 @@ class JPEG_layer(nn.Module):
         #-----------------------------------------DC entropy---------------------------------------------------------
         
         # get distribution of each dc frequency, shape: [bs,ch,2*(num_bit+1)-3]
-        p_lum_dc = torch.zeros((batch_size, 1, 2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_lum_dc.device).scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc)
+        p_lum_dc = torch.zeros((batch_size, 1, 2**(self.num_bit+1)-3), dtype=torch.float32).to(self.device).scatter_add_(2, indexes_diff_lum_dc, cmpf_diff_lum_dc)
         p_lum_dc = p_lum_dc.squeeze(1) # [bs, 2*(num_bit+1)-3]
         p_lum_dc /= num_blocks
         # print("sum lum dc prob:", torch.sum(p_lum_dc, axis=-1, keepdims=True))
         
         # shape: [bs,ch,2*(num_bit+1)-3]
-        p_chrom_dc = torch.zeros((batch_size, 2, 2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_chrom_dc.device).scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc)
+        p_chrom_dc = torch.zeros((batch_size, 2, 2**(self.num_bit+1)-3), dtype=torch.float32).to(self.device).scatter_add_(2, indexes_diff_chrom_dc, cmpf_diff_chrom_dc)
         p_chrom_dc = torch.sum(p_chrom_dc, dim=1)  # [bs, 2*(num_bit+1)-3]
         p_chrom_dc /= (2 * num_blocks)
         # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
@@ -428,16 +429,15 @@ class JPEG_layer(nn.Module):
         assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
             f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
 
-
         #----------------------------------------------AC entropy method 1-----------------------------------------------
         
         # get distribution of each ac frequency, shape:[bs,size*size-1,2^11-1]
-        p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(2, indexes_lum, cmpf_lum)
+        p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(self.device).scatter_add(2, indexes_lum, cmpf_lum)
         p_lum_ac /= num_blocks 
         # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
     
         # shape: [bs,size*size-1,2^num_bit-1]
-        p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(2, indexes_chrom, cmpf_chrom)
+        p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(self.device).scatter_add(2, indexes_chrom, cmpf_chrom)
         p_chrom_ac /= (2 * num_blocks)
         # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
         
@@ -451,57 +451,6 @@ class JPEG_layer(nn.Module):
         # sum ac entropy and average over batch.
         lum_ac_entropy = lum_ac_entropy.sum(axis=1).mean()
         chrom_ac_entropy = chrom_ac_entropy.sum(axis=1).mean()
-        
-        #----------------------------------------------AC entropy method 2-----------------------------------------------
-        
-        # # get distribution of each ac frequency, shape:[bs,size*size-1,2^11-1]
-        # p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(2, indexes_lum, cmpf_lum)
-        # p_lum_ac /= num_blocks 
-        # # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
-    
-        # # shape: [bs,size*size-1,2^num_bit-1]
-        # p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(2, indexes_chrom, cmpf_chrom)
-        # p_chrom_ac /= (2 * num_blocks)
-        # # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
-        
-        # # get entropy of each ac frequency
-        # lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
-        # # self.visualize_entropy(lum_ac_entropy)
-        
-        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
-        # # self.visualize_entropy(chrom_ac_entropy)
-
-        # # sum ac entropy and average over batch.
-        # lum_ac_entropy = lum_ac_entropy.mean(axis=1).mean()
-        # chrom_ac_entropy = chrom_ac_entropy.mean(axis=1).mean()
-
-        #----------------------------------------------AC entropy method 3-----------------------------------------------
-        
-        # # get distribution of each ac frequency, shape:[bs,size*size-1,2^11-1]
-        # p_lum_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(2, indexes_lum, cmpf_lum)
-        # # shape:[bs,2^11-1]
-        # p_lum_ac = torch.sum(p_lum_ac, dim=1)
-        # p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks 
-        # # print("sum lum ac prob:", torch.sum(p_lum_ac, axis=-1, keepdims=True))
-    
-        # # shape: [bs,size*size-1,2^num_bit-1]
-        # p_chrom_ac = torch.zeros((batch_size, self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(2, indexes_chrom, cmpf_chrom)
-        # # shape:[bs,2^11-1]
-        # p_chrom_ac = torch.sum(p_chrom_ac, dim=1)
-        # p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
-        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1, keepdims=True))
-        
-        # # get entropy of each ac frequency
-        # lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs] type: numpy
-        # # self.visualize_entropy(lum_ac_entropy)
-        
-        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs] type: numpy
-        # # self.visualize_entropy(chrom_ac_entropy)
-
-        # # average over batch.
-        # lum_ac_entropy = lum_ac_entropy.mean()
-        # chrom_ac_entropy = chrom_ac_entropy.mean()
-        
         
         return lum_ac_entropy, chrom_ac_entropy
 
@@ -548,11 +497,12 @@ class JPEG_layer_transformer(nn.Module):
         self.q_idx = torch.arange(0, self.num_non_zero_q) #[0, 1, ... , 4]
 
         if (not self.validation) and torch.cuda.is_available():
-            self.q_idx = self.q_idx.cuda()
+            self.q_idx = self.q_idx.to(self.device)
     
     
     def __init__(self, opt, img_shape, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], validation=False):
         super(JPEG_layer_transformer, self).__init__()
+        self.device = opt.device
         self.JPEG_alpha_trainable = opt.JPEG_alpha_trainable
         self.img_shape = img_shape
         self.validation = validation
@@ -570,8 +520,8 @@ class JPEG_layer_transformer(nn.Module):
         nn.init.constant_(self.alpha_lum, opt.JPEG_alpha)
         nn.init.constant_(self.alpha_chrom, opt.JPEG_alpha)
 
-        self.block_dct = block_dct_callable(self.lum_qtable, self.validation)
-        self.block_idct = block_idct_callable(self.lum_qtable, self.validation)
+        self.block_dct = block_dct_callable(self.lum_qtable, self.device, self.validation)
+        self.block_idct = block_idct_callable(self.lum_qtable, self.device, self.validation)
         
         self.Scale2One = transforms.Normalize(mean=[0, 0, 0], std=[255., 255., 255.])
         self.normalize = transforms.Normalize(mean=mean, std=std)
@@ -699,13 +649,13 @@ class JPEG_layer_transformer(nn.Module):
         #-----------------------------------------DC entropy---------------------------------------------------------
         
         # get distribution of each dc frequency, shape: [ch,2*(num_bit+1)-3]
-        p_lum_dc = torch.zeros((1, 2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_lum_dc.device).scatter_add_(1, indexes_diff_lum_dc, cmpf_diff_lum_dc)
+        p_lum_dc = torch.zeros((1, 2**(self.num_bit+1)-3), dtype=torch.float32).to(self.device).scatter_add_(1, indexes_diff_lum_dc, cmpf_diff_lum_dc)
         p_lum_dc = p_lum_dc.squeeze(0) # [2*(num_bit+1)-3]
         p_lum_dc /= num_blocks
         # print("sum lum dc prob:", torch.sum(p_lum_dc, axis=-1, keepdims=True))
         
         # shape: [ch,2*(num_bit+1)-3]
-        p_chrom_dc = torch.zeros((2, 2**(self.num_bit+1)-3), dtype=torch.float32).to(indexes_diff_chrom_dc.device).scatter_add_(1, indexes_diff_chrom_dc, cmpf_diff_chrom_dc)
+        p_chrom_dc = torch.zeros((2, 2**(self.num_bit+1)-3), dtype=torch.float32).to(self.device).scatter_add_(1, indexes_diff_chrom_dc, cmpf_diff_chrom_dc)
         p_chrom_dc = torch.sum(p_chrom_dc, dim=0)  # [2*(num_bit+1)-3]
         p_chrom_dc /= (2 * num_blocks)
         # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
@@ -758,12 +708,12 @@ class JPEG_layer_transformer(nn.Module):
         #----------------------------------------------AC entropy method 1-----------------------------------------------
 
         # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
-        p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
+        p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(self.device).scatter_add(1, indexes_lum, cmpf_lum)
         p_lum_ac /= num_blocks 
         # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
 
         # shape: [size*size-1,2^num_bit-1]
-        p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
+        p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(self.device).scatter_add(1, indexes_chrom, cmpf_chrom)
         p_chrom_ac /= (2 * num_blocks)
         # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
 
@@ -777,53 +727,6 @@ class JPEG_layer_transformer(nn.Module):
         # sum ac entropy
         lum_ac_entropy = lum_ac_entropy.sum()
         chrom_ac_entropy = chrom_ac_entropy.sum()
-        
-        #----------------------------------------------AC entropy method 2-----------------------------------------------
-
-        # # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
-        # p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
-        # p_lum_ac /= num_blocks 
-        # # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
-
-        # # shape: [size*size-1,2^num_bit-1]
-        # p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
-        # p_chrom_ac /= (2 * num_blocks)
-        # # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
-
-        # # get entropy of each ac frequency
-        # lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [size*size-1] type: numpy
-        # # self.visualize_entropy(lum_ac_entropy)
-
-        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [size*size-1] type: numpy
-        # # self.visualize_entropy(chrom_ac_entropy)
-
-        # # sum ac entropy
-        # lum_ac_entropy = lum_ac_entropy.mean()
-        # chrom_ac_entropy = chrom_ac_entropy.mean()
-        
-        #----------------------------------------------AC entropy method 3-----------------------------------------------
-        
-        # # get distribution of each ac frequency, shape:[size*size-1,2^11-1]
-        # p_lum_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_lum.device).scatter_add(1, indexes_lum, cmpf_lum)
-        # # shape: [2^num_bit-1]
-        # p_lum_ac = torch.sum(p_lum_ac, dim=0)
-        # p_lum_ac /= (self.block_size*self.block_size-1) * num_blocks
-        # # print("sum lum ac prob:", torch.sum(self.p_lum_ac, axis=-1,keepdims=True))
-    
-        # # shape: [size*size-1,2^num_bit-1]
-        # p_chrom_ac = torch.zeros((self.block_size*self.block_size-1, 2**(self.num_bit)-1), dtype=torch.float32).to(indexes_chrom.device).scatter_add(1, indexes_chrom, cmpf_chrom)
-        # # shape: [2^num_bit-1]
-        # p_chrom_ac = torch.sum(p_chrom_ac, dim=0) 
-        # p_chrom_ac /= (self.block_size*self.block_size-1) * 2 * num_blocks
-        # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
-        
-        # # get entropy of each ac frequency
-        # lum_ac_entropy = torch.sum(entr(p_lum_ac)) # shape: []
-        # # self.visualize_entropy(lum_ac_entropy)
-        
-        # chrom_ac_entropy = torch.sum(entr(p_chrom_ac)) # shape: []
-        # # self.visualize_entropy(chrom_ac_entropy)
-        
         
         return lum_ac_entropy, chrom_ac_entropy
     
@@ -1050,14 +953,14 @@ def block_idct(coeff: torch.Tensor) -> torch.Tensor:
 class block_dct_callable(nn.Module):
     """Callable class."""
     
-    def __init__(self, blocks: torch.Tensor, validation: bool):
+    def __init__(self, blocks: torch.Tensor, device, validation: bool):
         super(block_dct_callable, self).__init__()
         self.N = blocks.shape[3]
         self.n = _normalize(self.N).float()
         self.h = _harmonics(self.N).float()
         if (not validation) and torch.cuda.is_available():
-            self.n = self.n.cuda()
-            self.h = self.h.cuda()
+            self.n = self.n.to(device)
+            self.h = self.h.to(device)
 
     def forward(self, blocks):
         coeff = (1 / math.sqrt(2 * self.N)) * self.n * (self.h.t() @ blocks @ self.h)
@@ -1065,15 +968,15 @@ class block_dct_callable(nn.Module):
 
 
 class block_idct_callable(nn.Module):   
-    def __init__(self, blocks: torch.Tensor, validation: bool):
+    def __init__(self, blocks: torch.Tensor, device, validation: bool):
         super(block_idct_callable, self).__init__()
         self.N = blocks.shape[3]
         self.n = _normalize(self.N).float()
         self.h = _harmonics(self.N).float()
     
         if (not validation) and torch.cuda.is_available():
-            self.n = self.n.cuda()
-            self.h = self.h.cuda()
+            self.n = self.n.to(device)
+            self.h = self.h.to(device)
 
     def forward(self, coeff):
         im = (1 / math.sqrt(2 * self.N)) * (self.h @ (self.n * coeff) @ self.h.t())

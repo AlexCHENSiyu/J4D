@@ -326,3 +326,160 @@ def validate_with_output(val_loader, model, criterion, opt):
         print(' * Acc@1 {top1.avg:.6f} Acc@5 {top5.avg:.6f}'.format(top1=top1, top5=top5))
 
     return top1.avg, top5.avg, losses.avg, outputs, losses_lum_dc_entropy.avg, losses_chrom_dc_entropy.avg, losses_lum_ac_entropy.avg, losses_chrom_ac_entropy.avg
+
+
+import utils
+import warnings
+
+def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, args, model_ema=None, scaler=None):
+    model.train()
+    
+    metric_logger = utils.MetricLogger(delimiter="  ")
+    metric_logger.add_meter("lr", utils.SmoothedValue(window_size=1, fmt="{value}"))
+
+    header = f"Epoch: [{epoch}]"
+    for idx, (input, target) in enumerate(metric_logger.log_every(train_loader, args.print_freq, header)):
+        input = input.float()
+        input, target = input.to(device), target.to(device)
+        
+        # ===================forward=====================
+        
+        with torch.cuda.amp.autocast(enabled=scaler is not None):
+            output, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(input)
+            loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
+                opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
+            acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
+            
+        # ===================backward=====================
+        
+        optimizer.zero_grad()
+        
+        if scaler is not None:
+            scaler.scale(loss).backward()
+            if args.clip_grad_norm is not None:
+                # we should unscale the gradients of optimizer's assigned params if do gradient clipping
+                scaler.unscale_(optimizer)
+                nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            loss.backward()
+            if args.clip_grad_norm is not None:
+                nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+            optimizer.step()
+
+        if model_ema and idx % args.model_ema_steps == 0:
+            model_ema.update_parameters(model)
+            if epoch < args.lr_warmup_epochs:
+                # Reset ema buffer to keep copying weights during warmup period
+                model_ema.n_averaged.fill_(0)
+
+        # ===================meters=====================
+        
+        batch_size = input.shape[0]
+        metric_logger.update(loss=loss.item(), lr=optimizer.param_groups[0]["lr"])
+        metric_logger.meters["acc1"].update(acc1.item(), n=batch_size)
+        metric_logger.meters["acc5"].update(acc5.item(), n=batch_size)
+        metric_logger.meters["losses"].update(loss.item(), n=batch_size)
+        metric_logger.meters["losses_lum_dc_entropy"].update(lum_dc_entropy.item(), n=batch_size)
+        metric_logger.meters["losses_chrom_dc_entropy"].update(chrom_dc_entropy.item(), n=batch_size)
+        metric_logger.meters["losses_lum_ac_entropy"].update(lum_ac_entropy.item(), n=batch_size)
+        metric_logger.meters["losses_chrom_ac_entropy"].update(chrom_ac_entropy.item(), n=batch_size)
+        
+        if idx % opt.print_freq == 0:
+            print('Train: [{0}][{1}/{2}]\t'
+                  'Loss {loss.value:.5f} ({loss.global_avg:.5f})\t'
+                  'Lum_DC {loss_lum_dc_entropy.value:.5f} ({loss_lum_dc_entropy.global_avg:.5f})\t'
+                  'Chrom_DC {loss_chrom_dc_entropy.value:.5f} ({loss_chrom_dc_entropy.global_avg:.5f})\t'
+                  'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
+                  'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
+                  'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
+                  'Acc@5 {top5.value:.5f} ({top5.avglobal_avgg:.5f})'.format(
+                   epoch, idx, len(train_loader), loss = metric_logger.losses, 
+                   loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
+                   loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
+                   top1=metric_logger.acc1, top5=metric_logger.acc5))
+            sys.stdout.flush()
+
+    print(' * Acc@1 {top1.global_avg:.6f} Acc@5 {top5.global_avg:.6f}'.format(top1=metric_logger.acc1, top5=metric_logger.acc5))
+    
+    return metric_logger.acc1.global_avg, metric_logger.losses.global_avg, \
+           metric_logger.losses_lum_dc_entropy.global_avg, metric_logger.losses_chrom_dc_entropy.global_avg, \
+           metric_logger.losses_lum_ac_entropy.global_avg, metric_logger.losses_chrom_ac_entropy.global_avg
+    
+
+def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log_suffix=""):
+    # switch to evaluate mode
+    model.eval()
+    
+    metric_logger = utils.MetricLogger(delimiter="  ")
+    header = f"Test: {log_suffix}"
+
+    num_processed_samples = 0
+    with torch.inference_mode():
+        for idx, data in enumerate(metric_logger.log_every(val_loader, print_freq, header)):
+            (input, bpp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy), target = data
+            input = input.float()
+            
+            input = input.to(device, non_blocking=True)
+            target = target.to(device, non_blocking=True)
+            lum_dc_entropy = lum_dc_entropy.to(device, non_blocking=True).mean() 
+            chrom_dc_entropy = chrom_dc_entropy.to(device, non_blocking=True).mean() 
+            lum_ac_entropy = lum_ac_entropy.to(device, non_blocking=True).mean() 
+            chrom_ac_entropy = chrom_ac_entropy.to(device, non_blocking=True).mean() 
+            
+            # ===================inference=====================
+            output = model(input)
+            loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
+                    opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
+
+            acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
+            
+            # ===================meters=====================
+            batch_size = input.shape[0]
+            num_processed_samples += batch_size
+            metric_logger.update(loss=loss.item())
+            metric_logger.meters["acc1"].update(acc1.item(), n=batch_size)
+            metric_logger.meters["acc5"].update(acc5.item(), n=batch_size)
+            metric_logger.meters["losses"].update(loss.item(), n=batch_size)
+            metric_logger.meters["BPP"].update(bpp.item(), n=batch_size)
+            metric_logger.meters["losses_lum_dc_entropy"].update(lum_dc_entropy.item(), n=batch_size)
+            metric_logger.meters["losses_chrom_dc_entropy"].update(chrom_dc_entropy.item(), n=batch_size)
+            metric_logger.meters["losses_lum_ac_entropy"].update(lum_ac_entropy.item(), n=batch_size)
+            metric_logger.meters["losses_chrom_ac_entropy"].update(chrom_ac_entropy.item(), n=batch_size)  
+    
+            print('Train: [{0}/{1}]\t'
+                  'Loss {loss.value:.5f} ({loss.global_avg:.5f})\t'
+                  'BPP {BPP.value:.5f} ({BPP.global_avg:.5f})\t'
+                  'Lum_DC {loss_lum_dc_entropy.value:.5f} ({loss_lum_dc_entropy.global_avg:.5f})\t'
+                  'Chrom_DC {loss_chrom_dc_entropy.value:.5f} ({loss_chrom_dc_entropy.global_avg:.5f})\t'
+                  'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
+                  'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
+                  'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
+                  'Acc@5 {top5.value:.5f} ({top5.avglobal_avgg:.5f})'.format(
+                   idx, len(val_loader), loss = metric_logger.losses, BPP=metric_logger.BPP,
+                   loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
+                   loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
+                   top1=metric_logger.acc1, top5=metric_logger.acc5))
+        
+        print(' * Acc@1 {top1.global_avg:.6f} Acc@5 {top5.global_avg:.6f}'.format(top1=metric_logger.acc1, top5=metric_logger.acc5))
+        
+    # gather the stats from all processes
+    num_processed_samples = utils.reduce_across_processes(num_processed_samples)
+    if (hasattr(val_loader.dataset, "__len__")
+        and len(val_loader.dataset) != num_processed_samples
+        and torch.distributed.get_rank() == 0):
+        
+        # See FIXME above
+        warnings.warn(f"It looks like the dataset has {len(val_loader.dataset)} samples, but {num_processed_samples} "
+                      "samples were used for the validation, which might bias the results. "
+                      "Try adjusting the batch size and / or the world size. "
+                      "Setting the world size to 1 is always a safe bet.")
+
+    metric_logger.synchronize_between_processes()
+
+    return metric_logger.acc1.global_avg, metric_logger.acc5.global_avg, metric_logger.losses.global_avg, metric_logger.BPP.global_avg, \
+           metric_logger.losses_lum_dc_entropy.global_avg, metric_logger.losses_chrom_dc_entropy.global_avg, \
+           metric_logger.losses_lum_ac_entropy.global_avg, metric_logger.losses_chrom_ac_entropy.global_avg
+
+
