@@ -31,8 +31,8 @@ def train(epoch, train_loader, model, criterion, optimizer, opt):
         data_time.update(time.time() - end)
         input = input.float()
         if torch.cuda.is_available():
-            input = input.cuda()
-            target = target.cuda()
+            input = input.to(opt.device)
+            target = target.to(opt.device)
 
         # ===================forward=====================
         output, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(input)
@@ -113,12 +113,12 @@ def validate_jpeg(val_loader, model, criterion, opt):
             
             input = input.float()
             if torch.cuda.is_available():
-                input = input.cuda()
-                target = target.cuda()
-                lum_dc_entropy = lum_dc_entropy.cuda().mean() 
-                chrom_dc_entropy = chrom_dc_entropy.cuda().mean() 
-                lum_ac_entropy = lum_ac_entropy.cuda().mean() 
-                chrom_ac_entropy = chrom_ac_entropy.cuda().mean() 
+                input = input.to(opt.device)
+                target = target.to(opt.device)
+                lum_dc_entropy = lum_dc_entropy.to(opt.device).mean() 
+                chrom_dc_entropy = chrom_dc_entropy.to(opt.device).mean() 
+                lum_ac_entropy = lum_ac_entropy.to(opt.device).mean() 
+                chrom_ac_entropy = chrom_ac_entropy.to(opt.device).mean() 
 
             # compute output
             output = model(input)
@@ -180,8 +180,8 @@ def validate(val_loader, model, criterion, opt):
 
             input = input.float()
             if torch.cuda.is_available():
-                input = input.cuda()
-                target = target.cuda()
+                input = input.to(opt.device)
+                target = target.to(opt.device)
 
             # compute output
             # breakpoint()
@@ -238,8 +238,8 @@ def validate_attack(val_loader, model, criterion, opt, atk):
 
         input = adv_images.float()
         if torch.cuda.is_available():
-            input = input.cuda()
-            target = target.cuda()
+            input = input.to(opt.device)
+            target = target.to(opt.device)
 
         # compute output
         output = model(input)
@@ -290,8 +290,8 @@ def validate_with_output(val_loader, model, criterion, opt):
         for idx, (inputs, targets) in enumerate(val_loader):
             inputs = inputs.float()
             if torch.cuda.is_available():
-                inputs = inputs.cuda()
-                targets = targets.cuda()
+                inputs = inputs.to(opt.device)
+                targets = targets.to(opt.device)
 
             # compute output
             output, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(inputs)
@@ -327,6 +327,9 @@ def validate_with_output(val_loader, model, criterion, opt):
 
     return top1.avg, top5.avg, losses.avg, outputs, losses_lum_dc_entropy.avg, losses_chrom_dc_entropy.avg, losses_lum_ac_entropy.avg, losses_chrom_ac_entropy.avg
 
+
+
+# ====================================================== imagenet ========================================================#
 
 import utils
 import warnings

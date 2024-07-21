@@ -502,7 +502,7 @@ class JPEG_layer_transformer(nn.Module):
     
     def __init__(self, opt, img_shape, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225], validation=False):
         super(JPEG_layer_transformer, self).__init__()
-        self.device = opt.device
+        self.device = 'cpu'
         self.JPEG_alpha_trainable = opt.JPEG_alpha_trainable
         self.img_shape = img_shape
         self.validation = validation

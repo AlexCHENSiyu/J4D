@@ -20,6 +20,7 @@ from helper.JPEG_layer import *
 from dataset.cub2011 import *
 import numpy as np
 import random
+import torch.multiprocessing as mp
 
 
 def create_trial_folder(base_folder):
@@ -69,6 +70,7 @@ def parse_option():
     parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'densenet121',])
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
     parser.add_argument('--root', type=str, default='./data/cub2011', help='path to dataset')
+    parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
     
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
@@ -369,6 +371,7 @@ def profiling():
 
 
 if __name__ == '__main__':
+    # mp.set_start_method('spawn')
     timeStart = time.time()
     
     opt = parse_option()
