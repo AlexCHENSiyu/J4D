@@ -331,14 +331,14 @@ def validate_with_output(val_loader, model, criterion, opt):
 
 # ====================================================== imagenet ========================================================#
 
-import utils
+import helper.imagenet_utils as imagenet_utils
 import warnings
 
 def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, args, model_ema=None, scaler=None):
     model.train()
     
-    metric_logger = utils.MetricLogger(delimiter="  ")
-    metric_logger.add_meter("lr", utils.SmoothedValue(window_size=1, fmt="{value}"))
+    metric_logger = imagenet_utils.MetricLogger(delimiter="  ")
+    metric_logger.add_meter("lr", imagenet_utils.SmoothedValue(window_size=1, fmt="{value}"))
 
     header = f"Epoch: [{epoch}]"
     for idx, (input, target) in enumerate(metric_logger.log_every(train_loader, args.print_freq, header)):
@@ -351,7 +351,7 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
             output, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = model(input)
             loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
                 opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
-            acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
+            acc1, acc5 = imagenet_utils.accuracy(output, target, topk=(1, 5))
             
         # ===================backward=====================
         
@@ -415,7 +415,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
     # switch to evaluate mode
     model.eval()
     
-    metric_logger = utils.MetricLogger(delimiter="  ")
+    metric_logger = imagenet_utils.MetricLogger(delimiter="  ")
     header = f"Test: {log_suffix}"
 
     num_processed_samples = 0
@@ -436,7 +436,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
             loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
                     opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
 
-            acc1, acc5 = utils.accuracy(output, target, topk=(1, 5))
+            acc1, acc5 = imagenet_utils.accuracy(output, target, topk=(1, 5))
             
             # ===================meters=====================
             batch_size = input.shape[0]
@@ -468,7 +468,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
         print(' * Acc@1 {top1.global_avg:.6f} Acc@5 {top5.global_avg:.6f}'.format(top1=metric_logger.acc1, top5=metric_logger.acc5))
         
     # gather the stats from all processes
-    num_processed_samples = utils.reduce_across_processes(num_processed_samples)
+    num_processed_samples = imagenet_utils.reduce_across_processes(num_processed_samples)
     if (hasattr(val_loader.dataset, "__len__")
         and len(val_loader.dataset) != num_processed_samples
         and torch.distributed.get_rank() == 0):

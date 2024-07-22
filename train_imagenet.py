@@ -11,12 +11,12 @@ import torchvision
 import torchvision.transforms
 from helper.JPEG_layer import *
 from helper.loops import train_JPEG, evaluate_JPEG
-import utils
-from sampler import RASampler
+import helper.imagenet_utils as imagenet_utils
+from helper.sampler import RASampler
 from torch import nn
 from torch.utils.data.dataloader import default_collate
 from torchvision.transforms.functional import InterpolationMode
-from transforms import get_mixup_cutmix
+from helper.transforms import get_mixup_cutmix
 
 
 def create_trial_folder(base_folder):
@@ -220,8 +220,8 @@ def load_data(traindir, valdir, opt):
         
         if opt.cache_dataset:
             print(f"Saving dataset_train to {cache_path}")
-            utils.mkdir(os.path.dirname(cache_path))
-            utils.save_on_master((dataset, traindir), cache_path)
+            imagenet_utils.mkdir(os.path.dirname(cache_path))
+            imagenet_utils.save_on_master((dataset, traindir), cache_path)
     
     print("Took", time.time() - start_time)
 
@@ -250,8 +250,8 @@ def load_data(traindir, valdir, opt):
         dataset_test = torchvision.datasets.ImageFolder(valdir, preprocessing,)
         if opt.cache_dataset:
             print(f"Saving dataset_test to {cache_path}")
-            utils.mkdir(os.path.dirname(cache_path))
-            utils.save_on_master((dataset_test, valdir), cache_path)
+            imagenet_utils.mkdir(os.path.dirname(cache_path))
+            imagenet_utils.save_on_master((dataset_test, valdir), cache_path)
 
     print("Creating data loaders")
     if opt.distributed:
@@ -271,7 +271,7 @@ def main(opt):
     best_acc = 0
     best_bpp = 0
 
-    utils.init_distributed_mode(opt)
+    imagenet_utils.init_distributed_mode(opt)
     print(opt)
     
     if opt.seed:
@@ -414,7 +414,7 @@ def main(opt):
         adjust = opt.world_size * opt.batch_size * opt.model_ema_steps / opt.epochs
         alpha = 1.0 - opt.model_ema_decay
         alpha = min(1.0, alpha * adjust)
-        model_ema = utils.ExponentialMovingAverage(model_without_ddp, device=device, decay=1.0 - alpha)
+        model_ema = imagenet_utils.ExponentialMovingAverage(model_without_ddp, device=device, decay=1.0 - alpha)
     
     # resume training
     if opt.resume:
@@ -557,7 +557,7 @@ def main(opt):
         checkpoint["model_ema"] = model_ema.state_dict()
     if scaler:
         checkpoint["scaler"] = scaler.state_dict()
-    utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
+    imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
     
     # After training, save the final q_table and alpha
     print("\n==> Finish training: ", opt.model_name)
