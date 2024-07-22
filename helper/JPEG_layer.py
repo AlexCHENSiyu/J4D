@@ -111,8 +111,8 @@ class JPEG_layer_transforms(object):
         sample = np.asarray(sample, dtype=float)
         sample = np.transpose(sample, (2,0,1))
         sample = torch.tensor(sample, dtype=torch.float32)
-        compressed_img, sampled_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(sample)
-        BPP = self.comparsionRunner(sampled_reconstructed_space)
+        compressed_img, sampled_idx_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy = self.jpeg_layer(sample)
+        BPP = self.comparsionRunner(sampled_idx_space)
         return {'image': compressed_img, 'BPP': BPP, 'Entropy_calc': [lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy]}
 
 
@@ -560,21 +560,24 @@ class JPEG_layer_transformer(nn.Module):
         Y_indices_sampled = torch.multinomial(cmpf_mask_lum.view(-1, Y_shape[-1]), num_samples=1, replacement=False).view(Y_shape[:-1])
         Y_indices_sampled = Y_indices_sampled.unsqueeze(-1).expand(*Y_shape[:-1], Y_shape[-1])
         sampled_reconstructed_space_lum = iq_lum.gather(-1, Y_indices_sampled).squeeze(-1)[..., 0]
-
+        sampled_idx_space_lum = idx_lum.gather(-1, Y_indices_sampled).squeeze(-1)[..., 0]
+        
         CbCr_shape = cmpf_mask_chrom.shape
         CbCr_indices_sampled = torch.multinomial(cmpf_mask_chrom.view(-1, CbCr_shape[-1]), num_samples=1, replacement=False).view(CbCr_shape[:-1])
         CbCr_indices_sampled = CbCr_indices_sampled.unsqueeze(-1).expand(*CbCr_shape[:-1], CbCr_shape[-1])
-        sampled_reconstructed_space_chrom = iq_chrom.gather(-1, CbCr_indices_sampled).squeeze(-1)[..., 0]        
+        sampled_reconstructed_space_chrom = iq_chrom.gather(-1, CbCr_indices_sampled).squeeze(-1)[..., 0]   
+        sampled_idx_chrom = idx_chrom.gather(-1, CbCr_indices_sampled).squeeze(-1)[..., 0]
         
+        sampled_idx_space = torch.cat((sampled_idx_space_lum, sampled_idx_chrom), 0)
         sampled_reconstructed_space = torch.cat((sampled_reconstructed_space_lum, sampled_reconstructed_space_chrom), 0)
         
         norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(sampled_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
         norm_img += 128
-        norm_img = torch.clamp(norm_img, min=0.0, max=255.0)
         
-        sampled_reconstructed_space = deblockify(sampled_reconstructed_space, (self.img_shape[0], self.img_shape[1]))
+        sampled_idx_space = deblockify(sampled_idx_space, (self.img_shape[0], self.img_shape[1]))
         
         # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
+        norm_img = torch.clamp(norm_img, min=0.0, max=255.0)
         norm_img = self.normalize(self.Scale2One(norm_img))
         
         assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
@@ -585,7 +588,7 @@ class JPEG_layer_transformer(nn.Module):
         lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
         lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
 
-        return norm_img, sampled_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
+        return norm_img, sampled_idx_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
 
 
     def calculate_dc_entropy(self, idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom):
