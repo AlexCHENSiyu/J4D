@@ -166,8 +166,8 @@ class JPEG_layer(nn.Module):
         self.alpha_chrom = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
 
         if opt.QF_Inital:
-            self.lum_qtable = torch.tensor(quantizationTable(QF=50, Luminance=True), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
-            self.chrom_qtable = torch.tensor(quantizationTable(QF=50, Luminance=False), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            self.lum_qtable = torch.tensor(quantizationTable(QF=opt.Q_initial_QF, Luminance=True), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            self.chrom_qtable = torch.tensor(quantizationTable(QF=opt.Q_initial_QF, Luminance=False), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
         # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
         else:
             nn.init.constant_(self.lum_qtable , self.Q_inital)

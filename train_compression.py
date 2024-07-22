@@ -5,8 +5,6 @@ import argparse
 import socket
 import time
 import json
-
-# import tensorboard_logger.tensorboard_logger as tb_logger
 import torch
 import torch.optim as optim
 import torch.nn as nn
@@ -71,6 +69,7 @@ def parse_option():
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
     parser.add_argument('--root', type=str, default='./data/cub2011', help='path to dataset')
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
+    parser.add_argument("--optimizer", default="adam", type=str, choices=["adam","sgd"], help="optimizer used")
     
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
@@ -85,6 +84,7 @@ def parse_option():
     parser.add_argument('--JPEG_learning_rate', type=float, default=0.025, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
+    parser.add_argument('--Q_initial_QF', type=int, default=50, help='Initial Q_table with QF = 50')
     parser.add_argument('--block_size', type=int, default=8, help='the experiment id')
     parser.add_argument('--num_bit', type=int, default=11, help='Number of bits to represent DCT coeff')
     parser.add_argument('--min_Q_Step', type=float, default=1.0, help='Minumum Quantization Step')
@@ -93,8 +93,7 @@ def parse_option():
     parser.add_argument('--weight_lum', type=float, default=0.0, help='weight for lum entropy')
     parser.add_argument('--weight_chrom', type=float, default=0.0, help='weight for Chrom entropy')
     
-    parser.add_argument('--log_file', type=str, default='_alpha_untrainable', help='add text to the file', choices=['', '_alpha_per_q', '_alpha_per_channel', '_alpha_untrainable'])
-    parser.add_argument('--seed', type=int, default=42, help='seed id, set to 0 if do not want to fix the seed')
+    parser.add_argument('--seed', type=int, default=0, help='seed id, set to 0 if do not want to fix the seed')
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of micro-batches to accumulate')
     
     opt = parser.parse_args()
@@ -109,7 +108,10 @@ def parse_option():
         if opt.fixed_alpha:
             opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom)
         else:
-            opt.model_name = 'JPEG_lr_{}_weight_{}_{}_hardness_{}'.format(opt.JPEG_learning_rate, opt.weight_lum, opt.weight_chrom, opt.hardness)
+            opt.model_name = 'JPEG_lr_{}_hardness_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.hardness, opt.weight_lum, opt.weight_chrom)
+        
+        if opt.QF_Inital:
+            opt.model_name += '_QF_{}'.format(opt.Q_initial_QF)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
@@ -191,29 +193,27 @@ def main(opt):
         jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=mean, std=std)        
         model = CustomModel(jpeg_layer, underlying_model)
         
-        # for SGD optimizer
-        # optimizer_data = [
-        #     {'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
-        #     {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,},
-        # ]
-
-        # for Adam optimizer
-        optimizer_data = [
-            {'params': model.jpeg_layer.lum_qtable, },
-            {'params': model.jpeg_layer.chrom_qtable, },
-        ]
-      
+        if opt.optimizer == "sgd":
+            # for SGD optimizer
+            optimizer_data = [{'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
+                            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,}]
+        elif opt.optimizer == "adam":
+            # for Adam optimizer
+            optimizer_data = [{'params': model.jpeg_layer.lum_qtable}, {'params': model.jpeg_layer.chrom_qtable}]
+        else:
+            raise RuntimeError(f"Invalid optimizer {opt.optimizer}. Only SGD, RMSprop and AdamW are supported.")
+        
         if opt.JPEG_alpha_trainable:
             optimizer_data.append({'params': model.jpeg_layer.alpha_lum, 'lr': opt.alpha_learning_rate, 'momentum': opt.momentum,})
             optimizer_data.append({'params': model.jpeg_layer.alpha_chrom, 'lr': (opt.alpha_learning_rate)/np.sqrt(2), 'momentum': opt.momentum,})
     else:
         model = underlying_model
-        optimizer_data = [
-            {'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay},
-        ]
+        optimizer_data = [{'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay}]
 
-    optimizer = optim.Adam(optimizer_data, lr=1e-2, betas=(0.9, 0.999), eps=1e-08)
-    # optimizer = optim.SGD(optimizer_data)
+    if opt.optimizer == "sgd":
+        optimizer = optim.SGD(optimizer_data)
+    elif opt.optimizer == "adam":
+        optimizer = optim.Adam(optimizer_data, lr=1e-2, betas=(0.9, 0.999), eps=1e-08)
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():

@@ -183,26 +183,26 @@ def _get_cache_path(filepath):
     return cache_path
 
 
-def load_data(traindir, valdir, args):
+def load_data(traindir, valdir, opt):
     # Data loading code
     print("Loading data")
-    val_resize_size, val_crop_size, train_crop_size = (args.val_resize_size, args.val_crop_size, args.train_crop_size,)
-    interpolation = InterpolationMode(args.interpolation)
+    val_resize_size, val_crop_size, train_crop_size = (opt.val_resize_size, opt.val_crop_size, opt.train_crop_size,)
+    interpolation = InterpolationMode(opt.interpolation)
 
     print("Loading training data")
     start_time = time.time()
     cache_path = _get_cache_path(traindir)
-    if args.cache_dataset and os.path.exists(cache_path):
+    if opt.cache_dataset and os.path.exists(cache_path):
         # Attention, as the transforms are also cached!
         print(f"Loading dataset_train from {cache_path}")
         # TODO: this could probably be weights_only=True
         dataset, _ = torch.load(cache_path, weights_only=False)
     else:
         # We need a default value for the variables below because args may come from train_quantization.py which doesn't define them.
-        auto_augment_policy = getattr(args, "auto_augment", None)
-        random_erase_prob = getattr(args, "random_erase", 0.0)
-        ra_magnitude = getattr(args, "ra_magnitude", None)
-        augmix_severity = getattr(args, "augmix_severity", None)
+        auto_augment_policy = getattr(opt, "auto_augment", None)
+        random_erase_prob = getattr(opt, "random_erase", 0.0)
+        ra_magnitude = getattr(opt, "ra_magnitude", None)
+        augmix_severity = getattr(opt, "augmix_severity", None)
         dataset = torchvision.datasets.ImageFolder(traindir,
             presets.ClassificationPresetTrain(
                 crop_size=train_crop_size,
@@ -211,10 +211,10 @@ def load_data(traindir, valdir, args):
                 random_erase_prob=random_erase_prob,
                 ra_magnitude=ra_magnitude,
                 augmix_severity=augmix_severity,
-                backend=args.backend,
-                use_v2=args.use_v2,),)
+                backend=opt.backend,
+                use_v2=opt.use_v2,),)
         
-        if args.cache_dataset:
+        if opt.cache_dataset:
             print(f"Saving dataset_train to {cache_path}")
             utils.mkdir(os.path.dirname(cache_path))
             utils.save_on_master((dataset, traindir), cache_path)
@@ -224,35 +224,35 @@ def load_data(traindir, valdir, args):
 
     print("Loading validation data")
     cache_path = _get_cache_path(valdir)
-    if args.cache_dataset and os.path.exists(cache_path):
+    if opt.cache_dataset and os.path.exists(cache_path):
         # Attention, as the transforms are also cached!
         print(f"Loading dataset_test from {cache_path}")
         # TODO: this could probably be weights_only=True
         dataset_test, _ = torch.load(cache_path, weights_only=False)
     else:
-        if args.weights and args.test_only:
-            weights = torchvision.models.get_weight(args.weights)
+        if opt.weights and opt.test_only:
+            weights = torchvision.models.get_weight(opt.weights)
             preprocessing = weights.transforms(antialias=True)
-            if args.backend == "tensor":
+            if opt.backend == "tensor":
                 preprocessing = torchvision.transforms.Compose([torchvision.transforms.PILToTensor(), preprocessing])
         else:
             preprocessing = presets.ClassificationPresetEval(
                 crop_size=val_crop_size,
                 resize_size=val_resize_size,
                 interpolation=interpolation,
-                backend=args.backend,
-                use_v2=args.use_v2,)
+                backend=opt.backend,
+                use_v2=opt.use_v2,)
 
         dataset_test = torchvision.datasets.ImageFolder(valdir, preprocessing,)
-        if args.cache_dataset:
+        if opt.cache_dataset:
             print(f"Saving dataset_test to {cache_path}")
             utils.mkdir(os.path.dirname(cache_path))
             utils.save_on_master((dataset_test, valdir), cache_path)
 
     print("Creating data loaders")
-    if args.distributed:
-        if hasattr(args, "ra_sampler") and args.ra_sampler:
-            train_sampler = RASampler(dataset, shuffle=True, repetitions=args.ra_reps)
+    if opt.distributed:
+        if hasattr(opt, "ra_sampler") and opt.ra_sampler:
+            train_sampler = RASampler(dataset, shuffle=True, repetitions=opt.ra_reps)
         else:
             train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
         test_sampler = torch.utils.data.distributed.DistributedSampler(dataset_test, shuffle=False)
