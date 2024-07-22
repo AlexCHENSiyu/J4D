@@ -213,7 +213,7 @@ def main(opt):
     if opt.optimizer == "sgd":
         optimizer = optim.SGD(optimizer_data)
     elif opt.optimizer == "adam":
-        optimizer = optim.Adam(optimizer_data, lr=1e-2, betas=(0.9, 0.999), eps=1e-08)
+        optimizer = optim.Adam(optimizer_data, lr=opt.learning_rate, betas=(0.9, 0.999), eps=1e-08)
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():

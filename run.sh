@@ -25,7 +25,7 @@ GPU_ID=0
 #                                     --num_workers 16
 # done
 
-# weight_list=(0.001 0.002 0.003 0.004 0.005 0.006 0.007 0.008 0.009)
+# weight_list=(0.01 0.02 0.05 0.1 0.2 0.5 1.0 2.0 5.0)
 # for weight in "${weight_list[@]}"; do
 #     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model \
 #                                     --JPEG_alpha 10 --hardness 20.0 --JPEG_learning_rate 0.05 \
@@ -37,7 +37,7 @@ QF_list=(10 20 30 40 50 60 70 80 90 100)
 for QF in "${QF_list[@]}"; do
     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --JPEG_alpha 100 --JPEG_learning_rate 0.01 --Q_initial_QF $QF \
-                                    --weight_lum 0.001 --weight_chrom 0.001 \
+                                    --weight_lum 0.01 --weight_chrom 0.01 \
                                     --num_workers 16
 done
 
