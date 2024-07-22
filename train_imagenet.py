@@ -40,15 +40,16 @@ def parse_option(add_help=True):
     parser.add_argument("--learning_rate", default=0.1, type=float, help="initial learning rate")
     parser.add_argument('--lr_decay_epochs', type=str, default='110', help='where to decay lr, can be a list')
     parser.add_argument('--lr_decay_rate', type=float, default=0.1, help='decay rate for learning rate')
-    parser.add_argument("--weight_decay", default=1e-4, type=float, metavar="W", help="weight decay", dest="weight_decay")
+    parser.add_argument("--weight_decay", "--wd",  default=1e-4, type=float, metavar="W", help="weight decay", dest="weight_decay")
     parser.add_argument("--momentum", default=0.9, type=float, metavar="M", help="momentum")
     
     # model and dataset
-    parser.add_argument("--model", default="resnet18", type=str, help="model name")
+    parser.add_argument("--model", default="mobileNet_v2", type=str, choices=['mobileNet_v2','resnet18'], help="model name")
     parser.add_argument("--data_path", default="/datasets01/imagenet_full_size/061417/", type=str, help="dataset path")
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
-    parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200',"imagenet"], help='dataset')
+    parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200','imagenet'], help='dataset')
     parser.add_argument("--output_dir", default=".", type=str, help="path to save outputs")
+    parser.add_argument("--optimizer", default="adam", choices=['sgd','adam'], type=str, help="optimizer")
     
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
@@ -63,6 +64,7 @@ def parse_option(add_help=True):
     parser.add_argument('--JPEG_learning_rate', type=float, default=0.025, help='Quantization Table Learning Rate')
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
+    parser.add_argument('--Q_initial_QF', type=int, default=50, help='Initial Q_table with QF = 50')
     parser.add_argument('--block_size', type=int, default=8, help='the experiment id')
     parser.add_argument('--num_bit', type=int, default=11, help='Number of bits to represent DCT coeff')
     parser.add_argument('--min_Q_Step', type=float, default=1.0, help='Minumum Quantization Step')
@@ -75,7 +77,6 @@ def parse_option(add_help=True):
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of micro-batches to accumulate')
     
     # other parameter for datasets
-    parser.add_argument("--optimizer", default="sgd", type=str, help="optimizer")
     parser.add_argument("--norm_weight_decay", default=None, type=float, help="weight decay for Normalization layers (default: None, same value as --wd)")
     parser.add_argument("--bias_weight_decay", default=None, type=float, help="weight decay for bias parameters of all layers (default: None, same value as --wd)")
     parser.add_argument("--transformer_embedding_decay", default=None, type=float,help="weight decay for embedding parameters for vision transformer models (default: None, same value as --wd)")
@@ -133,7 +134,10 @@ def parse_option(add_help=True):
         if opt.fixed_alpha:
             opt.model_name = 'JPEG_lr_{}_alpha_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.JPEG_alpha, opt.weight_lum, opt.weight_chrom)
         else:
-            opt.model_name = 'JPEG_lr_{}_weight_{}_{}_hardness_{}'.format(opt.JPEG_learning_rate, opt.weight_lum, opt.weight_chrom, opt.hardness)
+            opt.model_name = 'JPEG_lr_{}_hardness_{}_weight_{}_{}'.format(opt.JPEG_learning_rate, opt.hardness, opt.weight_lum, opt.weight_chrom)
+
+        if opt.QF_Inital:
+            opt.model_name += '_QF_{}'.format(opt.Q_initial_QF)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
@@ -307,7 +311,14 @@ def main(opt):
 
     # load model
     print("Creating model")
-    underlying_model = torchvision.models.get_model(opt.model, weights=opt.weights, num_classes=num_classes)
+    
+    # underlying_model = torchvision.models.get_model(opt.model, weights=opt.weights, num_classes=num_classes)
+    if opt.model == "mobileNet_v2":
+        underlying_model = torchvision.models.mobilenet_v2(pretrained=True, progress=True)
+    elif opt.model == "resnet18":
+        underlying_model = torchvision.models.resnet18(pretrained=False, progress=True)
+    else:
+        raise RuntimeError(f"Invalid model {opt.model}. Only obileNet_v2, resnet18 are supported.")
     
     opt_name = opt.optimizer.lower()
     if opt.JPEG_enable:
