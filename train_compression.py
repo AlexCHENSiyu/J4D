@@ -244,16 +244,21 @@ def main(opt):
     val_loader.dataset.transform = HDQ_preprocess
     
     # routine
-    for epoch in range(1, opt.epochs + 1):
+    for epoch in range(0, opt.epochs + 1):
         adjust_learning_rate(epoch, opt, optimizer)
         
-        # train
+        
         print("\n==> training...")
         time1 = time.time()
-        train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)
+        if epoch == 0:
+            # train with default settings
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt, backward=False)
+        else:
+            # train
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train(epoch, train_loader, model, criterion, optimizer, opt)
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
-        
+            
         # catch the q_table and alpha for validate
         val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
         val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()

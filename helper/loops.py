@@ -60,9 +60,6 @@ def train(epoch, train_loader, model, criterion, optimizer, opt, backward=True):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        # tensorboard logger
-        pass
-
         # print info
         if idx % opt.print_freq == 0:
             print('Train: [{0}][{1}/{2}]\t'
