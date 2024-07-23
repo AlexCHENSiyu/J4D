@@ -150,6 +150,22 @@ def parse_option():
     if not os.path.isdir(opt.alpha_folder):
         os.makedirs(opt.alpha_folder)
     
+    # opt.train_log_fname = os.path.join(opt.trial_folder, "train_logs.txt")
+    # with open(opt.train_log_fname, 'a') as log:
+    #     line =  'train_acc' + "\t\t\t" + \
+    #             'train_loss' + "\t\t\t" + \
+    #             'train_lum_dc' + "\t\t" + 'train_chrom_dc' + "\t\t" + \
+    #             'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + "\n"
+    #     log.write(line)
+    
+    # opt.val_log_fname = os.path.join(opt.trial_folder, "val_logs.txt")
+    # with open(opt.val_log_fname, 'a') as log:
+    #     line =  'test_acc' + "\t\t\t" + \
+    #             'test_loss' + "\t\t\t" + \
+    #             'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + \
+    #             'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + "\n"
+    #     log.write(line) 
+        
     opt.opt_fname = os.path.join(opt.trial_folder, "opt.json")
     with open(opt.opt_fname, 'w') as f:
         json.dump(vars(opt), f, indent=4)
@@ -194,11 +210,9 @@ def main(opt):
         model = CustomModel(jpeg_layer, underlying_model)
         
         if opt.optimizer == "sgd":
-            # for SGD optimizer
             optimizer_data = [{'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
-                            {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,}]
+                              {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,}]
         elif opt.optimizer == "adam":
-            # for Adam optimizer
             optimizer_data = [{'params': model.jpeg_layer.lum_qtable}, {'params': model.jpeg_layer.chrom_qtable}]
         else:
             raise RuntimeError(f"Invalid optimizer {opt.optimizer}. Only SGD, RMSprop and AdamW are supported.")
@@ -210,10 +224,13 @@ def main(opt):
         model = underlying_model
         optimizer_data = [{'params': model.parameters(), 'lr': opt.learning_rate, 'momentum': opt.momentum, 'weight_decay': opt.weight_decay}]
 
+    # optimizer
     if opt.optimizer == "sgd":
         optimizer = optim.SGD(optimizer_data)
     elif opt.optimizer == "adam":
         optimizer = optim.Adam(optimizer_data, lr=opt.learning_rate, betas=(0.9, 0.999), eps=1e-08)
+        
+    # loos function
     criterion = nn.CrossEntropyLoss()
     
     if torch.cuda.is_available():
