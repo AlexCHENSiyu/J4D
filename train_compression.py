@@ -44,7 +44,8 @@ def create_trial_folder(base_folder):
 # ctrl+b and press d to detach when running code
 # ps aux | grep tmux
 # salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit --mem=8G
-
+# sq
+# scancel {JOGID}
 
 def parse_option():
     hostname = socket.gethostname()
