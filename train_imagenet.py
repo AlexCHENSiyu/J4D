@@ -316,7 +316,7 @@ def main(opt):
     val_loader = torch.utils.data.DataLoader(dataset_test, batch_size=opt.batch_size, sampler=test_sampler, num_workers=opt.num_workers, pin_memory=True)
 
     # load underlying model
-    print("Creating model")
+    print("loading model {}".format(opt.model))
     if opt.model == "mobileNet_v2":
         underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
     elif opt.model == "resnet18":
