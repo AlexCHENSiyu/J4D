@@ -271,12 +271,7 @@ def main(opt):
     best_acc = 0
     best_bpp = 0
 
-    if opt.world_size == 1:
-        # Non-distributed mode
-        print("Running in non-distributed mode.")
-    else:
-        # Distributed mode
-        imagenet_utils.init_distributed_mode(opt)
+    imagenet_utils.init_distributed_mode(opt)
     print(opt)
     
     if opt.seed:
