@@ -343,7 +343,7 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
     metric_logger = imagenet_utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter("lr", imagenet_utils.SmoothedValue(window_size=1, fmt="{value}"))
 
-    header = f"Epoch: [{epoch}]"
+    header = f"Train: [{epoch}]"
     for idx, (input, target) in enumerate(metric_logger.log_every(train_loader, args.print_freq, header)):
         input = input.float()
         input, target = input.to(device), target.to(device)
@@ -357,6 +357,7 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
             acc1, acc5 = imagenet_utils.accuracy(output, target, topk=(1, 5))
             
         # ===================backward=====================
+        
         if backward:
             optimizer.zero_grad()
             
@@ -419,8 +420,8 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
     model.eval()
     
     metric_logger = imagenet_utils.MetricLogger(delimiter="  ")
+    
     header = f"Test: {log_suffix}"
-
     num_processed_samples = 0
     with torch.inference_mode():
         for idx, data in enumerate(metric_logger.log_every(val_loader, print_freq, header)):
@@ -435,6 +436,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
             chrom_ac_entropy = chrom_ac_entropy.to(device, non_blocking=True).mean() 
             
             # ===================inference=====================
+            
             output = model(input)
             loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
                     opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
@@ -442,6 +444,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
             acc1, acc5 = imagenet_utils.accuracy(output, target, topk=(1, 5))
             
             # ===================meters=====================
+            
             batch_size = input.shape[0]
             num_processed_samples += batch_size
             metric_logger.update(loss=loss.item())

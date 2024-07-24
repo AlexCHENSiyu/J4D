@@ -315,16 +315,17 @@ def main(opt):
     train_loader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, sampler=train_sampler, num_workers=opt.num_workers, pin_memory=True, collate_fn=collate_fn)
     val_loader = torch.utils.data.DataLoader(dataset_test, batch_size=opt.batch_size, sampler=test_sampler, num_workers=opt.num_workers, pin_memory=True)
 
-    # load model
+    # load underlying model
     print("Creating model")
-    # underlying_model = torchvision.models.get_model(opt.model, weights=opt.weights, num_classes=num_classes)
     if opt.model == "mobileNet_v2":
         underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
     elif opt.model == "resnet18":
         underlying_model = torchvision.models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1, progress=True)
     else:
         raise RuntimeError(f"Invalid model {opt.model}. Only mobileNet_v2, resnet18 are supported.")
+    # underlying_model = torchvision.models.get_model(opt.model, weights=opt.weights, num_classes=num_classes)
     
+    # load whole model
     opt_name = opt.optimizer.lower()
     if opt.JPEG_enable:
         jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))        
@@ -401,7 +402,7 @@ def main(opt):
     else:
         lr_scheduler = main_lr_scheduler
 
-    # 
+    # data parallel
     model_without_ddp = model
     if opt.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[opt.gpu])
