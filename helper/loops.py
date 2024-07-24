@@ -395,20 +395,20 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
         metric_logger.meters["losses_lum_ac_entropy"].update(lum_ac_entropy.item(), n=batch_size)
         metric_logger.meters["losses_chrom_ac_entropy"].update(chrom_ac_entropy.item(), n=batch_size)
         
-        if idx % opt.print_freq == 0:
-            print('Train: [{0}][{1}/{2}]\t'
-                  'Loss {loss.value:.5f} ({loss.global_avg:.5f})\t'
-                  'Lum_DC {loss_lum_dc_entropy.value:.5f} ({loss_lum_dc_entropy.global_avg:.5f})\t'
-                  'Chrom_DC {loss_chrom_dc_entropy.value:.5f} ({loss_chrom_dc_entropy.global_avg:.5f})\t'
-                  'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
-                  'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
-                  'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
-                  'Acc@5 {top5.value:.5f} ({top5.global_avg:.5f})'.format(
-                   epoch, idx, len(train_loader), loss = metric_logger.losses, 
-                   loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
-                   loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
-                   top1=metric_logger.acc1, top5=metric_logger.acc5))
-            sys.stdout.flush()
+        # if idx % opt.print_freq == 0:
+        #     print('Train: [{0}][{1}/{2}]\t'
+        #           'Loss {loss.value:.5f} ({loss.global_avg:.5f})\t'
+        #           'Lum_DC {loss_lum_dc_entropy.value:.5f} ({loss_lum_dc_entropy.global_avg:.5f})\t'
+        #           'Chrom_DC {loss_chrom_dc_entropy.value:.5f} ({loss_chrom_dc_entropy.global_avg:.5f})\t'
+        #           'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
+        #           'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
+        #           'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
+        #           'Acc@5 {top5.value:.5f} ({top5.global_avg:.5f})'.format(
+        #            epoch, idx, len(train_loader), loss = metric_logger.losses, 
+        #            loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
+        #            loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
+        #            top1=metric_logger.acc1, top5=metric_logger.acc5))
+        #     sys.stdout.flush()
 
     print(' * Acc@1 {top1.global_avg:.6f} Acc@5 {top5.global_avg:.6f}'.format(top1=metric_logger.acc1, top5=metric_logger.acc5))
     
@@ -457,19 +457,19 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
             metric_logger.meters["losses_lum_ac_entropy"].update(lum_ac_entropy.item(), n=batch_size)
             metric_logger.meters["losses_chrom_ac_entropy"].update(chrom_ac_entropy.item(), n=batch_size)  
     
-            print('Train: [{0}/{1}]\t'
-                  'Loss {loss.value:.5f} ({loss.global_avg:.5f})\t'
-                  'BPP {BPP.value:.5f} ({BPP.global_avg:.5f})\t'
-                  'Lum_DC {loss_lum_dc_entropy.value:.5f} ({loss_lum_dc_entropy.global_avg:.5f})\t'
-                  'Chrom_DC {loss_chrom_dc_entropy.value:.5f} ({loss_chrom_dc_entropy.global_avg:.5f})\t'
-                  'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
-                  'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
-                  'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
-                  'Acc@5 {top5.value:.5f} ({top5.global_avg:.5f})'.format(
-                   idx, len(val_loader), loss = metric_logger.losses, BPP=metric_logger.BPP,
-                   loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
-                   loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
-                   top1=metric_logger.acc1, top5=metric_logger.acc5))
+            # print('Test: [{0}/{1}]\t'
+            #       'Loss {loss.value:.5f} ({loss.global_avg:.5f})\t'
+            #       'BPP {BPP.value:.5f} ({BPP.global_avg:.5f})\t'
+            #       'Lum_DC {loss_lum_dc_entropy.value:.5f} ({loss_lum_dc_entropy.global_avg:.5f})\t'
+            #       'Chrom_DC {loss_chrom_dc_entropy.value:.5f} ({loss_chrom_dc_entropy.global_avg:.5f})\t'
+            #       'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
+            #       'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
+            #       'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
+            #       'Acc@5 {top5.value:.5f} ({top5.global_avg:.5f})'.format(
+            #        idx, len(val_loader), loss = metric_logger.losses, BPP=metric_logger.BPP,
+            #        loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
+            #        loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
+            #        top1=metric_logger.acc1, top5=metric_logger.acc5))
         
         print(' * Acc@1 {top1.global_avg:.6f} Acc@5 {top5.global_avg:.6f}'.format(top1=metric_logger.acc1, top5=metric_logger.acc5))
         
