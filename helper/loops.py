@@ -403,7 +403,7 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
                   'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
                   'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
                   'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
-                  'Acc@5 {top5.value:.5f} ({top5.avglobal_avgg:.5f})'.format(
+                  'Acc@5 {top5.value:.5f} ({top5.global_avg:.5f})'.format(
                    epoch, idx, len(train_loader), loss = metric_logger.losses, 
                    loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
                    loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
@@ -465,7 +465,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
                   'Lum_AC {loss_lum_ac_entropy.value:.5f} ({loss_lum_ac_entropy.global_avg:.5f})\t'
                   'Chrom_AC {loss_chrom_ac_entropy.value:.5f} ({loss_chrom_ac_entropy.global_avg:.5f})\t'
                   'Acc@1 {top1.value:.5f} ({top1.global_avg:.5f})\t'
-                  'Acc@5 {top5.value:.5f} ({top5.avglobal_avgg:.5f})'.format(
+                  'Acc@5 {top5.value:.5f} ({top5.global_avg:.5f})'.format(
                    idx, len(val_loader), loss = metric_logger.losses, BPP=metric_logger.BPP,
                    loss_lum_dc_entropy = metric_logger.losses_lum_dc_entropy, loss_chrom_dc_entropy = metric_logger.losses_chrom_dc_entropy,
                    loss_lum_ac_entropy = metric_logger.losses_lum_ac_entropy, loss_chrom_ac_entropy = metric_logger.losses_chrom_ac_entropy,
