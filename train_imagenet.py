@@ -17,7 +17,7 @@ from torch import nn
 from torch.utils.data.dataloader import default_collate
 from torchvision.transforms.functional import InterpolationMode
 from helper.transforms import get_mixup_cutmix
-
+from torchvision.models import MobileNet_V2_Weights, ResNet18_Weights
 
 def create_trial_folder(base_folder):
     trial_num = 1
@@ -317,14 +317,13 @@ def main(opt):
 
     # load model
     print("Creating model")
-    
     # underlying_model = torchvision.models.get_model(opt.model, weights=opt.weights, num_classes=num_classes)
     if opt.model == "mobileNet_v2":
-        underlying_model = torchvision.models.mobilenet_v2(pretrained=True, progress=True)
+        underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
     elif opt.model == "resnet18":
-        underlying_model = torchvision.models.resnet18(pretrained=False, progress=True)
+        underlying_model = torchvision.models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1, progress=True)
     else:
-        raise RuntimeError(f"Invalid model {opt.model}. Only obileNet_v2, resnet18 are supported.")
+        raise RuntimeError(f"Invalid model {opt.model}. Only mobileNet_v2, resnet18 are supported.")
     
     opt_name = opt.optimizer.lower()
     if opt.JPEG_enable:
@@ -453,15 +452,19 @@ def main(opt):
 
     # start traning
     print("Start training")
-    start_time = time.time()
-    for epoch in range(opt.start_epoch, opt.epochs):
+    for epoch in range(opt.start_epoch, opt.epochs+1):
         if opt.distributed:
             train_sampler.set_epoch(epoch)
         
         # train
         print("\n==> training...")
         time1 = time.time()
-        train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, opt, model_ema, scaler)
+        if epoch == 0:
+            # train with default settings (Validation)
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, opt, model_ema, scaler, backward=False)
+        else:
+            # train
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, opt, model_ema, scaler)
         lr_scheduler.step()
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
@@ -568,8 +571,6 @@ def main(opt):
     # After training, save the final q_table and alpha
     print("\n==> Finish training: ", opt.model_name)
     print('Best accuracy:', best_acc.item())
-
-
 
 
 if __name__ == "__main__":

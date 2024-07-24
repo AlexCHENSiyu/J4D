@@ -40,6 +40,14 @@ def train(epoch, train_loader, model, criterion, optimizer, opt, backward=True):
                 opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
         acc1, acc5 = accuracy(output, target, topk=(1, 5))
         
+        # ===================backward=====================
+        if backward:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+            
+        # ===================meters=====================
+        
         losses.update(loss.item(), input.size(0))
         losses_lum_dc_entropy.update(lum_dc_entropy.item(), input.size(0))
         losses_chrom_dc_entropy.update(chrom_dc_entropy.item(), input.size(0))
@@ -47,16 +55,6 @@ def train(epoch, train_loader, model, criterion, optimizer, opt, backward=True):
         losses_chrom_ac_entropy.update(chrom_ac_entropy.item(), input.size(0))
         top1.update(acc1[0], input.size(0))
         top5.update(acc5[0], input.size(0))
-
-        # ===================backward=====================
-        
-        if backward:
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-        # ===================meters=====================
-        
         batch_time.update(time.time() - end)
         end = time.time()
 
@@ -165,7 +163,6 @@ def validate_jpeg(val_loader, model, criterion, opt):
     print(' * Acc@1 {top1.avg:.6f} Acc@5 {top5.avg:.6f}'.format(top1=top1, top5=top5))
 
     return top1.avg, top5.avg, losses.avg, BPP.avg, losses_lum_dc_entropy.avg, losses_chrom_dc_entropy.avg, losses_lum_ac_entropy.avg, losses_chrom_ac_entropy.avg
-
 
 
 def validate(val_loader, model, criterion, opt):
@@ -340,7 +337,7 @@ def validate_with_output(val_loader, model, criterion, opt):
 import helper.imagenet_utils as imagenet_utils
 import warnings
 
-def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, args, model_ema=None, scaler=None):
+def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, args, model_ema=None, scaler=None, backward=True):
     model.train()
     
     metric_logger = imagenet_utils.MetricLogger(delimiter="  ")
@@ -360,28 +357,28 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
             acc1, acc5 = imagenet_utils.accuracy(output, target, topk=(1, 5))
             
         # ===================backward=====================
-        
-        optimizer.zero_grad()
-        
-        if scaler is not None:
-            scaler.scale(loss).backward()
-            if args.clip_grad_norm is not None:
-                # we should unscale the gradients of optimizer's assigned params if do gradient clipping
-                scaler.unscale_(optimizer)
-                nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
-            scaler.step(optimizer)
-            scaler.update()
-        else:
-            loss.backward()
-            if args.clip_grad_norm is not None:
-                nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
-            optimizer.step()
+        if backward:
+            optimizer.zero_grad()
+            
+            if scaler is not None:
+                scaler.scale(loss).backward()
+                if args.clip_grad_norm is not None:
+                    # we should unscale the gradients of optimizer's assigned params if do gradient clipping
+                    scaler.unscale_(optimizer)
+                    nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+                scaler.step(optimizer)
+                scaler.update()
+            else:
+                loss.backward()
+                if args.clip_grad_norm is not None:
+                    nn.utils.clip_grad_norm_(model.parameters(), args.clip_grad_norm)
+                optimizer.step()
 
-        if model_ema and idx % args.model_ema_steps == 0:
-            model_ema.update_parameters(model)
-            if epoch < args.lr_warmup_epochs:
-                # Reset ema buffer to keep copying weights during warmup period
-                model_ema.n_averaged.fill_(0)
+            if model_ema and idx % args.model_ema_steps == 0:
+                model_ema.update_parameters(model)
+                if epoch < args.lr_warmup_epochs:
+                    # Reset ema buffer to keep copying weights during warmup period
+                    model_ema.n_averaged.fill_(0)
 
         # ===================meters=====================
         
@@ -390,10 +387,10 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
         metric_logger.meters["acc1"].update(acc1.item(), n=batch_size)
         metric_logger.meters["acc5"].update(acc5.item(), n=batch_size)
         metric_logger.meters["losses"].update(loss.item(), n=batch_size)
-        metric_logger.meters["losses_lum_dc_entropy"].update(lum_dc_entropy.item(), n=batch_size)
-        metric_logger.meters["losses_chrom_dc_entropy"].update(chrom_dc_entropy.item(), n=batch_size)
-        metric_logger.meters["losses_lum_ac_entropy"].update(lum_ac_entropy.item(), n=batch_size)
-        metric_logger.meters["losses_chrom_ac_entropy"].update(chrom_ac_entropy.item(), n=batch_size)
+        metric_logger.meters["lum_dc"].update(lum_dc_entropy.item(), n=batch_size)
+        metric_logger.meters["chrom_dc"].update(chrom_dc_entropy.item(), n=batch_size)
+        metric_logger.meters["lum_ac"].update(lum_ac_entropy.item(), n=batch_size)
+        metric_logger.meters["chrom_ac"].update(chrom_ac_entropy.item(), n=batch_size)
         
         # if idx % opt.print_freq == 0:
         #     print('Train: [{0}][{1}/{2}]\t'
@@ -452,10 +449,10 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
             metric_logger.meters["acc5"].update(acc5.item(), n=batch_size)
             metric_logger.meters["losses"].update(loss.item(), n=batch_size)
             metric_logger.meters["BPP"].update(bpp.item(), n=batch_size)
-            metric_logger.meters["losses_lum_dc_entropy"].update(lum_dc_entropy.item(), n=batch_size)
-            metric_logger.meters["losses_chrom_dc_entropy"].update(chrom_dc_entropy.item(), n=batch_size)
-            metric_logger.meters["losses_lum_ac_entropy"].update(lum_ac_entropy.item(), n=batch_size)
-            metric_logger.meters["losses_chrom_ac_entropy"].update(chrom_ac_entropy.item(), n=batch_size)  
+            metric_logger.meters["lum_dc"].update(lum_dc_entropy.item(), n=batch_size)
+            metric_logger.meters["chrom_dc"].update(chrom_dc_entropy.item(), n=batch_size)
+            metric_logger.meters["lum_ac"].update(lum_ac_entropy.item(), n=batch_size)
+            metric_logger.meters["chrom_ac"].update(chrom_ac_entropy.item(), n=batch_size)  
     
             # print('Test: [{0}/{1}]\t'
             #       'Loss {loss.value:.5f} ({loss.global_avg:.5f})\t'
