@@ -34,7 +34,7 @@ def parse_option(add_help=True):
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
     
     # optimization
-    parser.add_argument("--batch_size", default=32, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
+    parser.add_argument("--batch_size", default=256, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
     parser.add_argument("--num_workers", default=16, type=int, metavar="N", help="number of data loading workers")
     parser.add_argument("--epochs", default=20, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument("--learning_rate", default=0.1, type=float, help="initial learning rate")
@@ -216,7 +216,9 @@ def load_data(traindir, valdir, opt):
                 ra_magnitude=ra_magnitude,
                 augmix_severity=augmix_severity,
                 backend=opt.backend,
-                use_v2=opt.use_v2,),)
+                use_v2=opt.use_v2,
+                mean=(0.,0.,0.),
+                std=(1/255., 1/255., 1/255.)),)
         
         if opt.cache_dataset:
             print(f"Saving dataset_train to {cache_path}")

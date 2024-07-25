@@ -227,8 +227,10 @@ def main(opt):
 
     # optimizer
     if opt.optimizer == "sgd":
+        print("use optimizer sgd")
         optimizer = optim.SGD(optimizer_data)
     elif opt.optimizer == "adam":
+        print("use optimizer adam")
         optimizer = optim.Adam(optimizer_data, lr=opt.learning_rate, betas=(0.9, 0.999), eps=1e-08)
         
     # loos function
