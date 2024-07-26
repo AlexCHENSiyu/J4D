@@ -19,6 +19,7 @@ from torchvision.transforms.functional import InterpolationMode
 from helper.transforms import get_mixup_cutmix
 from torchvision.models import MobileNet_V2_Weights, ResNet18_Weights
 
+
 def create_trial_folder(base_folder):
     trial_num = 1
     while True:
@@ -28,6 +29,15 @@ def create_trial_folder(base_folder):
             # print(f"Created folder: {trial_folder}")
             return trial_folder
         trial_num += 1
+
+
+def _get_cache_path(filepath):
+    import hashlib
+    h = hashlib.sha1(filepath.encode()).hexdigest()
+    cache_path = os.path.join("~", ".torch", "vision", "datasets", "imagefolder", h[:10] + ".pt")
+    cache_path = os.path.expanduser(cache_path)
+    return cache_path
+
 
 def parse_option(add_help=True):
     import argparse
@@ -159,16 +169,16 @@ def parse_option(add_help=True):
     # 10          11            12           13             14           15             16    17   
     # test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
-        
-    with open(opt.logs_fname, 'a') as log:
-        line =  'ep' + "\t" + \
-                'best_acc' + "\t\t\t" + 'test_acc' + "\t\t\t" + 'train_acc' + "\t\t\t" +  \
-                'test_loss' + "\t\t\t" + 'train_loss' + "\t\t\t" + \
-                'bpp' + "\t\t\t\t\t" + \
-                'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + \
-                'train_lum_dc' + "\t\t" + 'train_chrom_dc' + "\t\t" + 'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + \
-                'q_min' + "\t\t\t\t" + 'q_max' + '\t\t' + 'alpha_min' + "\t\t\t" + 'alpha_max' + '\n'
-        log.write(line)
+    if os.path.exists(opt.logs_fname) and os.stat(opt.logs_fname).st_size == 0:
+        with open(opt.logs_fname, 'a') as log:
+            line =  'ep' + "\t" + \
+                    'best_acc' + "\t\t\t" + 'test_acc' + "\t\t\t" + 'train_acc' + "\t\t\t" +  \
+                    'test_loss' + "\t\t\t" + 'train_loss' + "\t\t\t" + \
+                    'bpp' + "\t\t\t\t\t" + \
+                    'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + \
+                    'train_lum_dc' + "\t\t" + 'train_chrom_dc' + "\t\t" + 'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + \
+                    'q_min' + "\t\t\t\t" + 'q_max' + '\t\t\t\t' + 'alpha_min' + "\t\t\t" + 'alpha_max' + '\n'
+            log.write(line)
     
     opt.q_tables_folder = os.path.join(opt.trial_folder, "Q_tables")
     if not os.path.isdir(opt.q_tables_folder):
@@ -183,14 +193,6 @@ def parse_option(add_help=True):
         json.dump(vars(opt), f, indent=4)
     
     return opt
-
-
-def _get_cache_path(filepath):
-    import hashlib
-    h = hashlib.sha1(filepath.encode()).hexdigest()
-    cache_path = os.path.join("~", ".torch", "vision", "datasets", "imagefolder", h[:10] + ".pt")
-    cache_path = os.path.expanduser(cache_path)
-    return cache_path
 
 
 def load_data(traindir, valdir, opt):
@@ -279,13 +281,6 @@ def main(opt):
     best_acc = 0
     best_bpp = 0
 
-    # if opt.world_size == 1:
-    #     # Non-distributed mode
-    #     print("Running in non-distributed mode.")
-    #     opt.distributed = False
-    # else:
-    #     # Distributed mode
-    #     imagenet_utils.init_distributed_mode(opt)
     imagenet_utils.init_distributed_mode(opt)
     print(opt)
     
@@ -308,11 +303,11 @@ def main(opt):
     
     # load dataset
     train_dir = os.path.join(opt.data_path, "train")
-    val_dir = os.path.join(opt.data_path, "val")
-    dataset, dataset_test, train_sampler, test_sampler = load_data(train_dir, val_dir, opt)
+    test_dir = os.path.join(opt.data_path, "val")
+    train_dataset, test_dataset, train_sampler, test_sampler = load_data(train_dir, test_dir, opt)
 
     # data arguementation
-    num_classes = len(dataset.classes)
+    num_classes = len(train_dataset.classes)
     mixup_cutmix = get_mixup_cutmix(mixup_alpha=opt.mixup_alpha, cutmix_alpha=opt.cutmix_alpha, num_classes=num_classes, use_v2=opt.use_v2)
     if mixup_cutmix is not None:
         def collate_fn(batch):
@@ -321,8 +316,8 @@ def main(opt):
         collate_fn = default_collate
 
     # data_loader
-    train_loader = torch.utils.data.DataLoader(dataset, batch_size=opt.batch_size, sampler=train_sampler, num_workers=opt.num_workers, pin_memory=True, collate_fn=collate_fn)
-    val_loader = torch.utils.data.DataLoader(dataset_test, batch_size=opt.batch_size, sampler=test_sampler, num_workers=opt.num_workers, pin_memory=True)
+    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=opt.batch_size, sampler=train_sampler, num_workers=opt.num_workers, pin_memory=True, collate_fn=collate_fn)
+    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=opt.batch_size, sampler=test_sampler, num_workers=opt.num_workers, pin_memory=True)
 
     # load underlying model
     print("loading model {}".format(opt.model))
@@ -332,7 +327,6 @@ def main(opt):
         underlying_model = torchvision.models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1, progress=True)
     else:
         raise RuntimeError(f"Invalid model {opt.model}. Only mobileNet_v2, resnet18 are supported.")
-    # underlying_model = torchvision.models.get_model(opt.model, weights=opt.weights, num_classes=num_classes)
     
     # load whole model
     opt_name = opt.optimizer.lower()
@@ -340,8 +334,7 @@ def main(opt):
         jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))        
         model = CustomModel(jpeg_layer, underlying_model)
         
-        # based on optimizer
-        if opt_name.startswith("sgd"):
+        if opt_name == "sgd":
             optimizer_data = [{'params': model.jpeg_layer.lum_qtable, 'lr': opt.JPEG_learning_rate, 'momentum': opt.momentum,},
                               {'params': model.jpeg_layer.chrom_qtable, 'lr': (opt.JPEG_learning_rate), 'momentum': opt.momentum,}]
         elif opt_name == "adam":
@@ -361,7 +354,10 @@ def main(opt):
 
     # loss function
     criterion = nn.CrossEntropyLoss(label_smoothing=opt.label_smoothing)
-
+    if torch.cuda.is_available():
+        model = model.to(device)
+        criterion = criterion.to(device)
+    
     # optimizer
     if opt_name.startswith("sgd"):
         optimizer = torch.optim.SGD(optimizer_data)
@@ -370,9 +366,6 @@ def main(opt):
     else:
         raise RuntimeError(f"Invalid optimizer {opt.optimizer}. Only SGD, RMSprop and AdamW are supported.")
 
-    if torch.cuda.is_available():
-        model = model.to(device)
-        criterion = criterion.to(device)
 
     # weight decay
     # custom_keys_weight_decay = []
@@ -420,12 +413,6 @@ def main(opt):
     # model ema
     model_ema = None
     if opt.model_ema:
-        # Decay adjustment that aims to keep the decay independent of other hyper-parameters originally proposed at:
-        # https://github.com/facebookresearch/pycls/blob/f8cd9627/pycls/core/net.py#L123
-        #
-        # total_ema_updates = (Dataset_size / n_GPUs) * epochs / (batch_size_per_gpu * EMA_steps)
-        # We consider constant = Dataset_size for a given dataset/setup and omit it. Thus:
-        # adjust = 1 / total_ema_updates ~= n_GPUs * batch_size_per_gpu * EMA_steps / epochs
         adjust = opt.world_size * opt.batch_size * opt.model_ema_steps / opt.epochs
         alpha = 1.0 - opt.model_ema_decay
         alpha = min(1.0, alpha * adjust)
@@ -444,23 +431,16 @@ def main(opt):
         if scaler:
             scaler.load_state_dict(checkpoint["scaler"])
 
-    # function for validation inference
-    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=10, QF_C=10))
-    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
-    val_loader.dataset.transform = HDQ_preprocess
-    
-
+    # HDQ baseline calculation
     if opt.test_only:
-        # HDQ baseline calculation
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-        for QF_value in range(5, 101):
-            
-            HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=10, QF_C=10))
-            val_loader.dataset.transform = HDQ_preprocess
+        for QF_value in range(1, 101):
+            HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=QF_value, QF_C=QF_value))
+            test_loader.dataset.transform = HDQ_preprocess
 
             time1 = time.time()
-            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, val_loader, device=device)
+            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
             time2 = time.time()
             
             print('Total time {:.2f} s'.format(time2 - time1))
@@ -478,6 +458,11 @@ def main(opt):
                         f"{bpp:.15f}\t" + "\n"
                 log.write(line)
         return
+    
+    # function for validation inference
+    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=10, QF_C=10))
+    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
+    test_loader.dataset.transform = HDQ_preprocess
     
     # routine
     print("Start training")
@@ -499,15 +484,18 @@ def main(opt):
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         
         # catch the q_table and alpha for validate
-        val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
-        val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
-        val_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
-        val_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
+        test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
+        test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
+        test_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
+        test_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
         
         # validate
         print("\n==> validating...")
         time1 = time.time()
-        test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, val_loader, device=device)
+        if not model_ema:
+            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
+        else:
+            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         
@@ -517,11 +505,8 @@ def main(opt):
             best_bpp = bpp
         print('Best Accuracy: {:.2f} % \t BPP: {:.5f} '.format(best_acc, best_bpp))
         
-        if model_ema:
-            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(model_ema, criterion, val_loader, device=device, log_suffix="EMA")
-        
         # save q_table
-        if opt.JPEG_enable:
+        if opt.JPEG_enable and opt.rank == 0:
             lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
@@ -546,7 +531,7 @@ def main(opt):
                 f.write('\n')
 
         # save alpha_table
-        if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha):
+        if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha) and opt.rank == 0:
             alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alphaTable = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
@@ -571,42 +556,42 @@ def main(opt):
                 f.write('\n')
         
         # save test train acc and loss
-        with open(opt.logs_fname, 'a') as log:
-            line =  f"{epoch}\t" + \
-                    f"{best_acc:.15f}\t" +  \
-                    f"{test_acc:.15f}\t" + f"{train_acc:.15f}\t" +  \
-                    f"{test_loss:.15f}\t" + f"{train_loss:.15f}\t" + \
-                    f"{bpp:.15f}\t" + \
-                    f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
-                    f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + \
-                    f"{train_lum_dc:.15f}\t" + f"{train_chrom_dc:.15f}\t" + \
-                    f"{train_lum_ac:.15f}\t" + f"{train_chrom_ac:.15f}\t" + \
-                    str_q_alpha + '\n'
-            log.write(line)
-        
+        if opt.rank == 0:
+            with open(opt.logs_fname, 'a') as log:
+                line =  f"{epoch}\t" + f"{best_acc:.15f}\t" + \
+                        f"{test_acc:.15f}\t" + f"{train_acc:.15f}\t" + \
+                        f"{test_loss:.15f}\t" + f"{train_loss:.15f}\t" + \
+                        f"{bpp:.15f}\t" + \
+                        f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
+                        f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + \
+                        f"{train_lum_dc:.15f}\t" + f"{train_chrom_dc:.15f}\t" + \
+                        f"{train_lum_ac:.15f}\t" + f"{train_chrom_ac:.15f}\t" + \
+                        str_q_alpha + '\n'
+                log.write(line)
+            
     # save model of last epoch
     checkpoint = {
         "model": model_without_ddp.state_dict(),
         "optimizer": optimizer.state_dict(),
         "lr_scheduler": lr_scheduler.state_dict(),
-        "args": opt,}
-    
+        "opt": opt,}
     if model_ema:
         checkpoint["model_ema"] = model_ema.state_dict()
     if scaler:
         checkpoint["scaler"] = scaler.state_dict()
     imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
     
-    # After training, save the final q_table and alpha
+    # print best acc
     print("\n==> Finish training: ", opt.model_name)
     print('Best accuracy:', best_acc)
 
 
+
 if __name__ == "__main__":
-    timeStart = time.time()
-    
     opt = parse_option()
-    main(opt)
     
+    timeStart = time.time()
+    main(opt)
     timeEnd = time.time()
+    
     print('\nTotal time {:.2f} s'.format(timeEnd - timeStart))
