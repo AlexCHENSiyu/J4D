@@ -34,7 +34,7 @@ def parse_option(add_help=True):
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
     
     # optimization
-    parser.add_argument("--batch_size", default=265, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
+    parser.add_argument("--batch_size", default=64, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
     parser.add_argument("--num_workers", default=16, type=int, metavar="N", help="number of data loading workers")
     parser.add_argument("--epochs", default=20, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument("--learning_rate", default=0.1, type=float, help="initial learning rate")
@@ -50,6 +50,7 @@ def parse_option(add_help=True):
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200','imagenet'], help='dataset')
     parser.add_argument("--output_dir", default=".", type=str, help="path to save outputs")
     parser.add_argument("--optimizer", default="adam", choices=['sgd','adam'], type=str, help="optimizer")
+    parser.add_argument("--trial", default=1, type=int, help="trial number")
     
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
@@ -124,6 +125,7 @@ def parse_option(add_help=True):
     
     opt = parser.parse_args()
     
+    print("prepare directory")
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
     for it in iterations:
@@ -147,13 +149,17 @@ def parse_option(add_help=True):
         os.makedirs(opt.output_dir)
 
     base_folder = os.path.join(opt.output_dir, opt.model_name)
-    opt.trial_folder = create_trial_folder(base_folder)
-
+    # opt.trial_folder = create_trial_folder(base_folder)
+    opt.trial_folder = os.path.join(base_folder, "trial_{}".format(opt.trial))
+    if not os.path.isdir(opt.trial_folder):
+        os.makedirs(opt.trial_folder)
+        
     # 1     2        3        4         5         6          7   8           9             
     # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc 
     # 10          11            12           13             14           15             16    17   
     # test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
+        
     with open(opt.logs_fname, 'a') as log:
         line =  'ep' + "\t" + \
                 'best_acc' + "\t\t\t" + 'test_acc' + "\t\t\t" + 'train_acc' + "\t\t\t" +  \
@@ -273,13 +279,14 @@ def main(opt):
     best_acc = 0
     best_bpp = 0
 
-    if opt.world_size == 1:
-        # Non-distributed mode
-        print("Running in non-distributed mode.")
-        opt.distributed = False
-    else:
-        # Distributed mode
-        imagenet_utils.init_distributed_mode(opt)
+    # if opt.world_size == 1:
+    #     # Non-distributed mode
+    #     print("Running in non-distributed mode.")
+    #     opt.distributed = False
+    # else:
+    #     # Distributed mode
+    #     imagenet_utils.init_distributed_mode(opt)
+    imagenet_utils.init_distributed_mode(opt)
     print(opt)
     
     if opt.seed:
@@ -468,20 +475,20 @@ def main(opt):
         else:
             # train
             train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, opt, model_ema, scaler)
-        lr_scheduler.step()
+            lr_scheduler.step()
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         
         # catch the q_table and alpha for validate
-        val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
-        val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
-        val_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
-        val_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
+        val_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
+        val_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
+        val_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
+        val_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
         
         # validate
         print("\n==> validating...")
         time1 = time.time()
-        test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model, criterion, val_loader, device=device)
+        test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, val_loader, device=device)
         time2 = time.time()
         print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
         
@@ -496,8 +503,8 @@ def main(opt):
         
         # save q_table
         if opt.JPEG_enable:
-            lum_qtable =  model.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            chrom_qtable =  model.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+            lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+            chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
             print("Quantization Table --> Min: {:.5f}, Max: {:.5f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
             str_q_alpha = str(quantizationTable.min().item())  + "\t" + str(quantizationTable.max().item())
@@ -521,8 +528,8 @@ def main(opt):
 
         # save alpha_table
         if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha):
-            alpha_lum =  model.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            alpha_chrom =  model.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+            alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+            alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alphaTable = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
             print("Alpha --> Min: {:.5f}, Max: {:.5f}".format(alphaTable.min().item(), alphaTable.max().item()))
             str_q_alpha += "\t" +  str(alphaTable.min().item())  + "\t" + str(alphaTable.max().item())  + "\t" 
@@ -547,8 +554,8 @@ def main(opt):
         # save test train acc and loss
         with open(opt.logs_fname, 'a') as log:
             line =  f"{epoch}\t" + \
-                    f"{best_acc.item():.15f}\t" +  \
-                    f"{test_acc.cpu().numpy():.15f}\t" + f"{train_acc.cpu().numpy():.15f}\t" +  \
+                    f"{best_acc:.15f}\t" +  \
+                    f"{test_acc:.15f}\t" + f"{train_acc:.15f}\t" +  \
                     f"{test_loss:.15f}\t" + f"{train_loss:.15f}\t" + \
                     f"{bpp:.15f}\t" + \
                     f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
@@ -573,7 +580,7 @@ def main(opt):
     
     # After training, save the final q_table and alpha
     print("\n==> Finish training: ", opt.model_name)
-    print('Best accuracy:', best_acc.item())
+    print('Best accuracy:', best_acc)
 
 
 if __name__ == "__main__":

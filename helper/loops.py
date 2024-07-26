@@ -411,8 +411,8 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
     print(' * Acc@1 {top1.global_avg:.6f} Acc@5 {top5.global_avg:.6f}'.format(top1=metric_logger.acc1, top5=metric_logger.acc5))
     
     return metric_logger.acc1.global_avg, metric_logger.losses.global_avg, \
-           metric_logger.losses_lum_dc_entropy.global_avg, metric_logger.losses_chrom_dc_entropy.global_avg, \
-           metric_logger.losses_lum_ac_entropy.global_avg, metric_logger.losses_chrom_ac_entropy.global_avg
+           metric_logger.lum_dc.global_avg, metric_logger.chrom_dc.global_avg, \
+           metric_logger.lum_ac.global_avg, metric_logger.chrom_ac.global_avg
     
 def evaluate(model, criterion, data_loader, device, print_freq=100, log_suffix=""):
     model.eval()
@@ -493,7 +493,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
             metric_logger.meters["acc1"].update(acc1.item(), n=batch_size)
             metric_logger.meters["acc5"].update(acc5.item(), n=batch_size)
             metric_logger.meters["losses"].update(loss.item(), n=batch_size)
-            metric_logger.meters["BPP"].update(bpp.item(), n=batch_size)
+            metric_logger.meters["BPP"].update(bpp.mean().item(), n=batch_size)
             metric_logger.meters["lum_dc"].update(lum_dc_entropy.item(), n=batch_size)
             metric_logger.meters["chrom_dc"].update(chrom_dc_entropy.item(), n=batch_size)
             metric_logger.meters["lum_ac"].update(lum_ac_entropy.item(), n=batch_size)
@@ -530,7 +530,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
     metric_logger.synchronize_between_processes()
 
     return metric_logger.acc1.global_avg, metric_logger.acc5.global_avg, metric_logger.losses.global_avg, metric_logger.BPP.global_avg, \
-           metric_logger.losses_lum_dc_entropy.global_avg, metric_logger.losses_chrom_dc_entropy.global_avg, \
-           metric_logger.losses_lum_ac_entropy.global_avg, metric_logger.losses_chrom_ac_entropy.global_avg
+           metric_logger.lum_dc.global_avg, metric_logger.chrom_dc.global_avg, \
+           metric_logger.lum_ac.global_avg, metric_logger.chrom_ac.global_avg
 
 

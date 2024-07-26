@@ -1,8 +1,9 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=a100:1
-#SBATCH --cpus-per-task=32
-#SBATCH --mem=8G
+#SBATCH --gpus-per-node=p100l:1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=24
+#SBATCH --mem=16G
 #SBATCH --time=0-3:30
 #SBATCH --output=out/%N-%j.out
 #SBATCH --job-name=resnet18
@@ -22,4 +23,10 @@ cd $SLURM_TMPDIR
 time tar --use-compress-program=pigz -xf imagenet.tar.gz
 cd /scratch/s875chen/JPEG-Inspired-Compression
 
-GPU_ID=0 CUDA_VISIBLE_DEVICES=${GPU_ID} python3.9 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital --lr_step_size 1 --lr_gamma 0.98 --dataset "imagenet" --model "resnet18" --epoch 20 --Q_initial_QF 40 --JPEG_alpha 100 --JPEG_learning_rate 0.01 --weight_lum 0.01 --weight_chrom 0.01 --num_workers 16 --data_path "$SLURM_TMPDIR/imagenet"
+GPU_ID=0,1 
+
+CUDA_VISIBLE_DEVICES=${GPU_ID} python3.9 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+                                                           --lr_step_size 1 --lr_gamma 0.98 \
+                                                           --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
+                                                           --epoch 10 --Q_initial_QF 40 --JPEG_alpha 100 --JPEG_learning_rate 0.01 \
+                                                           --weight_lum 0.01 --weight_chrom 0.01 --num_workers 16 
