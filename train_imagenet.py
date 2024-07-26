@@ -34,7 +34,7 @@ def parse_option(add_help=True):
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
     
     # optimization
-    parser.add_argument("--batch_size", default=64, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
+    parser.add_argument("--batch_size", default=32, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
     parser.add_argument("--num_workers", default=16, type=int, metavar="N", help="number of data loading workers")
     parser.add_argument("--epochs", default=20, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument("--learning_rate", default=0.1, type=float, help="initial learning rate")
@@ -449,18 +449,37 @@ def main(opt):
     HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
     val_loader.dataset.transform = HDQ_preprocess
     
-    # routine
+
     if opt.test_only:
-        # We disable the cudnn benchmarking because it can noticeably affect the accuracy
+        # HDQ baseline calculation
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
-        if model_ema:
-            evaluate_JPEG(model_ema, criterion, val_loader, device=device, log_suffix="EMA")
-        else:
-            evaluate_JPEG(model, criterion, val_loader, device=device)
-        return
+        for QF_value in range(5, 101):
+            
+            HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=10, QF_C=10))
+            val_loader.dataset.transform = HDQ_preprocess
 
-    # start traning
+            time1 = time.time()
+            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, val_loader, device=device)
+            time2 = time.time()
+            
+            print('Total time {:.2f} s'.format(time2 - time1))
+            print("test_acc:", test_acc)
+            # print("test_loss:", test_loss)
+            print("bpp:", bpp)
+            # print("lum_dc:", test_lum_dc)
+            # print("chrom_dc:", test_chrom_dc)
+            # print("lum_ac:", test_lum_ac)
+            # print("chrom_ac:", test_chrom_ac)
+            
+            with open("./save/imagenet/resnet18/original_HDQ.txt", 'a') as log:
+                line =  f"{QF_value}\t" + \
+                        f"{test_acc:.15f}\t" + \
+                        f"{bpp:.15f}\t" + "\n"
+                log.write(line)
+        return
+    
+    # routine
     print("Start training")
     for epoch in range(opt.start_epoch, opt.epochs+1):
         if opt.distributed:

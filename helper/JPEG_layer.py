@@ -91,7 +91,7 @@ class HDQ_transforms(object):
         compressed_img = np.transpose(compressed_img, (1,2,0))
         compressed_img = transforms.ToTensor()(compressed_img)
         compressed_img = transforms.Normalize(mean=self.mean, std=self.std)(compressed_img)
-        return {'image': compressed_img, 'BPP': BPP}
+        return {'image': compressed_img, 'BPP': BPP, 'Entropy_calc': [torch.zeros(1),torch.zeros(1),torch.zeros(1),torch.zeros(1)]}
 
     def __repr__(self):
         return 'HDQ_transforms!'

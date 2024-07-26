@@ -23,10 +23,9 @@ cd $SLURM_TMPDIR
 time tar --use-compress-program=pigz -xf imagenet.tar.gz
 cd /scratch/s875chen/JPEG-Inspired-Compression
 
-GPU_ID=0,1 
-
-CUDA_VISIBLE_DEVICES=${GPU_ID} python3.9 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                                           --lr_step_size 1 --lr_gamma 0.98 \
-                                                           --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
-                                                           --epoch 10 --Q_initial_QF 40 --JPEG_alpha 100 --JPEG_learning_rate 0.01 \
-                                                           --weight_lum 0.01 --weight_chrom 0.01 --num_workers 16 
+torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+                                    --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --epoch 10 --JPEG_alpha 100 --Q_initial_QF 40 --JPEG_learning_rate 0.01 \
+                                    --weight_lum 0.1 --weight_chrom 0.1 --num_workers 32\
+                                    --lr_step_size 1 --lr_gamma 0.98 \
+                                    --trial 1
