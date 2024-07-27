@@ -46,12 +46,13 @@ def main(opt):
 
     for QF_value in range(1, 101):
         # load underlying model
+        opt.model = "Mnasnet"
         if opt.model in ['resnet18', 'densenet121']:
             underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
         else:
             underlying_model = load_model_imagenet(opt.model, pretrained=False)
             underlying_model.classifier[-1] = nn.Linear(underlying_model.classifier[-1].in_features, n_cls)
-        model_path = "./save/CUB200/pretrained/mobilenet_v2/mobilenet_v2_best.pth"
+        model_path = "./save/CUB200/pretrained/Mnasnet/Mnasnet_best.pth"
         underlying_model.load_state_dict(torch.load(model_path)['model'])
         
         # load q_table stored
@@ -98,7 +99,7 @@ def main(opt):
         # print("lum_ac:", lum_ac)
         # print("chrom_ac:", chrom_ac)
     
-        with open("./save/CUB200/mobilenet_v2/original_HDQ.txt", 'a') as log:
+        with open("./save/CUB200/Mnasnet/original_HDQ.txt", 'a') as log:
             line =  f"{QF_value}\t" + \
                     f"{test_acc.cpu().numpy():.15f}\t" + \
                     f"{bpp:.15f}\t" + "\n"
