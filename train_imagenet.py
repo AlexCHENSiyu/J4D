@@ -167,10 +167,8 @@ def parse_option(add_help=True):
             # the dict maybe created by other process
             pass
         
-    # 1     2        3        4         5         6          7   8           9             
-    # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc 
-    # 10          11            12           13             14           15             16    17   
-    # test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
+    # 1     2        3        4         5         6          7   8           9             10          11            12           13             14           15             16    17   
+    # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
     with open(opt.logs_fname, 'a') as log:
         if os.path.exists(opt.logs_fname) and os.stat(opt.logs_fname).st_size == 0:
@@ -355,7 +353,7 @@ def main(opt):
         criterion = criterion.to(device)
     
     # optimizer
-    if opt_name.startswith("sgd"):
+    if opt_name == "sgd":
         optimizer = torch.optim.SGD(optimizer_data)
     elif opt_name == "adam":
         optimizer = torch.optim.Adam(optimizer_data, lr=1e-2, betas=(0.9, 0.999), eps=1e-08)
@@ -493,58 +491,59 @@ def main(opt):
             best_bpp = bpp
         print('Best Accuracy: {:.15f} % \t BPP: {:.15f} '.format(best_acc, best_bpp))
         
-        # save q_table
-        if opt.JPEG_enable and (not hasattr(opt, 'rank') or opt.rank == 0):
-            lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
-            print("Quantization Table --> Min: {:.5f}, Max: {:.5f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
-            str_q_alpha = str(quantizationTable.min().item())  + "\t" + str(quantizationTable.max().item())
-            
-            # save the exact q_table
-            q_tables_file = os.path.join(opt.q_tables_folder, 'q_table_epoch_{}.pt'.format(epoch))
-            torch.save(quantizationTable, q_tables_file)
-            
-            # save lum and chrom q_table for ploting trend
-            lum_qtable = lum_qtable.reshape(8,8)
-            chrom_qtable = chrom_qtable.reshape(8,8)
-            
-            lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
-            with open(lum_q_tables_file, 'a') as f:
-                np.savetxt(f, lum_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
-            chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
-            with open(chrom_q_tables_file, 'a') as f:
-                np.savetxt(f, chrom_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
-
-        # save alpha_table
-        if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha) and (not hasattr(opt, 'rank') or opt.rank == 0):
-            alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-            alphaTable = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
-            print("Alpha --> Min: {:.5f}, Max: {:.5f}".format(alphaTable.min().item(), alphaTable.max().item()))
-            str_q_alpha += "\t" +  str(alphaTable.min().item())  + "\t" + str(alphaTable.max().item())  + "\t" 
-        
-            # save the exact alpha_table
-            alpha_tables_file = os.path.join(opt.alpha_folder, 'alpha_table_epoch_{}.pt'.format(epoch))
-            torch.save(alphaTable, alpha_tables_file)
-            
-            # save lum and chrom alpha_table for ploting trend
-            alpha_lum = alpha_lum.reshape(8,8)
-            alpha_chrom = alpha_chrom.reshape(8,8)
-            
-            lum_alpha_tables_file = os.path.join(opt.alpha_folder, 'lum_alpha_table.txt')
-            with open(lum_alpha_tables_file, 'a') as f:
-                np.savetxt(f, alpha_lum.cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
-            chrom_alpha_tables_file = os.path.join(opt.alpha_folder, 'chrom_alpha_table.txt')
-            with open(chrom_alpha_tables_file, 'a') as f:
-                np.savetxt(f, alpha_chrom.cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
-        
-        # save test train acc and loss
+        # only one process can record
         if (not hasattr(opt, 'rank') or opt.rank == 0):
+            # save q_table
+            if opt.JPEG_enable:
+                lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+                chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+                quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
+                print("Quantization Table --> Min: {:.5f}, Max: {:.5f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
+                str_q_alpha = str(quantizationTable.min().item())  + "\t" + str(quantizationTable.max().item())
+                
+                # save the exact q_table
+                q_tables_file = os.path.join(opt.q_tables_folder, 'q_table_epoch_{}.pt'.format(epoch))
+                torch.save(quantizationTable, q_tables_file)
+                
+                # save lum and chrom q_table for ploting trend
+                lum_qtable = lum_qtable.reshape(8,8)
+                chrom_qtable = chrom_qtable.reshape(8,8)
+                
+                lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
+                with open(lum_q_tables_file, 'a') as f:
+                    np.savetxt(f, lum_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
+                    f.write('\n')
+                chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
+                with open(chrom_q_tables_file, 'a') as f:
+                    np.savetxt(f, chrom_qtable.cpu().numpy(), delimiter=',', fmt='%.04f')
+                    f.write('\n')
+
+            # save alpha_table
+            if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha):
+                alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+                alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
+                alphaTable = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
+                print("Alpha --> Min: {:.5f}, Max: {:.5f}".format(alphaTable.min().item(), alphaTable.max().item()))
+                str_q_alpha += "\t" +  str(alphaTable.min().item())  + "\t" + str(alphaTable.max().item())  + "\t" 
+            
+                # save the exact alpha_table
+                alpha_tables_file = os.path.join(opt.alpha_folder, 'alpha_table_epoch_{}.pt'.format(epoch))
+                torch.save(alphaTable, alpha_tables_file)
+                
+                # save lum and chrom alpha_table for ploting trend
+                alpha_lum = alpha_lum.reshape(8,8)
+                alpha_chrom = alpha_chrom.reshape(8,8)
+                
+                lum_alpha_tables_file = os.path.join(opt.alpha_folder, 'lum_alpha_table.txt')
+                with open(lum_alpha_tables_file, 'a') as f:
+                    np.savetxt(f, alpha_lum.cpu().numpy(), delimiter=',', fmt='%.04f')
+                    f.write('\n')
+                chrom_alpha_tables_file = os.path.join(opt.alpha_folder, 'chrom_alpha_table.txt')
+                with open(chrom_alpha_tables_file, 'a') as f:
+                    np.savetxt(f, alpha_chrom.cpu().numpy(), delimiter=',', fmt='%.04f')
+                    f.write('\n')
+        
+            # save test train acc and loss
             with open(opt.logs_fname, 'a') as log:
                 line =  f"{epoch}\t" + f"{best_acc:.15f}\t" + \
                         f"{test_acc:.15f}\t" + f"{train_acc:.15f}\t" + \
@@ -556,18 +555,20 @@ def main(opt):
                         f"{train_lum_ac:.15f}\t" + f"{train_chrom_ac:.15f}\t" + \
                         str_q_alpha + '\n'
                 log.write(line)
-            
-    # save model of last epoch
-    checkpoint = {
-        "model": model_without_ddp.state_dict(),
-        "optimizer": optimizer.state_dict(),
-        "lr_scheduler": lr_scheduler.state_dict(),
-        "opt": opt,}
-    if model_ema:
-        checkpoint["model_ema"] = model_ema.state_dict()
-    if scaler:
-        checkpoint["scaler"] = scaler.state_dict()
-    imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
+    
+    # only one process can record
+    if (not hasattr(opt, 'rank') or opt.rank == 0):
+        # save model of last epoch
+        checkpoint = {
+            "model": model_without_ddp.state_dict(),
+            "optimizer": optimizer.state_dict(),
+            "lr_scheduler": lr_scheduler.state_dict(),
+            "opt": opt,}
+        if model_ema:
+            checkpoint["model_ema"] = model_ema.state_dict()
+        if scaler:
+            checkpoint["scaler"] = scaler.state_dict()
+        imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
     
     # print best acc
     print("\n==> Finish training: ", opt.model_name)
