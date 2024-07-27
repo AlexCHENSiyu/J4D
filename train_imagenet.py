@@ -31,6 +31,15 @@ def create_trial_folder(base_folder):
         trial_num += 1
 
 
+def create_folder(folder):
+    if not os.path.isdir(folder):
+        try:
+            os.makedirs(folder)
+        except FileExistsError:
+            # the dict maybe created by other process
+            print(f"Directory {folder} already exists.")
+
+
 def _get_cache_path(filepath):
     import hashlib
     h = hashlib.sha1(filepath.encode()).hexdigest()
@@ -154,21 +163,13 @@ def parse_option(add_help=True):
         opt.model_name = '{}'.format(opt.model)
     
     opt.output_dir = './save/{}/{}'.format(opt.dataset, opt.model)
-    if not os.path.exists(opt.output_dir):
-        os.makedirs(opt.output_dir)
+    create_folder(opt.output_dir)
 
     base_folder = os.path.join(opt.output_dir, opt.model_name)
     # opt.trial_folder = create_trial_folder(base_folder)
     opt.trial_folder = os.path.join(base_folder, "trial_{}".format(opt.trial))
-    if not os.path.isdir(opt.trial_folder):
-        try:
-            os.makedirs(opt.trial_folder)
-        except FileExistsError:
-            # the dict maybe created by other process
-            pass
-        
-    # 1     2        3        4         5         6          7   8           9             10          11            12           13             14           15             16    17   
-    # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
+    create_folder(opt.trial_folder)
+    
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
     with open(opt.logs_fname, 'a') as log:
         if os.path.exists(opt.logs_fname) and os.stat(opt.logs_fname).st_size == 0:
@@ -182,16 +183,17 @@ def parse_option(add_help=True):
             log.write(line)
     
     opt.q_tables_folder = os.path.join(opt.trial_folder, "Q_tables")
-    if not os.path.isdir(opt.q_tables_folder):
-        os.makedirs(opt.q_tables_folder)
+    create_folder(opt.q_tables_folder)
     
     opt.alpha_folder = os.path.join(opt.trial_folder, "Alpha_tables")
-    if not os.path.isdir(opt.alpha_folder):
-        os.makedirs(opt.alpha_folder)
+    create_folder(opt.alpha_folder)
     
     opt.opt_fname = os.path.join(opt.trial_folder, "opt.json")
     with open(opt.opt_fname, 'w') as f:
-        json.dump(vars(opt), f, indent=4)
+        try:
+            json.dump(vars(opt), f, indent=4)
+        except FileExistsError:
+            pass
     
     return opt
 
