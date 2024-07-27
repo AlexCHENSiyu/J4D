@@ -1,5 +1,5 @@
 {
-    "batch_size": 128,
+    "batch_size": 32,
     "num_workers": 16,
     "epochs": 2,
     "learning_rate": 0.1,
