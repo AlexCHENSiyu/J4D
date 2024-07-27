@@ -439,7 +439,6 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
             output = model(input)
             loss = criterion(output, target) + opt.weight_lum * (lum_dc_entropy + lum_ac_entropy) + \
                     opt.weight_chrom * (chrom_dc_entropy + chrom_ac_entropy)
-
             acc1, acc5 = imagenet_utils.accuracy(output, target, topk=(1, 5))
             
             # ===================meters=====================
