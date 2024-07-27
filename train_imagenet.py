@@ -448,7 +448,7 @@ def main(opt):
         return
     
     # function for validation inference
-    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=10, QF_C=10))
+    # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=50, QF_C=50))
     HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
     test_loader.dataset.transform = HDQ_preprocess
     
@@ -469,7 +469,7 @@ def main(opt):
             train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, opt, model_ema, scaler)
             lr_scheduler.step()
         time2 = time.time()
-        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
+        print('Epoch [{}]: total time {:.5f} s'.format(epoch, time2-time1))
         
         # catch the q_table and alpha for validate
         test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
@@ -485,7 +485,7 @@ def main(opt):
         else:
             test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")
         time2 = time.time()
-        print('Epoch [{}]: total time {:.2f} s'.format(epoch, time2 - time1))
+        print('Epoch [{}]: total time {:.5f} s'.format(epoch, time2-time1))
         
         # record best acc
         if test_acc > best_acc:
@@ -565,7 +565,7 @@ def main(opt):
             "model": model_without_ddp.state_dict(),
             "optimizer": optimizer.state_dict(),
             "lr_scheduler": lr_scheduler.state_dict(),
-            "opt": opt,}
+            "opt": opt}
         if model_ema:
             checkpoint["model_ema"] = model_ema.state_dict()
         if scaler:
@@ -575,7 +575,6 @@ def main(opt):
     # print best acc
     print("\n==> Finish training: ", opt.model_name)
     print('Best accuracy:', best_acc)
-
 
 
 if __name__ == "__main__":
