@@ -3,7 +3,7 @@
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=64G
-#SBATCH --time=0-2:00
+#SBATCH --time=0-3:00
 #SBATCH --output=out/%N-%j.out
 #SBATCH --job-name=resnet18
 #SBATCH --account=def-ehyangit
@@ -24,7 +24,7 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 
 torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --epoch 5 --JPEG_alpha 100 --Q_initial_QF 40 --JPEG_learning_rate 0.01 \
-                                    --weight_lum 1.0 --weight_chrom 1.0 --num_workers 24 --batch_size 64 \
+                                    --epoch 10 --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
+                                    --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 --batch_size 64 \
                                     --lr_step_size 1 --lr_gamma 0.98 \
                                     --trial 1

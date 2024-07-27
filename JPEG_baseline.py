@@ -91,12 +91,12 @@ def main(opt):
         
         print("test_acc:", test_acc.item())
         # print("test_acc_top5:", test_acc_top5.item())
-        print("test_loss:", test_loss)
+        # print("test_loss:", test_loss)
         print("bpp:", bpp)
-        print("lum_dc:", lum_dc)
-        print("chrom_dc:", chrom_dc)
-        print("lum_ac:", lum_ac)
-        print("chrom_ac:", chrom_ac)
+        # print("lum_dc:", lum_dc)
+        # print("chrom_dc:", chrom_dc)
+        # print("lum_ac:", lum_ac)
+        # print("chrom_ac:", chrom_ac)
     
         with open("./save/CUB200/mobilenet_v2/original_HDQ.txt", 'a') as log:
             line =  f"{QF_value}\t" + \
