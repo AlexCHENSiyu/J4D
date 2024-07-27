@@ -176,26 +176,26 @@ class JPEG_layer(nn.Module):
         nn.init.constant_(self.alpha_chrom, self.JEPG_alpha)
 
         # check if opt has rank
-        if hasattr(opt, 'rank') and opt.rank == 0:
-            # save the inital q table
-            lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
-            with open(lum_q_tables_file, 'a') as f:
-                np.savetxt(f, self.lum_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
-            chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
-            with open(chrom_q_tables_file, 'a') as f:
-                np.savetxt(f, self.chrom_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
+        # if hasattr(opt, 'rank') and opt.rank == 0:
+        #     # save the inital q table
+        #     lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
+        #     with open(lum_q_tables_file, 'a') as f:
+        #         np.savetxt(f, self.lum_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+        #         f.write('\n')
+        #     chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
+        #     with open(chrom_q_tables_file, 'a') as f:
+        #         np.savetxt(f, self.chrom_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+        #         f.write('\n')
 
-            # save the inital alpha table
-            lum_alpha_tables_file = os.path.join(opt.alpha_folder, 'lum_alpha_table.txt')
-            with open(lum_alpha_tables_file, 'a') as f:
-                np.savetxt(f, self.alpha_lum.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
-            chrom_alpha_tables_file = os.path.join(opt.alpha_folder, 'chrom_alpha_table.txt')
-            with open(chrom_alpha_tables_file, 'a') as f:
-                np.savetxt(f, self.alpha_chrom.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-                f.write('\n')
+        #     # save the inital alpha table
+        #     lum_alpha_tables_file = os.path.join(opt.alpha_folder, 'lum_alpha_table.txt')
+        #     with open(lum_alpha_tables_file, 'a') as f:
+        #         np.savetxt(f, self.alpha_lum.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+        #         f.write('\n')
+        #     chrom_alpha_tables_file = os.path.join(opt.alpha_folder, 'chrom_alpha_table.txt')
+        #     with open(chrom_alpha_tables_file, 'a') as f:
+        #         np.savetxt(f, self.alpha_chrom.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
+        #         f.write('\n')
 
         self.block_dct = block_dct_callable(self.lum_qtable, self.device, self.validation)
         self.block_idct = block_idct_callable(self.lum_qtable, self.device, self.validation)

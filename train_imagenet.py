@@ -44,7 +44,7 @@ def parse_option(add_help=True):
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
     
     # optimization
-    parser.add_argument("--batch_size", default=32, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
+    parser.add_argument("--batch_size", default=64, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
     parser.add_argument("--num_workers", default=16, type=int, metavar="N", help="number of data loading workers")
     parser.add_argument("--epochs", default=20, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument("--learning_rate", default=0.1, type=float, help="initial learning rate")
@@ -169,8 +169,8 @@ def parse_option(add_help=True):
     # 10          11            12           13             14           15             16    17   
     # test_lum_ac test_chrom_ac train_lum_dc train_chrom_dc train_lum_ac train_chrom_ac q_min q_max
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
-    if os.path.exists(opt.logs_fname) and os.stat(opt.logs_fname).st_size == 0:
-        with open(opt.logs_fname, 'a') as log:
+    with open(opt.logs_fname, 'a') as log:
+        if os.path.exists(opt.logs_fname) and os.stat(opt.logs_fname).st_size == 0:
             line =  'ep' + "\t" + \
                     'best_acc' + "\t\t\t" + 'test_acc' + "\t\t\t" + 'train_acc' + "\t\t\t" +  \
                     'test_loss' + "\t\t\t" + 'train_loss' + "\t\t\t" + \
@@ -278,11 +278,11 @@ def load_data(traindir, valdir, opt):
 
 
 def main(opt):
-    best_acc = 0
-    best_bpp = 0
+    best_acc, best_bpp = 0,0
 
+    # initial distributed mode
     imagenet_utils.init_distributed_mode(opt)
-    print(opt)
+    device = torch.device(opt.device)
     
     if opt.seed:
         torch.manual_seed(opt.seed)
@@ -299,8 +299,6 @@ def main(opt):
     else:
         torch.backends.cudnn.benchmark = True
 
-    device = torch.device(opt.device)
-    
     # load dataset
     train_dir = os.path.join(opt.data_path, "train")
     test_dir = os.path.join(opt.data_path, "val")
