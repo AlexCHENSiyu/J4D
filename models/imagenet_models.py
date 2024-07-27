@@ -1,7 +1,7 @@
 import torch 
 from torchvision import models
 
-def load_model(Model, device="cpu", pretrained=False):
+def load_model_imagenet(Model, device="cpu", pretrained=False):
     if Model=="Resnet18":
         pretrained_model = models.resnet18(pretrained=pretrained)
     elif Model=="Resnet34":
@@ -12,7 +12,6 @@ def load_model(Model, device="cpu", pretrained=False):
         pretrained_model = models.resnet101(pretrained=pretrained)
     elif Model=="Resnet152":
         pretrained_model = models.resnet152(pretrained=pretrained)
-    
     
     elif Model == 'Regnet400mf':
         pretrained_model = models.regnet_y_400mf(pretrained=pretrained)
@@ -28,8 +27,6 @@ def load_model(Model, device="cpu", pretrained=False):
         pretrained_model = models.regnet_y_16gf(pretrained=pretrained)
     elif Model == 'Regnet32gf':
         pretrained_model = models.regnet_y_32gf(pretrained=pretrained)
-
-    
     
     elif Model=="Squeezenet":
         pretrained_model = models.squeezenet1_0(pretrained=pretrained)
@@ -52,7 +49,6 @@ def load_model(Model, device="cpu", pretrained=False):
     elif  Model == 'ConvNeXt_small':
         weights=models.ConvNeXt_Small_Weights.IMAGENET1K_V1
         pretrained_model = models.convnext_small(weights=weights)
-    
 
     elif Model == 'DenseNet121':
         weights=models.DenseNet121_Weights.IMAGENET1K_V1
@@ -69,7 +65,6 @@ def load_model(Model, device="cpu", pretrained=False):
     elif Model == 'EfficientNet_B0':
         weights=models.EfficientNet_B0_Weights.IMAGENET1K_V1
         pretrained_model = models.efficientnet_b0(weights=weights)
-
 
     elif Model == 'mobilenet_v2_RV2':
         weights = models.MobileNet_V2_Weights.IMAGENET1K_V2
@@ -121,5 +116,6 @@ def load_model(Model, device="cpu", pretrained=False):
     else: 
         print("Enter a model SOS")
         exit(0)
+    
     pretrained_model = pretrained_model.eval()
     return pretrained_model

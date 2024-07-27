@@ -12,7 +12,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 
-from models import load_model
+from models import load_model, load_model_imagenet
 from dataset.general_dataloader import load_dataset
 from helper.util import adjust_learning_rate, accuracy, AverageMeter
 from helper.loops import validate_jpeg
@@ -23,7 +23,7 @@ import random
 
 
 # base_path = "./save/CUB200/resnet18/JPEG_lr_0.005_alpha_100.0_weight_0.5_0.5/trial_1"
-base_path ="./save/CUB200/resnet18/JPEG_lr_0.01_alpha_100.0_weight_0.1_0.1_QF_70/trial_1"
+base_path ="./save/CUB200/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_0.1_0.1_QF_40/trial_1"
 
 def main(opt):
     opt.seed = 0
@@ -46,7 +46,11 @@ def main(opt):
 
     for QF_value in range(1, 101):
         # load underlying model
-        underlying_model = load_model("mobilenet_v2", num_classes=n_cls, pretrained=False)
+        if opt.model in ['resnet18', 'densenet121']:
+            underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
+        else:
+            underlying_model = load_model_imagenet(opt.model, pretrained=False)
+            underlying_model.classifier[-1] = nn.Linear(underlying_model.classifier[-1].in_features, n_cls)
         model_path = "./save/CUB200/pretrained/mobilenet_v2/mobilenet_v2_best.pth"
         underlying_model.load_state_dict(torch.load(model_path)['model'])
         
@@ -94,7 +98,7 @@ def main(opt):
         print("lum_ac:", lum_ac)
         print("chrom_ac:", chrom_ac)
     
-        with open("./save/CUB200/mobilenet/original_HDQ.txt", 'a') as log:
+        with open("./save/CUB200/mobilenet_v2/original_HDQ.txt", 'a') as log:
             line =  f"{QF_value}\t" + \
                     f"{test_acc.cpu().numpy():.15f}\t" + \
                     f"{bpp:.15f}\t" + "\n"

@@ -10,7 +10,7 @@ import torch.optim as optim
 import torch.nn as nn
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader 
-from models import load_model
+from models import load_model, load_model_imagenet
 from dataset.general_dataloader import load_dataset
 from helper.util import adjust_learning_rate, accuracy, AverageMeter
 from helper.loops import train, validate , validate_jpeg
@@ -66,7 +66,7 @@ def parse_option():
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
 
     # model
-    parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'mobilenet_v2',])
+    parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18','mobilenet_v2','Mnasnet'])
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
     parser.add_argument('--root', type=str, default='./data/cub2011', help='path to dataset')
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
@@ -196,11 +196,17 @@ def main(opt):
         raise NotImplementedError(opt.dataset)
 
     # model
-    underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
+    if opt.model in ['resnet18', 'densenet121']:
+        underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
+    else:
+        underlying_model = load_model_imagenet(opt.model, pretrained=False)
+        underlying_model.classifier[-1] = nn.Linear(underlying_model.classifier[-1].in_features, n_cls)
     if opt.model == "resnet18":
         model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
     elif opt.model == "mobilenet_v2":
         model_path = "./save/CUB200/pretrained/mobilenet_v2/mobilenet_v2_best.pth" 
+    elif opt.model == "mnasnet":
+        model_path = "./save/CUB200/pretrained/Mnasnet/Mnasnet_best.pth" 
     underlying_model.load_state_dict(torch.load(model_path)['model'])
 
     if opt.JPEG_enable:

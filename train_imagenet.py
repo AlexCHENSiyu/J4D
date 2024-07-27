@@ -44,7 +44,7 @@ def parse_option(add_help=True):
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
     
     # optimization
-    parser.add_argument("--batch_size", default=32, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
+    parser.add_argument("--batch_size", default=128, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
     parser.add_argument("--num_workers", default=16, type=int, metavar="N", help="number of data loading workers")
     parser.add_argument("--epochs", default=20, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument("--learning_rate", default=0.1, type=float, help="initial learning rate")
@@ -54,7 +54,7 @@ def parse_option(add_help=True):
     parser.add_argument("--momentum", default=0.9, type=float, metavar="M", help="momentum")
     
     # model and dataset
-    parser.add_argument("--model", default="mobileNet_v2", type=str, choices=['mobileNet_v2','resnet18'], help="model name")
+    parser.add_argument("--model", default="mobilenet_v2", type=str, choices=['mobilenet_v2','resnet18'], help="model name")
     parser.add_argument("--data_path", default="/home/multicom-pc52/dataset/imagenet", type=str, help="dataset path")
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200','imagenet'], help='dataset')
@@ -313,12 +313,12 @@ def main(opt):
 
     # load underlying model
     print("loading model {}".format(opt.model))
-    if opt.model == "mobileNet_v2":
+    if opt.model == "mobilenet_v2":
         underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
     elif opt.model == "resnet18":
         underlying_model = torchvision.models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1, progress=True)
     else:
-        raise RuntimeError(f"Invalid model {opt.model}. Only mobileNet_v2, resnet18 are supported.")
+        raise RuntimeError(f"Invalid model {opt.model}. Only mobilenet_v2, resnet18 are supported.")
     
     # load whole model
     opt_name = opt.optimizer.lower()
