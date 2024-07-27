@@ -161,7 +161,11 @@ def parse_option(add_help=True):
     # opt.trial_folder = create_trial_folder(base_folder)
     opt.trial_folder = os.path.join(base_folder, "trial_{}".format(opt.trial))
     if not os.path.isdir(opt.trial_folder):
-        os.makedirs(opt.trial_folder)
+        try:
+            os.makedirs(opt.trial_folder)
+        except FileExistsError:
+            # the dict maybe created by other process
+            pass
         
     # 1     2        3        4         5         6          7   8           9             
     # epoch best_acc test_acc train_acc test_loss train_loss bpp test_lum_dc test_chrom_dc 
@@ -436,17 +440,10 @@ def main(opt):
             
             print('Total time {:.2f} s'.format(time2 - time1))
             print("test_acc:", test_acc)
-            # print("test_loss:", test_loss)
             print("bpp:", bpp)
-            # print("lum_dc:", test_lum_dc)
-            # print("chrom_dc:", test_chrom_dc)
-            # print("lum_ac:", test_lum_ac)
-            # print("chrom_ac:", test_chrom_ac)
             
             with open("./save/imagenet/resnet18/original_HDQ.txt", 'a') as log:
-                line =  f"{QF_value}\t" + \
-                        f"{test_acc:.15f}\t" + \
-                        f"{bpp:.15f}\t" + "\n"
+                line =  f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n"
                 log.write(line)
         return
     
@@ -497,7 +494,7 @@ def main(opt):
         print('Best Accuracy: {:.15f} % \t BPP: {:.15f} '.format(best_acc, best_bpp))
         
         # save q_table
-        if opt.JPEG_enable and opt.rank == 0:
+        if opt.JPEG_enable and (not hasattr(opt, 'rank') or opt.rank == 0):
             lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
@@ -522,7 +519,7 @@ def main(opt):
                 f.write('\n')
 
         # save alpha_table
-        if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha) and opt.rank == 0:
+        if opt.JPEG_enable and (opt.JPEG_alpha_trainable or not opt.fixed_alpha) and (not hasattr(opt, 'rank') or opt.rank == 0):
             alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
             alphaTable = torch.cat((alpha_lum, alpha_chrom), 0).cpu()
@@ -547,7 +544,7 @@ def main(opt):
                 f.write('\n')
         
         # save test train acc and loss
-        if opt.rank == 0:
+        if (not hasattr(opt, 'rank') or opt.rank == 0):
             with open(opt.logs_fname, 'a') as log:
                 line =  f"{epoch}\t" + f"{best_acc:.15f}\t" + \
                         f"{test_acc:.15f}\t" + f"{train_acc:.15f}\t" + \

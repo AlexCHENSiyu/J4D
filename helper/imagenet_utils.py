@@ -242,31 +242,31 @@ def save_on_master(*args, **kwargs):
         torch.save(*args, **kwargs)
 
 
-def init_distributed_mode(args):
+def init_distributed_mode(opt):
     if "RANK" in os.environ and "WORLD_SIZE" in os.environ:
-        args.rank = int(os.environ["RANK"])
-        args.world_size = int(os.environ["WORLD_SIZE"])
-        args.gpu = int(os.environ["LOCAL_RANK"])
+        opt.rank = int(os.environ["RANK"])
+        opt.world_size = int(os.environ["WORLD_SIZE"])
+        opt.gpu = int(os.environ["LOCAL_RANK"])
     elif "SLURM_PROCID" in os.environ:
-        args.rank = int(os.environ["SLURM_PROCID"])
-        args.gpu = args.rank % torch.cuda.device_count()
-    elif hasattr(args, "rank"):
+        opt.rank = int(os.environ["SLURM_PROCID"])
+        opt.gpu = opt.rank % torch.cuda.device_count()
+    elif hasattr(opt, "rank"):
         pass
     else:
         print("Not using distributed mode")
-        args.distributed = False
+        opt.distributed = False
         return
 
-    args.distributed = True
+    opt.distributed = True
 
-    torch.cuda.set_device(args.gpu)
-    args.dist_backend = "nccl"
-    print(f"| distributed init (rank {args.rank}): {args.dist_url}", flush=True)
+    torch.cuda.set_device(opt.gpu)
+    opt.dist_backend = "nccl"
+    print(f"| distributed init (rank {opt.rank}): {opt.dist_url}", flush=True)
     torch.distributed.init_process_group(
-        backend=args.dist_backend, init_method=args.dist_url, world_size=args.world_size, rank=args.rank
+        backend=opt.dist_backend, init_method=opt.dist_url, world_size=opt.world_size, rank=opt.rank
     )
     torch.distributed.barrier()
-    setup_for_distributed(args.rank == 0)
+    setup_for_distributed(opt.rank == 0)
 
 
 def average_checkpoints(inputs):
