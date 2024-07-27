@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-task=24
-#SBATCH --mem=16G
+#SBATCH --mem=64G
 #SBATCH --time=0-2:00
 #SBATCH --output=out/%N-%j.out
 #SBATCH --job-name=resnet18
