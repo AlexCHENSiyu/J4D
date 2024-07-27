@@ -44,7 +44,7 @@ def parse_option(add_help=True):
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
     
     # optimization
-    parser.add_argument("--batch_size", default=64, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
+    parser.add_argument("--batch_size", default=32, type=int, help="images per gpu, the total batch size is $NGPU x batch_size")
     parser.add_argument("--num_workers", default=16, type=int, metavar="N", help="number of data loading workers")
     parser.add_argument("--epochs", default=20, type=int, metavar="N", help="number of total epochs to run")
     parser.add_argument("--learning_rate", default=0.1, type=float, help="initial learning rate")
