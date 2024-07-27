@@ -66,7 +66,7 @@ def parse_option():
     parser.add_argument('--momentum', type=float, default=0.9, help='momentum')
 
     # model
-    parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'densenet121',])
+    parser.add_argument('--model', type=str, default='resnet18', choices=['resnet18', 'mobilenet_v2',])
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200'], help='dataset')
     parser.add_argument('--root', type=str, default='./data/cub2011', help='path to dataset')
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
@@ -175,8 +175,8 @@ def parse_option():
 
 
 def main(opt):
-    best_acc = 0
-    best_bpp = 0
+    best_acc, best_bpp = 0,0
+    
     if opt.seed:
         torch.manual_seed(opt.seed)
         torch.cuda.manual_seed(opt.seed)
@@ -188,26 +188,23 @@ def main(opt):
         torch.backends.cudnn.deterministic = True
 
     # torch.autograd.set_detect_anomaly(True)
-    
-    mean = (0.485, 0.456, 0.406)
-    std = (0.229, 0.224, 0.225)
-
-    mean_datatloader = (0, 0, 0)
-    std_datatloader = (1/255., 1/255., 1/255.)
 
     if opt.dataset == 'CUB200':
-        train_loader, val_loader = load_dataset(name="CUB200", batch_size=opt.batch_size, mean=mean_datatloader, std=std_datatloader, root=opt.root)
+        train_loader, val_loader = load_dataset(name="CUB200", batch_size=opt.batch_size, mean=(0, 0, 0), std=(1/255., 1/255., 1/255.), root=opt.root)
         n_cls = len(train_loader.dataset.class_names)
     else:
         raise NotImplementedError(opt.dataset)
 
     # model
     underlying_model = load_model(opt.model, num_classes=n_cls, pretrained=False)
-    model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
+    if opt.model == "resnet18":
+        model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
+    elif opt.model == "mobilenet_v2":
+        model_path = "./save/CUB200/pretrained/mobilenet_v2/mobilenet_v2_best.pth" 
     underlying_model.load_state_dict(torch.load(model_path)['model'])
 
     if opt.JPEG_enable:
-        jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=mean, std=std)        
+        jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))        
         model = CustomModel(jpeg_layer, underlying_model)
         
         if opt.optimizer == "sgd":
@@ -243,13 +240,12 @@ def main(opt):
             cudnn.benchmark = True
     
     # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=10, QF_C=10))
-    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=mean, std=std))
+    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
     val_loader.dataset.transform = HDQ_preprocess
     
     # routine
     for epoch in range(0, opt.epochs + 1):
         adjust_learning_rate(epoch, opt, optimizer)
-        
         
         print("\n==> training...")
         time1 = time.time()

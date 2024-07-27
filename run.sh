@@ -37,7 +37,7 @@ QF_list=(10 20 30 40 50 60 70 80 90 100)
 for QF in "${QF_list[@]}"; do
     CUDA_VISIBLE_DEVICES=${GPU_ID} /usr/local/bin/python3.9 train_compression.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --JPEG_alpha 100 --JPEG_learning_rate 0.01 --Q_initial_QF $QF \
-                                    --weight_lum 0.0005 --weight_chrom 0.0005 \
+                                    --weight_lum 2.0 --weight_chrom 2.0 \
                                     --num_workers 20
 done
 
