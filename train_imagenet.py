@@ -61,6 +61,8 @@ def parse_option(add_help=True):
     parser.add_argument("--output_dir", default=".", type=str, help="path to save outputs")
     parser.add_argument("--optimizer", default="adam", choices=['sgd','adam'], type=str, help="optimizer")
     parser.add_argument("--trial", default=1, type=int, help="trial number")
+    parser.add_argument('--seed', type=int, default=42, help='seed id, set to 0 if do not want to fix the seed')
+    parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of micro-batches to accumulate')
     
     # JPEG
     parser.add_argument('--JPEG_enable', action='store_true')
@@ -83,10 +85,7 @@ def parse_option(add_help=True):
     parser.add_argument('--num_non_zero_q', type=int, default=5, choices=range(2,2**10 - 1), help='Window size for the reconstruction space')
     parser.add_argument('--weight_lum', type=float, default=0.0, help='weight for lum entropy')
     parser.add_argument('--weight_chrom', type=float, default=0.0, help='weight for Chrom entropy')
-    
-    parser.add_argument('--seed', type=int, default=42, help='seed id, set to 0 if do not want to fix the seed')
-    parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of micro-batches to accumulate')
-    
+
     # other parameter for datasets
     parser.add_argument("--norm_weight_decay", default=None, type=float, help="weight decay for Normalization layers (default: None, same value as --wd)")
     parser.add_argument("--bias_weight_decay", default=None, type=float, help="weight decay for bias parameters of all layers (default: None, same value as --wd)")
@@ -205,12 +204,9 @@ def load_data(traindir, valdir, opt):
     start_time = time.time()
     cache_path = _get_cache_path(traindir)
     if opt.cache_dataset and os.path.exists(cache_path):
-        # Attention, as the transforms are also cached!
         print(f"Loading dataset_train from {cache_path}")
-        # TODO: this could probably be weights_only=True
         dataset, _ = torch.load(cache_path, weights_only=False)
     else:
-        # We need a default value for the variables below because args may come from train_quantization.py which doesn't define them.
         auto_augment_policy = getattr(opt, "auto_augment", None)
         random_erase_prob = getattr(opt, "random_erase", 0.0)
         ra_magnitude = getattr(opt, "ra_magnitude", None)
@@ -232,9 +228,7 @@ def load_data(traindir, valdir, opt):
             print(f"Saving dataset_train to {cache_path}")
             imagenet_utils.mkdir(os.path.dirname(cache_path))
             imagenet_utils.save_on_master((dataset, traindir), cache_path)
-    
     print("Took", time.time() - start_time)
-
 
     print("Loading validation data")
     cache_path = _get_cache_path(valdir)
@@ -255,9 +249,9 @@ def load_data(traindir, valdir, opt):
                 resize_size=val_resize_size,
                 interpolation=interpolation,
                 backend=opt.backend,
-                use_v2=opt.use_v2,)
+                use_v2=opt.use_v2)
 
-        dataset_test = torchvision.datasets.ImageFolder(valdir, preprocessing,)
+        dataset_test = torchvision.datasets.ImageFolder(valdir, preprocessing)
         if opt.cache_dataset:
             print(f"Saving dataset_test to {cache_path}")
             imagenet_utils.mkdir(os.path.dirname(cache_path))
@@ -363,7 +357,6 @@ def main(opt):
         optimizer = torch.optim.Adam(optimizer_data, lr=1e-2, betas=(0.9, 0.999), eps=1e-08)
     else:
         raise RuntimeError(f"Invalid optimizer {opt.optimizer}. Only SGD, RMSprop and AdamW are supported.")
-
 
     # weight decay
     # custom_keys_weight_decay = []
@@ -501,7 +494,7 @@ def main(opt):
         if test_acc > best_acc:
             best_acc = test_acc
             best_bpp = bpp
-        print('Best Accuracy: {:.2f} % \t BPP: {:.5f} '.format(best_acc, best_bpp))
+        print('Best Accuracy: {:.15f} % \t BPP: {:.15f} '.format(best_acc, best_bpp))
         
         # save q_table
         if opt.JPEG_enable and opt.rank == 0:

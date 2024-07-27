@@ -3,7 +3,7 @@
 #SBATCH --gpus-per-node=p100:2
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=16G
-#SBATCH --time=0-3:30
+#SBATCH --time=0-2:30
 #SBATCH --output=out/%N-%j.out
 #SBATCH --job-name=resnet18
 #SBATCH --account=def-ehyangit
