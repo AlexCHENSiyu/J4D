@@ -61,9 +61,7 @@ class SmoothedValue:
         return self.deque[-1]
 
     def __str__(self):
-        return self.fmt.format(
-            median=self.median, avg=self.avg, global_avg=self.global_avg, max=self.max, value=self.value
-        )
+        return self.fmt.format(median=self.median, avg=self.avg, global_avg=self.global_avg, max=self.max, value=self.value)
 
 
 class MetricLogger:
@@ -109,20 +107,15 @@ class MetricLogger:
         space_fmt = ":" + str(len(str(len(iterable)))) + "d"
         if torch.cuda.is_available():
             log_msg = self.delimiter.join(
-                [
-                    header,
+                [   header,
                     "[{0" + space_fmt + "}/{1}]",
                     "eta: {eta}",
                     "{meters}",
                     "time: {time}",
                     "data: {data}",
-                    "max mem: {memory:.0f}",
-                ]
-            )
+                    "max mem: {memory:.0f}",])
         else:
-            log_msg = self.delimiter.join(
-                [header, "[{0" + space_fmt + "}/{1}]", "eta: {eta}", "{meters}", "time: {time}", "data: {data}"]
-            )
+            log_msg = self.delimiter.join([header, "[{0" + space_fmt + "}/{1}]", "eta: {eta}", "{meters}", "time: {time}", "data: {data}"])
         MB = 1024.0 * 1024.0
         for obj in iterable:
             data_time.update(time.time() - end)
@@ -132,23 +125,16 @@ class MetricLogger:
                 eta_seconds = iter_time.global_avg * (len(iterable) - i)
                 eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
                 if torch.cuda.is_available():
-                    print(
-                        log_msg.format(
+                    print(log_msg.format(
                             i,
                             len(iterable),
                             eta=eta_string,
                             meters=str(self),
                             time=str(iter_time),
                             data=str(data_time),
-                            memory=torch.cuda.max_memory_allocated() / MB,
-                        )
-                    )
+                            memory=torch.cuda.max_memory_allocated() / MB,))
                 else:
-                    print(
-                        log_msg.format(
-                            i, len(iterable), eta=eta_string, meters=str(self), time=str(iter_time), data=str(data_time)
-                        )
-                    )
+                    print(log_msg.format(i, len(iterable), eta=eta_string, meters=str(self), time=str(iter_time), data=str(data_time)))
             i += 1
             end = time.time()
         total_time = time.time() - start_time
