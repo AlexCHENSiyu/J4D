@@ -109,7 +109,7 @@ def parse_option(add_help=True):
     parser.add_argument("--lr_step_size", default=30, type=int, help="decrease lr every step-size epochs")
     parser.add_argument("--lr_gamma", default=0.1, type=float, help="decrease lr by a factor of lr-gamma")
     parser.add_argument("--lr_min", default=0.0, type=float, help="minimum lr of lr schedule (default: 0.0)")
-    parser.add_argument("--print_freq", default=10, type=int, help="print frequency")
+    parser.add_argument("--print_freq", default=50, type=int, help="print frequency")
     parser.add_argument("--resume", default="", type=str, help="path of checkpoint")
     parser.add_argument("--start_epoch", default=0, type=int, metavar="N", help="start epoch")
     parser.add_argument("--cache_dataset", dest="cache_dataset", help="Cache the datasets for quicker initialization. It also serializes the transforms", action="store_true")
@@ -463,10 +463,10 @@ def main(opt):
         time1 = time.time()
         if epoch == 0:
             # train with default settings (Validation)
-            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, opt, model_ema, scaler, backward=False)
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, model_ema, scaler, backward=False)
         else:
             # train
-            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, opt, model_ema, scaler)
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, model_ema, scaler)
             lr_scheduler.step()
         time2 = time.time()
         print('Epoch [{}]: total time {:.5f} s'.format(epoch, time2-time1))
