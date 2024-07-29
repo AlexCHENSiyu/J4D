@@ -393,7 +393,7 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, ar
 
     print(' * Acc@1 {top1.global_avg:.15f} Acc@5 {top5.global_avg:.15f}'.format(top1=metric_logger.acc1, top5=metric_logger.acc5))
     
-    return metric_logger.acc1.global_avg, metric_logger.losses.global_avg, \
+    return metric_logger.acc1.global_avg, metric_logger.loss.global_avg, \
            metric_logger.lum_dc.global_avg, metric_logger.chrom_dc.global_avg, \
            metric_logger.lum_ac.global_avg, metric_logger.chrom_ac.global_avg
     
@@ -449,7 +449,7 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, print_freq=100, log
     metric_logger.synchronize_between_processes()
 
     return metric_logger.acc1.global_avg, metric_logger.acc5.global_avg, \
-           metric_logger.losses.global_avg, metric_logger.BPP.global_avg, \
+           metric_logger.loss.global_avg, metric_logger.BPP.global_avg, \
            metric_logger.lum_dc.global_avg, metric_logger.chrom_dc.global_avg, \
            metric_logger.lum_ac.global_avg, metric_logger.chrom_ac.global_avg
 
