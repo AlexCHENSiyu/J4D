@@ -143,6 +143,10 @@ def parse_option(add_help=True):
     
     opt = parser.parse_args()
     
+    return opt
+    
+
+def prepare_dir(opt):
     print("prepare directory")
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
@@ -172,7 +176,7 @@ def parse_option(add_help=True):
     
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
     with open(opt.logs_fname, 'a') as log:
-        if os.path.exists(opt.logs_fname) and os.stat(opt.logs_fname).st_size == 0:
+        if (not hasattr(opt, 'rank') or opt.rank == 0):
             line =  'ep' + "\t" + \
                     'best_acc' + "\t\t\t" + 'test_acc' + "\t\t\t" + 'train_acc' + "\t\t\t" +  \
                     'test_loss' + "\t\t\t" + 'train_loss' + "\t\t\t" + \
@@ -280,6 +284,7 @@ def main(opt):
 
     # initial distributed mode
     imagenet_utils.init_distributed_mode(opt)
+    opt = prepare_dir(opt)
     device = torch.device(opt.device)
     
     if opt.seed:
