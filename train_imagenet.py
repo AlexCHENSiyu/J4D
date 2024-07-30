@@ -48,6 +48,11 @@ def _get_cache_path(filepath):
     return cache_path
 
 
+# salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit --mem=8G
+# sq
+# scancel {JOGID}
+
+
 def parse_option(add_help=True):
     import argparse
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
