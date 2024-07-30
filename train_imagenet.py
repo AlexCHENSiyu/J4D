@@ -143,11 +143,30 @@ def parse_option(add_help=True):
     
     opt = parser.parse_args()
     
+    if opt.resume:
+        print("resume training")
+        with open(os.path.join(opt.resume, "opt.json"), 'r') as f:
+            data = json.load(f)
+        opt_save = argparse.Namespace(**data)
+        
+        opt_save.start_epoch = opt_save.epochs+1
+        opt_save.resume = opt.resume
+        opt_save.epochs = opt.epochs
+        opt = opt_save
+    
     return opt
     
 
 def prepare_dir(opt):
     print("prepare directory")
+    if opt.resume:
+        with open(opt.opt_fname, 'w') as f:
+            try:
+                json.dump(vars(opt), f, indent=4)
+            except FileExistsError:
+                pass
+        return opt
+    
     iterations = opt.lr_decay_epochs.split(',')
     opt.lr_decay_epochs = list([])
     for it in iterations:
@@ -198,7 +217,7 @@ def prepare_dir(opt):
             json.dump(vars(opt), f, indent=4)
         except FileExistsError:
             pass
-    
+
     return opt
 
 
@@ -420,12 +439,11 @@ def main(opt):
     
     # resume training
     if opt.resume:
-        checkpoint = torch.load(opt.resume, map_location="cpu", weights_only=True)
+        checkpoint = torch.load(os.path.join(opt.resume, "model_last.pth"), map_location="cpu", weights_only=True)
         model_without_ddp.load_state_dict(checkpoint["model"])
         if not opt.test_only:
             optimizer.load_state_dict(checkpoint["optimizer"])
             lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
-        opt.start_epoch = checkpoint["epoch"] + 1
         if model_ema:
             model_ema.load_state_dict(checkpoint["model_ema"])
         if scaler:
@@ -563,19 +581,16 @@ def main(opt):
                         str_q_alpha + '\n'
                 log.write(line)
     
-    # only one process can record
-    if (not hasattr(opt, 'rank') or opt.rank == 0):
-        # save model of last epoch
-        checkpoint = {
-            "model": model_without_ddp.state_dict(),
-            "optimizer": optimizer.state_dict(),
-            "lr_scheduler": lr_scheduler.state_dict(),
-            "opt": opt}
-        if model_ema:
-            checkpoint["model_ema"] = model_ema.state_dict()
-        if scaler:
-            checkpoint["scaler"] = scaler.state_dict()
-        imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
+    # save model of last epoch
+    checkpoint = {
+        "model": model_without_ddp.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "lr_scheduler": lr_scheduler.state_dict()}
+    if model_ema:
+        checkpoint["model_ema"] = model_ema.state_dict()
+    if scaler:
+        checkpoint["scaler"] = scaler.state_dict()
+    imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
     
     # print best acc
     print("\n==> Finish training: ", opt.model_name)
