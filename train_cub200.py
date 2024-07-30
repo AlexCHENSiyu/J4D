@@ -205,7 +205,7 @@ def main(opt):
         model_path = "./save/CUB200/pretrained/resnet18/resnet18_best.pth" 
     elif opt.model == "mobilenet_v2":
         model_path = "./save/CUB200/pretrained/mobilenet_v2/mobilenet_v2_best.pth" 
-    elif opt.model == "mnasnet":
+    elif opt.model == "Mnasnet":
         model_path = "./save/CUB200/pretrained/Mnasnet/Mnasnet_best.pth" 
     underlying_model.load_state_dict(torch.load(model_path)['model'])
 
