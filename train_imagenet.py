@@ -156,6 +156,7 @@ def parse_option(add_help=True):
         
         opt_save.start_epoch = opt_save.epochs+1
         opt_save.resume = opt.resume
+        opt_save.data_path = opt.data_path
         opt_save.epochs = opt.epochs
         opt = opt_save
     
