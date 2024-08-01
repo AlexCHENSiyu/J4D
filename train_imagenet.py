@@ -164,7 +164,7 @@ def parse_option(add_help=True):
     
 
 def prepare_dir(opt):
-    print("prepare directory")
+    print("prepare directory for ", opt.model_name)
     if opt.resume:
         with open(opt.opt_fname, 'w') as f:
             try:
