@@ -3,7 +3,7 @@
 #SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=24
 #SBATCH --mem=64G
-#SBATCH --time=0-7:00
+#SBATCH --time=0-9:30
 #SBATCH --output=out/%N-%j.out
 #SBATCH --job-name=resnet18
 #SBATCH --account=def-ehyangit
@@ -25,8 +25,16 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 
 
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --epoch 20 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
+                                    --dataset "imagenet" --model "mobilenet_v2" --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --epoch 15 --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
                                     --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 \
                                     --lr_step_size 1 --lr_gamma 0.98 \
-                                    --trial 1 --batch_size 64 --resume "./save/imagenet/resnet18/JPEG_lr_0.01_alpha_100.0_weight_0.1_0.1_QF_100/trial_1"
+                                    --trial 1 --batch_size 64
+
+
+# torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+#                                     --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
+#                                     --epoch 10 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
+#                                     --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 \
+#                                     --lr_step_size 1 --lr_gamma 0.98 \
+#                                     --trial 1 --batch_size 64 --resume "./save/imagenet/resnet18/JPEG_lr_0.01_alpha_100.0_weight_0.1_0.1_QF_100/trial_1"

@@ -37,7 +37,7 @@ def create_folder(folder):
             os.makedirs(folder)
         except FileExistsError:
             # the dict maybe created by other process
-            print(f"Directory {folder} already exists.")
+            print(f"[warning]: Directory {folder} already exists.")
 
 
 def _get_cache_path(filepath):
@@ -75,7 +75,7 @@ def parse_option(add_help=True):
     parser.add_argument("--output_dir", default=".", type=str, help="path to save outputs")
     parser.add_argument("--optimizer", default="adam", choices=['sgd','adam'], type=str, help="optimizer")
     parser.add_argument("--trial", default=1, type=int, help="trial number")
-    parser.add_argument('--seed', type=int, default=42, help='seed id, set to 0 if do not want to fix the seed')
+    parser.add_argument('--seed', type=int, default=0, help='seed id, set to 0 if do not want to fix the seed')
     parser.add_argument('--accumulation_steps', type=int, default=1, help='Number of micro-batches to accumulate')
     
     # JPEG
@@ -149,7 +149,7 @@ def parse_option(add_help=True):
     opt = parser.parse_args()
     
     if opt.resume:
-        print("resume training")
+        print("~resume training")
         with open(os.path.join(opt.resume, "opt.json"), 'r') as f:
             data = json.load(f)
         opt_save = argparse.Namespace(**data)
@@ -164,7 +164,7 @@ def parse_option(add_help=True):
     
 
 def prepare_dir(opt):
-    print("prepare directory for ", opt.model_name)
+    print("~Prepare directory for ", opt.model_name)
     if opt.resume:
         with open(opt.opt_fname, 'w') as f:
             try:
@@ -229,11 +229,11 @@ def prepare_dir(opt):
 
 def load_data(traindir, valdir, opt):
     # Data loading code
-    print("Loading data")
+    print("~Loading data")
     val_resize_size, val_crop_size, train_crop_size = (opt.val_resize_size, opt.val_crop_size, opt.train_crop_size,)
     interpolation = InterpolationMode(opt.interpolation)
 
-    print("Loading training data")
+    # print("~ Loading training data")
     start_time = time.time()
     cache_path = _get_cache_path(traindir)
     if opt.cache_dataset and os.path.exists(cache_path):
@@ -261,9 +261,9 @@ def load_data(traindir, valdir, opt):
             print(f"Saving dataset_train to {cache_path}")
             imagenet_utils.mkdir(os.path.dirname(cache_path))
             imagenet_utils.save_on_master((dataset, traindir), cache_path)
-    print("Took", time.time() - start_time)
+    # print("Took", time.time() - start_time)
 
-    print("Loading validation data")
+    # print("~ Loading validation data")
     cache_path = _get_cache_path(valdir)
     if opt.cache_dataset and os.path.exists(cache_path):
         # Attention, as the transforms are also cached!
@@ -290,7 +290,7 @@ def load_data(traindir, valdir, opt):
             imagenet_utils.mkdir(os.path.dirname(cache_path))
             imagenet_utils.save_on_master((dataset_test, valdir), cache_path)
 
-    print("Creating data loaders")
+    # print("~ Creating data loaders")
     if opt.distributed:
         if hasattr(opt, "ra_sampler") and opt.ra_sampler:
             train_sampler = RASampler(dataset, shuffle=True, repetitions=opt.ra_reps)
@@ -321,6 +321,7 @@ def main(opt):
         torch.manual_seed(opt.seed)
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
+        print("~Use seed", opt.seed)
     if opt.use_deterministic_algorithms:
         torch.backends.cudnn.benchmark = False
         torch.use_deterministic_algorithms(True)
@@ -346,7 +347,7 @@ def main(opt):
     test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=opt.batch_size, sampler=test_sampler, num_workers=opt.num_workers, pin_memory=True)
 
     # load underlying model
-    print("loading model {}".format(opt.model))
+    print("~loading model {}".format(opt.model))
     if opt.model == "mobilenet_v2":
         underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
     elif opt.model == "resnet18":
@@ -472,7 +473,7 @@ def main(opt):
             print("bpp:", bpp)
             
             with open("./save/imagenet/resnet18/original_HDQ.txt", 'a') as log:
-                line =  f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n"
+                line = f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n"
                 log.write(line)
         return
     
@@ -482,7 +483,7 @@ def main(opt):
     test_loader.dataset.transform = HDQ_preprocess
     
     # routine
-    print("Start training")
+    print("~Start training")
     for epoch in range(opt.start_epoch, opt.epochs+1):
         if opt.distributed:
             train_sampler.set_epoch(epoch)
