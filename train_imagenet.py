@@ -164,7 +164,6 @@ def parse_option(add_help=True):
     
 
 def prepare_dir(opt):
-    print("~Prepare directory for ", opt.model_name)
     if opt.resume:
         with open(opt.opt_fname, 'w') as f:
             try:
@@ -223,7 +222,8 @@ def prepare_dir(opt):
             json.dump(vars(opt), f, indent=4)
         except FileExistsError:
             pass
-
+    
+    print("~Finish prepare directory for ", opt.model_name)
     return opt
 
 

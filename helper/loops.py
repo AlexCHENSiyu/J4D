@@ -1,13 +1,10 @@
 from __future__ import print_function, division
-
 import sys
 import time
 import torch
 import torch.nn.functional as F
-
 from .util import AverageMeter, accuracy
 from .JPEG_layer import *
-
 from torchvision import transforms
 # from torchviz import make_dot
 
