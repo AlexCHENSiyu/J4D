@@ -7,6 +7,7 @@ import numpy as np
 import random
 import torch
 import re
+import argparse
 import torch.utils.data
 import torchvision
 import torchvision.transforms
@@ -68,7 +69,6 @@ def _get_cache_path(filepath):
 
 
 def parse_option(add_help=True):
-    import argparse
     parser = argparse.ArgumentParser(description="PyTorch Classification Training", add_help=add_help)
     
     # optimization
@@ -163,7 +163,7 @@ def parse_option(add_help=True):
     
     opt = parser.parse_args()
     
-    if opt.resume or opt.test_only:
+    if opt.resume:
         print("~resume training")
         with open(os.path.join(opt.resume, "opt.json"), 'r') as f:
             data = json.load(f)
@@ -173,14 +173,13 @@ def parse_option(add_help=True):
         opt_new.resume = opt.resume
         opt_new.data_path = opt.data_path
         opt_new.epochs = opt.epochs
-        opt_new.test_only = opt.test_only
         opt = opt_new
     
     return opt
     
 
 def prepare_dir(opt):
-    if opt.resume or opt.test_only:
+    if opt.resume:
         with open(opt.opt_fname, 'w') as f:
             try:
                 json.dump(vars(opt), f, indent=4)
@@ -208,11 +207,33 @@ def prepare_dir(opt):
     
     opt.output_dir = './save/{}/{}'.format(opt.dataset, opt.model)
     create_folder(opt.output_dir)
-    
+
     base_folder = os.path.join(opt.output_dir, opt.model_name)
     # opt.trial_folder = create_trial_folder(base_folder)
     opt.trial_folder = os.path.join(base_folder, "trial_{}".format(opt.trial))
     create_folder(opt.trial_folder)
+    
+    opt.q_tables_folder = os.path.join(opt.trial_folder, "Q_tables")
+    create_folder(opt.q_tables_folder)
+    
+    opt.alpha_folder = os.path.join(opt.trial_folder, "Alpha_tables")
+    create_folder(opt.alpha_folder)
+    
+    if opt.test_only:
+        print("~test only")
+        with open(os.path.join(opt.trial_folder, "opt.json"), 'r') as f:
+            data = json.load(f)
+        opt_old = argparse.Namespace(**data)
+        opt.seed = opt_old.seed
+        
+        return opt
+    
+    opt.opt_fname = os.path.join(opt.trial_folder, "opt.json")
+    with open(opt.opt_fname, 'w') as f:
+        try:
+            json.dump(vars(opt), f, indent=4)
+        except FileExistsError:
+            pass
     
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
     with open(opt.logs_fname, 'a') as log:
@@ -225,19 +246,6 @@ def prepare_dir(opt):
                     'train_lum_dc' + "\t\t" + 'train_chrom_dc' + "\t\t" + 'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + \
                     'q_min' + "\t\t\t\t" + 'q_max' + '\t\t\t\t' + 'alpha_min' + "\t\t\t" + 'alpha_max' + '\n'
             log.write(line)
-    
-    opt.q_tables_folder = os.path.join(opt.trial_folder, "Q_tables")
-    create_folder(opt.q_tables_folder)
-    
-    opt.alpha_folder = os.path.join(opt.trial_folder, "Alpha_tables")
-    create_folder(opt.alpha_folder)
-    
-    opt.opt_fname = os.path.join(opt.trial_folder, "opt.json")
-    with open(opt.opt_fname, 'w') as f:
-        try:
-            json.dump(vars(opt), f, indent=4)
-        except FileExistsError:
-            pass
     
     print("~Finish prepare directory for ", opt.model_name)
     return opt
@@ -505,14 +513,13 @@ def main(opt):
         torch.backends.cudnn.deterministic = True
     
         opt.logs_test_fname = os.path.join(opt.trial_folder, "logs_test.txt")
-        with open(opt.logs_fname, 'a') as log:
+        with open(opt.logs_test_fname, 'a') as log:
             if (not hasattr(opt, 'rank') or opt.rank == 0):
                 line =  'test_acc' + "\t\t\t" + 'test_loss' + "\t\t\t" + 'bpp' + "\t\t\t\t\t" + \
                         'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + '\n'
                 log.write(line)
                     
-        pt_file_list = find_all_pt_files(opt.q_tables_folder)
-        
+        pt_file_list = find_all_pt_files(opt.q_tables_folder)  
         for pt in pt_file_list:
             print("test: ", pt)
             JPEG_layer_q_table = torch.load(os.path.join(opt.q_tables_folder, pt))
@@ -535,8 +542,8 @@ def main(opt):
             else:
                 test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
             
-            print("test_acc:", test_acc.item())
-            # print("test_acc_top5:", test_acc_top5.item())
+            print("test_acc:", test_acc)
+            # print("test_acc_top5:", test_acc_top)
             print("test_loss:", test_loss)
             print("bpp:", bpp)
             print("lum_dc:", test_lum_dc)
