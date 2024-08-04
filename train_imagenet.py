@@ -50,11 +50,10 @@ def find_all_pt_files(folder_path):
         match = pattern.match(filename)
         if match:
             epoch_number = int(match.group(1))
-            if epoch_number >= 1:
-                matched_files.append((epoch_number, filename))
+            matched_files.append((epoch_number, filename))
     matched_files.sort(key=lambda x: x[0])
     sorted_filenames = [filename for _, filename in matched_files]
-    
+    print(sorted_filenames)
     return sorted_filenames
 
 
@@ -518,13 +517,13 @@ def main(opt):
         opt.logs_test_fname = os.path.join(opt.trial_folder, "logs_test.txt")
         with open(opt.logs_test_fname, 'a') as log:
             if (not hasattr(opt, 'rank') or opt.rank == 0):
-                line =  'test_acc' + "\t\t\t" + 'test_loss' + "\t\t\t" + 'bpp' + "\t\t\t\t\t" + \
-                        'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + '\n'
+                line =  'ep' + "\t" + 'test_acc' + "\t\t\t" + 'test_loss' + "\t\t\t" + 'bpp' + "\t\t\t\t\t" + \
+                        'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + '\n'
                 log.write(line)
-                    
+        
         pt_file_list = find_all_pt_files(opt.q_tables_folder)  
-        for pt in pt_file_list:
-            print("test: ", pt)
+        for epoch, pt in enumerate(pt_file_list):
+            print("Test: ", pt)
             JPEG_layer_q_table = torch.load(os.path.join(opt.q_tables_folder, pt))
             lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
             lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
@@ -545,19 +544,14 @@ def main(opt):
             else:
                 test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
             
-            print("test_acc:", test_acc)
-            # print("test_acc_top5:", test_acc_top)
-            print("test_loss:", test_loss)
-            print("bpp:", bpp)
-            print("lum_dc:", test_lum_dc)
-            print("chrom_dc:", test_chrom_dc)
-            print("lum_ac:", test_lum_ac)
-            print("chrom_ac:", test_chrom_ac)
+            print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
+            print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
+            print("lum_ac:", test_lum_ac, "chrom_ac:", test_chrom_ac)
         
             # save test train acc and loss
             with open(opt.logs_test_fname, 'a') as log:
                 if (not hasattr(opt, 'rank') or opt.rank == 0):
-                    line =  f"{test_acc:.15f}\t" + f"{test_loss:.15f}\t" + f"{bpp:.15f}\t" + \
+                    line =  f"{epoch}\t" + f"{test_acc:.15f}\t" + f"{test_loss:.15f}\t" + f"{bpp:.15f}\t" + \
                             f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
                             f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + '\n'
                     log.write(line)
