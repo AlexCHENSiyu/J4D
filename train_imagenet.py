@@ -51,8 +51,11 @@ def find_all_pt_files(folder_path):
         if match:
             epoch_number = int(match.group(1))
             if epoch_number >= 1:
-                matched_files.append(filename)
-    return matched_files
+                matched_files.append((epoch_number, filename))
+    matched_files.sort(key=lambda x: x[0])
+    sorted_filenames = [filename for _, filename in matched_files]
+    
+    return sorted_filenames
 
 
 def _get_cache_path(filepath):
