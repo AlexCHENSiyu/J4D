@@ -472,9 +472,9 @@ def main(opt):
             print("test_acc:", test_acc)
             print("bpp:", bpp)
             
-            with open("./save/imagenet/resnet18/original_HDQ.txt", 'a') as log:
-                line = f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n"
-                log.write(line)
+            HDQ_fname = os.path.join(opt.output_dir, "original_HDQ.txt")
+            with open(HDQ_fname, 'a') as log:
+                log.write(f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n")
         return
     
     # function for validation inference
