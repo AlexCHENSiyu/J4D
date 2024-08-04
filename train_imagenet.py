@@ -6,6 +6,7 @@ import helper.presets as presets
 import numpy as np
 import random
 import torch
+import re
 import torch.utils.data
 import torchvision
 import torchvision.transforms
@@ -38,6 +39,19 @@ def create_folder(folder):
         except FileExistsError:
             # the dict maybe created by other process
             print(f"[warning]: Directory {folder} already exists.")
+
+
+def find_all_pt_files(folder_path):
+    pattern = re.compile(r'q_table_epoch_(\d+)\.pt')
+    
+    matched_files = []
+    for filename in os.listdir(folder_path):
+        match = pattern.match(filename)
+        if match:
+            epoch_number = int(match.group(1))
+            if epoch_number >= 1:
+                matched_files.append(filename)
+    return matched_files
 
 
 def _get_cache_path(filepath):
@@ -84,6 +98,7 @@ def parse_option(add_help=True):
     parser.add_argument('--fixed_alpha', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
     parser.add_argument('--QF_Inital', action='store_true')
+    parser.add_argument('--HDQ_baseline', help="to get the HDQ baseline for this model and dataset", action='store_true')
     
     # JPEG Hyper
     parser.add_argument('--JPEG_alpha', type=float, default=20.0, help='Tempurature scaling')
@@ -148,23 +163,24 @@ def parse_option(add_help=True):
     
     opt = parser.parse_args()
     
-    if opt.resume:
+    if opt.resume or opt.test_only:
         print("~resume training")
         with open(os.path.join(opt.resume, "opt.json"), 'r') as f:
             data = json.load(f)
-        opt_save = argparse.Namespace(**data)
+        opt_new = argparse.Namespace(**data)
         
-        opt_save.start_epoch = opt_save.epochs+1
-        opt_save.resume = opt.resume
-        opt_save.data_path = opt.data_path
-        opt_save.epochs = opt.epochs
-        opt = opt_save
+        opt_new.start_epoch = opt_new.epochs+1
+        opt_new.resume = opt.resume
+        opt_new.data_path = opt.data_path
+        opt_new.epochs = opt.epochs
+        opt_new.test_only = opt.test_only
+        opt = opt_new
     
     return opt
     
 
 def prepare_dir(opt):
-    if opt.resume:
+    if opt.resume or opt.test_only:
         with open(opt.opt_fname, 'w') as f:
             try:
                 json.dump(vars(opt), f, indent=4)
@@ -192,7 +208,7 @@ def prepare_dir(opt):
     
     opt.output_dir = './save/{}/{}'.format(opt.dataset, opt.model)
     create_folder(opt.output_dir)
-
+    
     base_folder = os.path.join(opt.output_dir, opt.model_name)
     # opt.trial_folder = create_trial_folder(base_folder)
     opt.trial_folder = os.path.join(base_folder, "trial_{}".format(opt.trial))
@@ -457,7 +473,7 @@ def main(opt):
             scaler.load_state_dict(checkpoint["scaler"])
 
     # HDQ baseline calculation
-    if opt.test_only:
+    if opt.HDQ_baseline:
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
         for QF_value in range(1, 101):
@@ -474,13 +490,69 @@ def main(opt):
             
             HDQ_fname = os.path.join(opt.output_dir, "original_HDQ.txt")
             with open(HDQ_fname, 'a') as log:
-                log.write(f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n")
+                if (not hasattr(opt, 'rank') or opt.rank == 0):
+                    log.write(f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n")
         return
     
     # function for validation inference
     # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=50, QF_C=50))
     HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
     test_loader.dataset.transform = HDQ_preprocess
+    
+    # test all .pt weight
+    if opt.test_only:
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+    
+        opt.logs_test_fname = os.path.join(opt.trial_folder, "logs_test.txt")
+        with open(opt.logs_fname, 'a') as log:
+            if (not hasattr(opt, 'rank') or opt.rank == 0):
+                line =  'test_acc' + "\t\t\t" + 'test_loss' + "\t\t\t" + 'bpp' + "\t\t\t\t\t" + \
+                        'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + "\t\t" + '\n'
+                log.write(line)
+                    
+        pt_file_list = find_all_pt_files(opt.q_tables_folder)
+        
+        for pt in pt_file_list:
+            print("test: ", pt)
+            JPEG_layer_q_table = torch.load(os.path.join(opt.q_tables_folder, pt))
+            lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
+            lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            chrom_q_table = chrom_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+
+            if opt.JPEG_enable:
+                model_without_ddp.jpeg_layer.lum_qtable = nn.Parameter(lum_q_table)
+                model_without_ddp.jpeg_layer.chrom_qtable = nn.Parameter(chrom_q_table)
+            
+            # catch the q_table and alpha for validate
+            test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
+    
+            if not model_ema:
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
+            else:
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
+            
+            print("test_acc:", test_acc.item())
+            # print("test_acc_top5:", test_acc_top5.item())
+            print("test_loss:", test_loss)
+            print("bpp:", bpp)
+            print("lum_dc:", test_lum_dc)
+            print("chrom_dc:", test_chrom_dc)
+            print("lum_ac:", test_lum_ac)
+            print("chrom_ac:", test_chrom_ac)
+        
+            # save test train acc and loss
+            with open(opt.logs_test_fname, 'a') as log:
+                if (not hasattr(opt, 'rank') or opt.rank == 0):
+                    line =  f"{test_acc:.15f}\t" + f"{test_loss:.15f}\t" + f"{bpp:.15f}\t" + \
+                            f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
+                            f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + '\n'
+                    log.write(line)
+        return
+    
     
     # routine
     print("~Start training")
