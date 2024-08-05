@@ -85,7 +85,7 @@ def parse_option(add_help=True):
     parser.add_argument("--momentum", default=0.9, type=float, metavar="M", help="momentum")
     
     # model and dataset
-    parser.add_argument("--model", default="mobilenet_v2", type=str, choices=['mobilenet_v2','resnet18'], help="model name")
+    parser.add_argument("--model", default="mobilenet_v2", type=str, choices=['mobilenet_v2','Resnet18','ConvNeXt_tiny','Regnet400mf'], help="model name")
     parser.add_argument("--data_path", default="/home/multicom-pc52/dataset/imagenet", type=str, help="dataset path")
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200','imagenet'], help='dataset')
