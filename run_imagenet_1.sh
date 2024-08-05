@@ -23,6 +23,7 @@ cd $SLURM_TMPDIR
 time tar --use-compress-program=pigz -xf imagenet.tar.gz
 cd /scratch/s875chen/JPEG-Inspired-Compression
 
+
 # Regnet400mf, Resnet18, mobilenet_v2, ConvNeXt_tiny
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --dataset "imagenet" --model "mobilenet_v2" --data_path "$SLURM_TMPDIR/imagenet" \
