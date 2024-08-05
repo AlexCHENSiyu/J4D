@@ -16,10 +16,11 @@ from helper.loops import train_JPEG, evaluate_JPEG
 import helper.imagenet_utils as imagenet_utils
 from helper.sampler import RASampler
 from torch import nn
+from models import load_model_imagenet
 from torch.utils.data.dataloader import default_collate
 from torchvision.transforms.functional import InterpolationMode
 from helper.transforms import get_mixup_cutmix
-from torchvision.models import MobileNet_V2_Weights, ResNet18_Weights
+from torchvision.models import MobileNet_V2_Weights, ResNet18_Weights, ConvNeXt_Tiny_Weights, RegNet_Y_400MF_Weights
 
 
 def create_trial_folder(base_folder):
@@ -374,12 +375,18 @@ def main(opt):
 
     # load underlying model
     print("~loading model {}".format(opt.model))
-    if opt.model == "mobilenet_v2":
-        underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
-    elif opt.model == "resnet18":
-        underlying_model = torchvision.models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1, progress=True)
-    else:
-        raise RuntimeError(f"Invalid model {opt.model}. Only mobilenet_v2, resnet18 are supported.")
+    underlying_model = load_model_imagenet(opt.model, pretrained=True)
+    
+    # if opt.model == "mobilenet_v2":
+    #     underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
+    # elif opt.model == "resnet18":
+    #     underlying_model = torchvision.models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1, progress=True)
+    # elif opt.model == "ConvNeXt-T":
+    #     underlying_model = torchvision.models.convnext_tiny(weights=ConvNeXt_Tiny_Weights.IMAGENET1K_V1, progress=True)
+    # elif opt.model == "RegNetY-400MF":
+    #     underlying_model = torchvision.models.regnet_y_400mf(weights=RegNet_Y_400MF_Weights.IMAGENET1K_V2, progress=True)
+    # else:
+    #     raise RuntimeError(f"Invalid model {opt.model}. Only mobilenet_v2, resnet18 are supported.")
     
     # load whole model
     opt_name = opt.optimizer.lower()
