@@ -427,15 +427,15 @@ def main(opt):
         raise RuntimeError(f"Invalid optimizer {opt.optimizer}. Only SGD, RMSprop and AdamW are supported.")
 
     # weight decay
-    # custom_keys_weight_decay = []
-    # if args.bias_weight_decay is not None:
-    #     custom_keys_weight_decay.append(("bias", args.bias_weight_decay))
-    # if args.transformer_embedding_decay is not None:
-    #     for key in ["class_token", "position_embedding", "relative_position_bias_table"]:
-    #         custom_keys_weight_decay.append((key, args.transformer_embedding_decay))
-    # parameters = utils.set_weight_decay(
-    #     model, args.weight_decay, norm_weight_decay=args.norm_weight_decay,
-    #     custom_keys_weight_decay=custom_keys_weight_decay if len(custom_keys_weight_decay) > 0 else None,)
+    custom_keys_weight_decay = []
+    if opt.bias_weight_decay is not None:
+        custom_keys_weight_decay.append(("bias", opt.bias_weight_decay))
+    if opt.transformer_embedding_decay is not None:
+        for key in ["class_token", "position_embedding", "relative_position_bias_table"]:
+            custom_keys_weight_decay.append((key, opt.transformer_embedding_decay))
+    parameters = imagenet_utils.set_weight_decay(
+        model, opt.weight_decay, norm_weight_decay=opt.norm_weight_decay,
+        custom_keys_weight_decay=custom_keys_weight_decay if len(custom_keys_weight_decay) > 0 else None,)
 
     # GradScaler
     scaler = torch.cuda.amp.GradScaler() if opt.amp else None
