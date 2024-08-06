@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=p100:4
+#SBATCH --gpus-per-node=4
 #SBATCH --cpus-per-task=24
 #SBATCH --exclusive
 #SBATCH --mem=64G
@@ -9,6 +9,7 @@
 #SBATCH --job-name=imagenet
 #SBATCH --account=def-ehyangit
 nvidia-smi
+
 
 module load StdEnv/2020
 module load python/3.9
@@ -25,9 +26,9 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 
 # Regnet400mf, Resnet18, mobilenet_v2, ConvNeXt_tiny
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "ConvNeXt_tiny" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --epoch 15 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
-                                    --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 \
+                                    --dataset "imagenet" --model "mobilenet_v2" --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --epoch 10 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
+                                    --weight_lum 0.01 --weight_chrom 0.01 --num_workers 24 \
                                     --lr_step_size 1 --lr_gamma 0.98 \
                                     --trial 1 --batch_size 64
 
