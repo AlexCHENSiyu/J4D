@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=a100:4
-#SBATCH --cpus-per-task=48
+#SBATCH --gpus-per-node=4
+#SBATCH --cpus-per-task=24
 #SBATCH --exclusive
 #SBATCH --mem=64G
 #SBATCH --time=0-9:59
@@ -27,7 +27,7 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 # mobilenet_v2
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --dataset "imagenet" --model "mobilenet_v2" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --epoch 10 --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
+                                    --epoch 15 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
                                     --weight_lum 0.2 --weight_chrom 0.2 --num_workers 24 \
                                     --lr_step_size 1 --lr_gamma 0.98 \
                                     --trial 1 --batch_size 64
