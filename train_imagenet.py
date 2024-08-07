@@ -67,6 +67,7 @@ def _get_cache_path(filepath):
 
 
 # salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit --mem=8G
+# salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --account=def-ehyangit --mem=8G
 # sq
 # scancel {JOGID}
 
@@ -359,6 +360,7 @@ def main(opt):
     train_dir = os.path.join(opt.data_path, "train")
     test_dir = os.path.join(opt.data_path, "val")
     train_dataset, test_dataset, train_sampler, test_sampler = load_data(train_dir, test_dir, opt)
+    val_resize_size, val_crop_size, train_crop_size = (opt.val_resize_size, opt.val_crop_size, opt.train_crop_size,)
 
     # data arguementation
     num_classes = len(train_dataset.classes)
@@ -391,7 +393,7 @@ def main(opt):
     # load whole model
     opt_name = opt.optimizer.lower()
     if opt.JPEG_enable:
-        jpeg_layer = JPEG_layer(opt=opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))        
+        jpeg_layer = JPEG_layer(opt=opt, img_shape=(train_crop_size, train_crop_size, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))        
         model = CustomModel(jpeg_layer, underlying_model)
         
         if opt_name == "sgd":
@@ -476,7 +478,8 @@ def main(opt):
         alpha = 1.0 - opt.model_ema_decay
         alpha = min(1.0, alpha * adjust)
         model_ema = imagenet_utils.ExponentialMovingAverage(model_without_ddp, device=device, decay=1.0 - alpha)
-    
+        model_ema_without_ddp = model_ema.module
+        
     # resume training
     if opt.resume:
         checkpoint = torch.load(os.path.join(opt.resume, "model_last.pth"), map_location="cpu", weights_only=True)
@@ -513,7 +516,7 @@ def main(opt):
     
     # function for validation inference
     # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=50, QF_C=50))
-    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
+    HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(val_crop_size, val_crop_size, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
     test_loader.dataset.transform = HDQ_preprocess
     
     # test all .pt weight
@@ -545,11 +548,11 @@ def main(opt):
             test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
             test_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
             test_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
-    
+            
             if not model_ema:
                 test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
             else:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
             
             print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
             print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
@@ -596,7 +599,7 @@ def main(opt):
         if not model_ema:
             test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
         else:
-            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")
+            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")
         time2 = time.time()
         print('Epoch [{}]: total time {:.5f} s'.format(epoch, time2-time1))
         

@@ -280,9 +280,9 @@ class JPEG_layer(nn.Module):
         cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
         
         # Q_d
-        estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
-        estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1)
-        estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 1)
+        estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1) # [bs,ch,B,size,size]
+        estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1) # [bs,ch,B,size,size]
+        estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 1) # [bs,ch,B,size,size]
         
         norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(estimated_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
         norm_img += 128
@@ -985,13 +985,10 @@ class block_idct_callable(nn.Module):
 
     def forward(self, coeff):
         im = (1 / math.sqrt(2 * self.N)) * (self.h @ (self.n * coeff) @ self.h.t())
-        return im
+        return im # [bs,ch,B,size,size]
 
 
-def rgb_to_ycbcr(image: torch.Tensor,
-                 W_r = 0.299,
-                 W_g = 0.587,
-                 W_b = 0.114) -> torch.Tensor:
+def rgb_to_ycbcr(image: torch.Tensor, W_r = 0.299, W_g = 0.587, W_b = 0.114) -> torch.Tensor:
     if not torch.is_tensor(image):
         raise TypeError("Input type is not a torch.Tensor. Got {}".format(
             type(image)))
@@ -1044,10 +1041,7 @@ class rgb_to_ycbcr_batch(object):
         return ycbcr_images
 
 
-def ycbcr_to_rgb(image: torch.Tensor,
-                 W_r=0.299,
-                 W_g=0.587,
-                 W_b=0.114) -> torch.Tensor:
+def ycbcr_to_rgb(image: torch.Tensor, W_r=0.299, W_g=0.587, W_b=0.114) -> torch.Tensor:
     if not isinstance(image, torch.Tensor):
         raise TypeError(f"Input type is not a torch.Tensor. Got {type(image)}")
 
