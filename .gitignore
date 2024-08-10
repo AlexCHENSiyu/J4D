@@ -10,7 +10,7 @@ ckpts/
 *.png
 *.jpg
 tmp*.py
-
+*.pth
 *.pdf
 
 # Byte-compiled / optimized / DLL files
