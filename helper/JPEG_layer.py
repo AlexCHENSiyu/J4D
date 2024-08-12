@@ -253,8 +253,8 @@ class JPEG_layer(nn.Module):
         input = input_RGB - 128
         input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
 
-        input_lum   = input_DCT_block_batch[:, 0:1, ...] 
-        input_chrom = input_DCT_block_batch[:, 1:3, ...] 
+        input_lum   = input_DCT_block_batch[:, 0:1, ...]
+        input_chrom = input_DCT_block_batch[:, 1:3, ...]
 
         # Quantization
         idx_lum   = torch.round(input_lum / self.lum_qtable) # shape: [bs,ch,B,size,size,1]
@@ -304,7 +304,7 @@ class JPEG_layer(nn.Module):
         else:
             return norm_img, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
     
-    
+
     def get_diff_indexes(self, indexes, indexes_shifted):
         middle = indexes[:,:,:,0] - indexes_shifted[:,:,:,0] # shape: [bs,ch,B]
         diff_indexes = middle.unsqueeze(-1) # shape: [bs,ch,B,1]
