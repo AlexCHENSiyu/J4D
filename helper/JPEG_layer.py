@@ -387,9 +387,9 @@ class JPEG_layer(nn.Module):
         # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
         
         # get entropy of each dc frequency and average over batch.
-        lum_dc_entropy = torch.sum(entr(p_lum_dc), dim=-1).mean()
-        chrom_dc_entropy = torch.sum(entr(p_chrom_dc), dim=-1).mean()
-
+        lum_dc_entropy = (torch.sum(entr(p_lum_dc), dim=-1) * num_blocks).mean()
+        chrom_dc_entropy = (torch.sum(entr(p_chrom_dc), dim=-1) * (2 * num_blocks)).mean()
+        
         return lum_dc_entropy, chrom_dc_entropy
 
     
@@ -444,10 +444,10 @@ class JPEG_layer(nn.Module):
         # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
         
         # get entropy of each ac frequency
-        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
+        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) * num_blocks # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(lum_ac_entropy)
         
-        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [bs,size*size-1] type: numpy
+        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) * (2 * num_blocks) # shape: [bs,size*size-1] type: numpy
         # self.visualize_entropy(chrom_ac_entropy)
 
         # sum ac entropy and average over batch.
@@ -666,8 +666,8 @@ class JPEG_layer_transformer(nn.Module):
         # print("sum chrom dc prob:", torch.sum(p_chrom_dc, axis=-1, keepdims=True))
         
         # get entropy of each dc frequency.
-        lum_dc_entropy = torch.sum(entr(p_lum_dc))
-        chrom_dc_entropy = torch.sum(entr(p_chrom_dc))
+        lum_dc_entropy = torch.sum(entr(p_lum_dc) * num_blocks)
+        chrom_dc_entropy = torch.sum(entr(p_chrom_dc) * (2*num_blocks))
 
         return lum_dc_entropy, chrom_dc_entropy
 
@@ -723,10 +723,10 @@ class JPEG_layer_transformer(nn.Module):
         # # print("sum chrom ac prob:", torch.sum(p_chrom_ac, axis=-1,keepdims=True))
 
         # get entropy of each ac frequency
-        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) # shape: [size*size-1] type: numpy
+        lum_ac_entropy = torch.sum(entr(p_lum_ac), dim=-1) * num_blocks # shape: [size*size-1] type: numpy
         # self.visualize_entropy(lum_ac_entropy)
 
-        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) # shape: [size*size-1] type: numpy
+        chrom_ac_entropy = torch.sum(entr(p_chrom_ac), dim=-1) * (2 * num_blocks) # shape: [size*size-1] type: numpy
         # self.visualize_entropy(chrom_ac_entropy)
 
         # sum ac entropy
