@@ -246,6 +246,9 @@ class JPEG_layer(nn.Module):
 
 
     def forward(self, input_RGB):
+        # input_RGB shape:[bs,ch,width,height]
+        bs,ch,w,h = input_RGB.shape
+        # print("input_RGB shape[", bs,ch,w,h,']')
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
         # print("lum max:", self.lum_qtable.max().item(), "lum min:", self.lum_qtable.min().item(), "chrom max:", self.chrom_qtable.max().item(), "chrom max", self.chrom_qtable.min().item())
         # print("lum_qtable:", self.lum_qtable, "chrom_qtable", self.chrom_qtable)
@@ -298,6 +301,10 @@ class JPEG_layer(nn.Module):
         
         lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
         lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
+        
+        # normalize entropy according to image size
+        lum_dc_entropy, chrom_dc_entropy = lum_dc_entropy/(w*h), chrom_dc_entropy/(w*h)
+        lum_ac_entropy, chrom_ac_entropy = lum_ac_entropy/(w*h), chrom_ac_entropy/(w*h)
         
         if self.analysis:
             return norm_img, estimated_reconstructed_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
@@ -531,6 +538,9 @@ class JPEG_layer_transformer(nn.Module):
     
     def forward(self, input_RGB):
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
+        ch,w,h = input_RGB.shape
+        # print("input_RGB shape[",ch,w,h,']')
+        
         input = input_RGB - 128
         input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
 
@@ -590,6 +600,10 @@ class JPEG_layer_transformer(nn.Module):
         lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
         lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
 
+        # normalize entropy according to image size
+        lum_dc_entropy, chrom_dc_entropy = lum_dc_entropy/(w*h), chrom_dc_entropy/(w*h)
+        lum_ac_entropy, chrom_ac_entropy = lum_ac_entropy/(w*h), chrom_ac_entropy/(w*h)
+        
         return norm_img, sampled_idx_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
 
 
