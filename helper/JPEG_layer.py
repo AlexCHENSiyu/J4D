@@ -166,9 +166,15 @@ class JPEG_layer(nn.Module):
         self.alpha_chrom = torch.ones((1, 1, 1, opt.block_size, opt.block_size, 1), dtype=torch.float32) # shape: [1,1,1,8,8,1]
 
         if opt.QF_Inital:
+            if opt.Sensitivity_Inital:
+                print("[Error] Q tables initalization conflict.")
             self.lum_qtable = torch.tensor(quantizationTable(QF=opt.Q_initial_QF, Luminance=True), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
             self.chrom_qtable = torch.tensor(quantizationTable(QF=opt.Q_initial_QF, Luminance=False), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
-        # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
+            # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
+        elif opt.Sensitivity_Inital:
+            base_path = './save/{}/{}'.format(opt.dataset, opt.model)
+            self.lum_qtable = torch.tensor(qTable_sensitivity(path=base_path, constant=opt.Q_initial_Sensitivity, Luminance=True), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            self.chrom_qtable = torch.tensor(qTable_sensitivity(path=base_path, constant=opt.Q_initial_Sensitivity, Luminance=False), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
         else:
             nn.init.constant_(self.lum_qtable , self.Q_inital)
             nn.init.constant_(self.chrom_qtable , self.Q_inital)
@@ -909,6 +915,46 @@ def quantizationTable(QF=50, Luminance=True):
                 q = np.clip(np.floor(q), 1, 255)
                 quantizationTableData[i][j] = q
     return quantizationTableData
+
+
+# def qTable_sensitivity(path, constant=1.0, Luminance=True):
+#     Y_path = os.path.join(path, "Y.npy")
+#     Y_sensitivity = 1/np.load(Y_path).reshape(8, 8)
+#     Y_mean = np.mean(Y_sensitivity)
+    
+#     if Luminance:
+#         Y_sensitivity /= Y_mean
+#         return Y_sensitivity * constant
+#     else:
+#         Cb_path = os.path.join(path, "Cb.npy")
+#         Cr_path = os.path.join(path, "Cr.npy")
+#         Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
+#         Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
+#         return 2 * constant / ((Cb_sensitivity + Cr_sensitivity) * Y_mean)
+
+
+def qTable_sensitivity(path, constant=1.0, Luminance=True):
+    def clamp(array, min_value, max_value):
+        return np.clip(array, min_value, max_value)
+    
+    Y_path = os.path.join(path, "Y.npy")
+    Y_sensitivity = 1 / np.load(Y_path).reshape(8, 8)
+    norm = np.max(Y_sensitivity) / constant
+    
+    if Luminance:
+        Y_sensitivity = clamp(Y_sensitivity / norm, 1, 255)
+        return Y_sensitivity
+    else:
+        Cb_path = os.path.join(path, "Cb.npy")
+        Cr_path = os.path.join(path, "Cr.npy")
+        Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
+        Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
+        
+        C_sensitivity = 2 / (Cb_sensitivity + Cr_sensitivity)
+        Y_sensitivity = clamp(Y_sensitivity / norm, 1, 255)
+        C_sensitivity = clamp(C_sensitivity / norm, 1, 255)
+        
+        return C_sensitivity
 
 
 def get_zigzag():

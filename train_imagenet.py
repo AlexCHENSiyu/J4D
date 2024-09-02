@@ -102,6 +102,7 @@ def parse_option(add_help=True):
     parser.add_argument('--fixed_alpha', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
     parser.add_argument('--QF_Inital', action='store_true')
+    parser.add_argument('--Sensitivity_Inital', action='store_true')
     parser.add_argument('--HDQ_baseline', help="to get the HDQ baseline for this model and dataset", action='store_true')
     
     # JPEG Hyper
@@ -111,6 +112,7 @@ def parse_option(add_help=True):
     parser.add_argument('--alpha_learning_rate', type=float, default=None, help='Alpha Learning Rate')
     parser.add_argument('--Q_inital', type=float, default=1.0, help='Initial Quantization Step')
     parser.add_argument('--Q_initial_QF', type=int, default=50, help='Initial Q_table with QF = 50')
+    parser.add_argument('--Q_initial_Sensitivity', type=float, default=1.0, help='Initial Q_table with Sensitivity constant')
     parser.add_argument('--block_size', type=int, default=8, help='the experiment id')
     parser.add_argument('--num_bit', type=int, default=11, help='Number of bits to represent DCT coeff')
     parser.add_argument('--min_Q_Step', type=float, default=1.0, help='Minumum Quantization Step')
@@ -205,6 +207,8 @@ def prepare_dir(opt):
 
         if opt.QF_Inital:
             opt.model_name += '_QF_{}'.format(opt.Q_initial_QF)
+        elif opt.Sensitivity_Inital:
+            opt.model_name += '_sensitivity_{}'.format(opt.Q_initial_Sensitivity)
     else:
         opt.added_layer = "vanilla"
         opt.model_name = '{}'.format(opt.model)
