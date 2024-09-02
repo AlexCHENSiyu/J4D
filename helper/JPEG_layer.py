@@ -173,8 +173,8 @@ class JPEG_layer(nn.Module):
             # self.initial_values = torch.stack([QT_Y, QT_C, QT_C], dim=0)
         elif opt.Sensitivity_Inital:
             base_path = './save/{}/{}'.format(opt.dataset, opt.model)
-            self.lum_qtable = torch.tensor(qTable_sensitivity(path=base_path, constant=opt.Q_initial_Sensitivity, Luminance=True), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
-            self.chrom_qtable = torch.tensor(qTable_sensitivity(path=base_path, constant=opt.Q_initial_Sensitivity, Luminance=False), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            self.lum_qtable = torch.tensor(qTable_sensitivity(path=base_path, constant=opt.Q_initial_Sensitivity, Luminance=True, qmax=opt.max_Q_Step), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            self.chrom_qtable = torch.tensor(qTable_sensitivity(path=base_path, constant=opt.Q_initial_Sensitivity, Luminance=False, qmax=opt.max_Q_Step), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
         else:
             nn.init.constant_(self.lum_qtable , self.Q_inital)
             nn.init.constant_(self.chrom_qtable , self.Q_inital)
@@ -254,7 +254,7 @@ class JPEG_layer(nn.Module):
     def forward(self, input_RGB):
         # input_RGB shape:[bs,ch,width,height]
         bs,ch,w,h = input_RGB.shape
-        # print("input_RGB shape[", bs,ch,w,h,']')
+        # print("input_RGB shape[", bs,ch,w,h,']') # shape: [ 32 3 224 224 ]
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
         # print("lum max:", self.lum_qtable.max().item(), "lum min:", self.lum_qtable.min().item(), "chrom max:", self.chrom_qtable.max().item(), "chrom max", self.chrom_qtable.min().item())
         # print("lum_qtable:", self.lum_qtable, "chrom_qtable", self.chrom_qtable)
@@ -262,8 +262,8 @@ class JPEG_layer(nn.Module):
         input = input_RGB - 128
         input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
 
-        input_lum   = input_DCT_block_batch[:, 0:1, ...]
-        input_chrom = input_DCT_block_batch[:, 1:3, ...]
+        input_lum   = input_DCT_block_batch[:, 0:1, ...] 
+        input_chrom = input_DCT_block_batch[:, 1:3, ...] 
 
         # Quantization
         idx_lum   = torch.round(input_lum / self.lum_qtable) # shape: [bs,ch,B,size,size,1]
@@ -289,9 +289,9 @@ class JPEG_layer(nn.Module):
         cmpf_mask_chrom = torch.clamp(F.softmax(-self.alpha_chrom.expand(-1, 2, -1, -1, -1, 1) * distortion_MSE_mask_chrom , dim=-1), min=1e-10) # shape: [bs,ch,B,size,size,5] 
         
         # Q_d
-        estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1) # [bs,ch,B,size,size]
-        estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1) # [bs,ch,B,size,size]
-        estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 1) # [bs,ch,B,size,size]
+        estimated_reconstructed_space_lum = torch.sum(cmpf_mask_lum * iq_lum , -1)
+        estimated_reconstructed_space_chrom  = torch.sum(cmpf_mask_chrom * iq_chrom, -1)
+        estimated_reconstructed_space = torch.cat((estimated_reconstructed_space_lum, estimated_reconstructed_space_chrom), 1)
         
         norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(estimated_reconstructed_space), (self.img_shape[0], self.img_shape[1])))
         norm_img += 128
@@ -317,7 +317,7 @@ class JPEG_layer(nn.Module):
         else:
             return norm_img, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
     
-
+    
     def get_diff_indexes(self, indexes, indexes_shifted):
         middle = indexes[:,:,:,0] - indexes_shifted[:,:,:,0] # shape: [bs,ch,B]
         diff_indexes = middle.unsqueeze(-1) # shape: [bs,ch,B,1]
@@ -543,10 +543,11 @@ class JPEG_layer_transformer(nn.Module):
 
     
     def forward(self, input_RGB):
-        # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
+        # input_RGB shape:[bs,ch,width,height]
         ch,w,h = input_RGB.shape
-        # print("input_RGB shape[",ch,w,h,']')
+        # print("input_RGB shape[", bs,ch,w,h,']')
         
+        # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
         input = input_RGB - 128
         input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
 
@@ -933,7 +934,7 @@ def quantizationTable(QF=50, Luminance=True):
 #         return 2 * constant / ((Cb_sensitivity + Cr_sensitivity) * Y_mean)
 
 
-def qTable_sensitivity(path, constant=1.0, Luminance=True):
+def qTable_sensitivity(path, constant=1.0, Luminance=True, qmax=255):
     def clamp(array, min_value, max_value):
         return np.clip(array, min_value, max_value)
     
@@ -942,7 +943,7 @@ def qTable_sensitivity(path, constant=1.0, Luminance=True):
     norm = np.max(Y_sensitivity) / constant
     
     if Luminance:
-        Y_sensitivity = clamp(Y_sensitivity / norm, 1, 255)
+        Y_sensitivity = clamp(Y_sensitivity / norm, 1, qmax)
         return Y_sensitivity
     else:
         Cb_path = os.path.join(path, "Cb.npy")
@@ -951,8 +952,8 @@ def qTable_sensitivity(path, constant=1.0, Luminance=True):
         Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
         
         C_sensitivity = 2 / (Cb_sensitivity + Cr_sensitivity)
-        Y_sensitivity = clamp(Y_sensitivity / norm, 1, 255)
-        C_sensitivity = clamp(C_sensitivity / norm, 1, 255)
+        Y_sensitivity = clamp(Y_sensitivity / norm, 1, qmax)
+        C_sensitivity = clamp(C_sensitivity / norm, 1, qmax)
         
         return C_sensitivity
 
