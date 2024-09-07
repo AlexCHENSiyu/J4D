@@ -13,6 +13,7 @@ def load_model_imagenet(Model, device="cpu", pretrained=False):
     elif Model=="Resnet152":
         pretrained_model = models.resnet152(pretrained=pretrained)
     
+    
     elif Model == 'Regnet400mf':
         pretrained_model = models.regnet_y_400mf(pretrained=pretrained)
     elif Model == 'Regnet800mf':

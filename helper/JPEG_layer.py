@@ -918,44 +918,40 @@ def quantizationTable(QF=50, Luminance=True):
     return quantizationTableData
 
 
-# def qTable_sensitivity(path, constant=1.0, Luminance=True):
+# def qTable_sensitivity(path, constant=1.0, Luminance=True, qmax=255):
 #     Y_path = os.path.join(path, "Y.npy")
-#     Y_sensitivity = 1/np.load(Y_path).reshape(8, 8)
-#     Y_mean = np.mean(Y_sensitivity)
+#     Cb_path = os.path.join(path, "Cb.npy")
+#     Cr_path = os.path.join(path, "Cr.npy")
+#     Y_sensitivity = np.load(Y_path).reshape(8, 8)
+#     Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
+#     Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
+#     Y_mean = np.mean(1 / Y_sensitivity)
     
 #     if Luminance:
-#         Y_sensitivity /= Y_mean
-#         return Y_sensitivity * constant
+#         Y_qtable = np.clip(constant / (Y_sensitivity * Y_mean), 1, qmax)
+#         return Y_qtable
 #     else:
-#         Cb_path = os.path.join(path, "Cb.npy")
-#         Cr_path = os.path.join(path, "Cr.npy")
-#         Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
-#         Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
-#         return 2 * constant / ((Cb_sensitivity + Cr_sensitivity) * Y_mean)
+#         CbCr_qtable = np.clip(2 * constant / ((Cb_sensitivity + Cr_sensitivity) * Y_mean), 1, qmax)
+#         return CbCr_qtable
 
 
 def qTable_sensitivity(path, constant=1.0, Luminance=True, qmax=255):
-    def clamp(array, min_value, max_value):
-        return np.clip(array, min_value, max_value)
-    
     Y_path = os.path.join(path, "Y.npy")
-    Y_sensitivity = 1 / np.load(Y_path).reshape(8, 8)
-    norm = np.max(Y_sensitivity) / constant
+    Cb_path = os.path.join(path, "Cb.npy")
+    Cr_path = os.path.join(path, "Cr.npy")
+    Y_sensitivity = np.load(Y_path).reshape(8, 8)
+    Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
+    Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
+    norm = np.max(1 / Y_sensitivity) / constant
     
     if Luminance:
-        Y_sensitivity = clamp(Y_sensitivity / norm, 1, qmax)
-        return Y_sensitivity
+        qy = 1 / Y_sensitivity
+        Y_qtable =  np.clip(qy / norm, 1, qmax)
+        return Y_qtable
     else:
-        Cb_path = os.path.join(path, "Cb.npy")
-        Cr_path = os.path.join(path, "Cr.npy")
-        Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
-        Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
-        
-        C_sensitivity = 2 / (Cb_sensitivity + Cr_sensitivity)
-        Y_sensitivity = clamp(Y_sensitivity / norm, 1, qmax)
-        C_sensitivity = clamp(C_sensitivity / norm, 1, qmax)
-        
-        return C_sensitivity
+        qc = 2 / (Cb_sensitivity + Cr_sensitivity)
+        C_qtable = np.clip(qc / norm, 1, qmax)
+        return C_qtable
 
 
 def get_zigzag():
