@@ -803,6 +803,27 @@ def zigzag(matrix):
     return vector
 
 
+def inverse_zigzag_np(vector):
+    zigzag = np.array([[0, 1, 5, 6, 14, 15, 27, 28],
+                       [2, 4, 7, 13, 16, 26, 29, 42],
+                       [3, 8, 12, 17, 25, 30, 41, 43],
+                       [9, 11, 18, 24, 31, 40, 44, 53],
+                       [10, 19, 23, 32, 39, 45, 52, 54],
+                       [20, 22, 33, 38, 46, 51, 55, 60],
+                       [21, 34, 37, 47, 50, 56, 59, 61],
+                       [35, 36, 48, 49, 57, 58, 62, 63]])
+    vector_shape = vector.shape
+    matrix_size = zigzag.shape
+    if vector_shape[0] != matrix_size[0] * matrix_size[1]:
+        raise ValueError("The vector size does not match the matrix size.")
+    matrix = np.zeros(matrix_size)
+    for i in range(matrix_size[0]):
+        for j in range(matrix_size[1]):
+            index = zigzag[i, j]
+            matrix[i, j] = vector[index]
+    return matrix
+
+
 def inverse_zigzag(vector):
     zigzag = torch.tensor([[0, 1, 5, 6, 14, 15, 27, 28],
                            [2, 4, 7, 13, 16, 26, 29, 42],
@@ -918,13 +939,14 @@ def quantizationTable(QF=50, Luminance=True):
     return quantizationTableData
 
 
+# old method
 # def qTable_sensitivity(path, constant=1.0, Luminance=True, qmax=255):
 #     Y_path = os.path.join(path, "Y.npy")
 #     Cb_path = os.path.join(path, "Cb.npy")
 #     Cr_path = os.path.join(path, "Cr.npy")
-#     Y_sensitivity = np.load(Y_path).reshape(8, 8)
-#     Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
-#     Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
+#     Y_sensitivity = inverse_zigzag_np(np.load(Y_path).reshape(8, 8).flatten())
+#     Cb_sensitivity = inverse_zigzag_np(np.load(Cb_path).reshape(8, 8).flatten())
+#     Cr_sensitivity = inverse_zigzag_np(np.load(Cr_path).reshape(8, 8).flatten())
 #     Y_mean = np.mean(1 / Y_sensitivity)
     
 #     if Luminance:
@@ -934,14 +956,14 @@ def quantizationTable(QF=50, Luminance=True):
 #         CbCr_qtable = np.clip(2 * constant / ((Cb_sensitivity + Cr_sensitivity) * Y_mean), 1, qmax)
 #         return CbCr_qtable
 
-
+# new method
 def qTable_sensitivity(path, constant=1.0, Luminance=True, qmax=255):
     Y_path = os.path.join(path, "Y.npy")
     Cb_path = os.path.join(path, "Cb.npy")
     Cr_path = os.path.join(path, "Cr.npy")
-    Y_sensitivity = np.load(Y_path).reshape(8, 8)
-    Cb_sensitivity = np.load(Cb_path).reshape(8, 8)
-    Cr_sensitivity = np.load(Cr_path).reshape(8, 8)
+    Y_sensitivity = inverse_zigzag_np(np.load(Y_path).reshape(8, 8).flatten())
+    Cb_sensitivity = inverse_zigzag_np(np.load(Cb_path).reshape(8, 8).flatten())
+    Cr_sensitivity = inverse_zigzag_np(np.load(Cr_path).reshape(8, 8).flatten())
     norm = np.max(1 / Y_sensitivity) / constant
     
     if Luminance:
