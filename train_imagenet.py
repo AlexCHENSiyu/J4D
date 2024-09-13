@@ -277,15 +277,27 @@ def load_data(traindir, valdir, opt):
         ra_magnitude = getattr(opt, "ra_magnitude", None)
         augmix_severity = getattr(opt, "augmix_severity", None)
         dataset = torchvision.datasets.ImageFolder(traindir,
-            presets.ClassificationPresetEval(
-                crop_size=val_crop_size,
-                resize_size=val_resize_size,
+            presets.ClassificationPresetTrain(
+                crop_size=train_crop_size,
                 interpolation=interpolation,
+                auto_augment_policy=auto_augment_policy,
+                random_erase_prob=random_erase_prob,
+                ra_magnitude=ra_magnitude,
+                augmix_severity=augmix_severity,
                 backend=opt.backend,
                 use_v2=opt.use_v2,
                 mean=(0.,0.,0.),
                 std=(1/255., 1/255., 1/255.)),)
         
+            # presets.ClassificationPresetEval(
+            #     crop_size=val_crop_size,
+            #     resize_size=val_resize_size,
+            #     interpolation=interpolation,
+            #     backend=opt.backend,
+            #     use_v2=opt.use_v2,
+            #     mean=(0.,0.,0.),
+            #     std=(1/255., 1/255., 1/255.)),)
+            
         if opt.cache_dataset:
             print(f"Saving dataset_train to {cache_path}")
             imagenet_utils.mkdir(os.path.dirname(cache_path))
