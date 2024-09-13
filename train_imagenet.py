@@ -86,7 +86,7 @@ def parse_option(add_help=True):
     parser.add_argument("--momentum", default=0.9, type=float, metavar="M", help="momentum")
     
     # model and dataset
-    parser.add_argument("--model", default="mobilenet_v2", type=str, choices=['mobilenet_v2','Resnet18','ConvNeXt_tiny','Resnet50'], help="model name")
+    parser.add_argument("--model", default="mobilenet_v2", type=str, choices=['mobilenet_v2','Resnet18','ConvNeXt_tiny','Resnet50','mobilenet_v3'], help="model name")
     parser.add_argument("--data_path", default="/home/multicom-pc52/dataset/imagenet", type=str, help="dataset path")
     parser.add_argument("--device", default="cuda", type=str, help="device (Use cuda or cpu Default: cuda)")
     parser.add_argument('--dataset', type=str, default='CUB200', choices=['CUB200','imagenet'], help='dataset')
@@ -277,13 +277,10 @@ def load_data(traindir, valdir, opt):
         ra_magnitude = getattr(opt, "ra_magnitude", None)
         augmix_severity = getattr(opt, "augmix_severity", None)
         dataset = torchvision.datasets.ImageFolder(traindir,
-            presets.ClassificationPresetTrain(
-                crop_size=train_crop_size,
+            presets.ClassificationPresetEval(
+                crop_size=val_crop_size,
+                resize_size=val_resize_size,
                 interpolation=interpolation,
-                auto_augment_policy=auto_augment_policy,
-                random_erase_prob=random_erase_prob,
-                ra_magnitude=ra_magnitude,
-                augmix_severity=augmix_severity,
                 backend=opt.backend,
                 use_v2=opt.use_v2,
                 mean=(0.,0.,0.),
