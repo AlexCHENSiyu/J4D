@@ -37,7 +37,9 @@ def load_model_imagenet(Model, device="cpu", pretrained=False):
         pretrained_model = models.mnasnet1_0(pretrained=pretrained)
     elif Model == 'mobilenet_v2':
         pretrained_model = models.mobilenet_v2(pretrained=pretrained)
-
+    elif Model == 'mobilenet_v3':
+        pretrained_model = models.mobilenet_v3_large(pretrained=pretrained)
+    
     elif Model == 'ConvNeXt_base':
         weights=models.ConvNeXt_Base_Weights.IMAGENET1K_V1
         pretrained_model = models.convnext_base(weights=weights)

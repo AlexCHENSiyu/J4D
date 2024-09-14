@@ -236,13 +236,6 @@ def prepare_dir(opt):
         
         return opt
     
-    opt.opt_fname = os.path.join(opt.trial_folder, "opt.json")
-    with open(opt.opt_fname, 'w') as f:
-        try:
-            json.dump(vars(opt), f, indent=4)
-        except FileExistsError:
-            pass
-    
     opt.logs_fname = os.path.join(opt.trial_folder, "logs.txt")
     with open(opt.logs_fname, 'a') as log:
         if (not hasattr(opt, 'rank') or opt.rank == 0):
@@ -254,6 +247,13 @@ def prepare_dir(opt):
                     'train_lum_dc' + "\t\t" + 'train_chrom_dc' + "\t\t" + 'train_lum_ac' + "\t\t" + 'train_chrom_ac' + "\t\t" + \
                     'q_min' + "\t\t\t\t" + 'q_max' + '\t\t\t\t' + 'alpha_min' + "\t\t\t" + 'alpha_max' + '\n'
             log.write(line)
+    
+    opt.opt_fname = os.path.join(opt.trial_folder, "opt.json")
+    with open(opt.opt_fname, 'w') as f:
+        try:
+            json.dump(vars(opt), f, indent=4)
+        except FileExistsError:
+            pass
     
     print("~Finish prepare directory for ", opt.model_name)
     return opt

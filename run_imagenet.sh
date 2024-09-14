@@ -1,7 +1,7 @@
-torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
-                                    --dataset "imagenet" --model "Resnet18" --optimizer "sgd" \
-                                    --JPEG_alpha 100 --JPEG_learning_rate 0.0001 --Q_initial_Sensitivity 50 --epoch 20 \
-                                    --weight_lum 0.01 --weight_chrom 0.01 --num_workers 24 \
+torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+                                    --dataset "imagenet" --model "mobilenet_v3" \
+                                    --JPEG_alpha 100 --JPEG_learning_rate 0.01 --Q_initial_QF 10 --epoch 20 \
+                                    --weight_lum 50.0 --weight_chrom 50.0 --num_workers 24 \
                                     --lr_step_size 1 --lr_gamma 0.98 \
                                     --trial 1 --batch_size 32
 
