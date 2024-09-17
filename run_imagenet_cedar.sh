@@ -28,7 +28,7 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 # Q_initial_QF = (10 12 14 16 18 20 30 40 50 60 70 80 90 100)
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --dataset "imagenet" --model "mobilenet_v3" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --epoch 20 --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
+                                    --epoch 20 --JPEG_alpha 100 --Q_initial_QF 20 --JPEG_learning_rate 0.01 \
                                     --weight_lum 20.0 --weight_chrom 20.0 --num_workers 24 \
                                     --trial 2 --batch_size 64
 
