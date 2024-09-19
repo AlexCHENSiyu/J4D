@@ -66,8 +66,8 @@ def _get_cache_path(filepath):
     return cache_path
 
 
-# salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit --mem=8G
-# salloc --time=0:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --account=def-ehyangit --mem=8G
+# salloc --time=1:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit --mem=8G
+# salloc --time=1:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --account=def-ehyangit --mem=8G
 # sq
 # scancel {JOGID}
 
@@ -547,7 +547,8 @@ def main(opt):
         pt_file_list = find_all_pt_files(opt.q_tables_folder)  
         for epoch, pt in enumerate(pt_file_list):
             print("Test: ", pt)
-            JPEG_layer_q_table = torch.load(os.path.join(opt.q_tables_folder, pt))
+            JPEG_layer_q_table = torch.load(os.path.join("./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_20.0_20.0_QF_10/trial_1/Q_tables", "q_table_epoch_20.pt"))
+            # JPEG_layer_q_table = torch.load(os.path.join(opt.q_tables_folder, pt))
             lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
             lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
             chrom_q_table = chrom_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
@@ -570,14 +571,17 @@ def main(opt):
             print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
             print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
             print("lum_ac:", test_lum_ac, "chrom_ac:", test_chrom_ac)
-        
-            # save test train acc and loss
-            with open(opt.logs_test_fname, 'a') as log:
-                if (not hasattr(opt, 'rank') or opt.rank == 0):
-                    line =  f"{epoch}\t" + f"{test_acc:.15f}\t" + f"{test_loss:.15f}\t" + f"{bpp:.15f}\t" + \
-                            f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
-                            f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + '\n'
-                    log.write(line)
+            
+            # only one process can record
+            if (not hasattr(opt, 'rank') or opt.rank == 0):
+                # save test train acc and loss
+                with open(opt.logs_test_fname, 'a') as log:
+                    if (not hasattr(opt, 'rank') or opt.rank == 0):
+                        line =  f"{epoch}\t" + f"{test_acc:.15f}\t" + f"{test_loss:.15f}\t" + f"{bpp:.15f}\t" + \
+                                f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
+                                f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + '\n'
+                        log.write(line)
+            return
         return
     
     
