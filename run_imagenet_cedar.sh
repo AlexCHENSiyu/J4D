@@ -26,20 +26,20 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 
 # ----------------------------------------------------mobilenet_v2----------------------------------------------------#
 # Q_initial_QF = (10 12 14 16 18 20 30 40 50 60 70 80 90 100)
-# torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-#                                     --dataset "imagenet" --model "Mnasnet" --data_path "$SLURM_TMPDIR/imagenet" \
-#                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 --num_workers 24 \
-#                                     --lr_step_size 1 --lr_gamma 0.98 --trial 1 --batch_size 64 \
-#                                     --Q_initial_QF 50 --epoch 20 --weight_lum 10.0 --weight_chrom 10.0 \
+torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+                                    --dataset "imagenet" --model "Mnasnet" --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --JPEG_alpha 100  --JPEG_learning_rate 0.01 --num_workers 24 \
+                                    --lr_step_size 1 --lr_gamma 0.98 --trial 1 --batch_size 64 \
+                                    --Q_initial_QF 18 --epoch 20 --weight_lum 10.0 --weight_chrom 10.0 \
 
 # Q_initial_Sensitivity = (1 10 20 30 40 50 60 70 80 90 100)
 # Weight = (0.01 0.1 1 5 10)
-torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
-                                    --dataset "imagenet" --model "Mnasnet" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --epoch 20 --JPEG_alpha 100 --Q_initial_Sensitivity 50 --JPEG_learning_rate 0.01 \
-                                    --weight_lum 0.01 --weight_chrom 0.01 \
-                                    --num_workers 24 --lr_step_size 1 --lr_gamma 0.98 \
-                                    --trial 1 --batch_size 64 
+# torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
+#                                     --dataset "imagenet" --model "Mnasnet" --data_path "$SLURM_TMPDIR/imagenet" \
+#                                     --epoch 20 --JPEG_alpha 100 --Q_initial_Sensitivity 50 --JPEG_learning_rate 0.01 \
+#                                     --weight_lum 10 --weight_chrom 10 \
+#                                     --num_workers 24 --lr_step_size 1 --lr_gamma 0.98 \
+#                                     --trial 1 --batch_size 64 
 
 # ------------------------------------------------------Resnet18-------------------------------------------------------#
 # torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
@@ -52,7 +52,7 @@ torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fix
 #                                     --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
 #                                     --epoch 10 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
 #                                     --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 \
-#                                     --trial 1 --batch_size 64 --resume "./save/imagenet/resnet18/JPEG_lr_0.01_alpha_100.0_weight_0.1_0.1_QF_100/trial_1"
+#                                     --trial 1 --batch_size 64 --resume "./save/imagenet/Mnasnet/JPEG_lr_0.01_alpha_100.0_weight_10.0_10.0_QF_16/trial_1"
 
 # ----------------------------------------------------ConvNeXt_tiny----------------------------------------------------#
 # torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
