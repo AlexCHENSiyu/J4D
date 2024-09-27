@@ -26,20 +26,20 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 
 # ----------------------------------------------------mobilenet_v2----------------------------------------------------#
 # Q_initial_QF = (10 12 14 16 18 20 30 40 50 60 70 80 90 100)
-torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "Regnet400mf" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --JPEG_alpha 100  --JPEG_learning_rate 0.01 --num_workers 24 \
-                                    --lr_step_size 1 --lr_gamma 0.98 --trial 1 --batch_size 64 \
-                                    --Q_initial_QF 10 --epoch 20 --weight_lum 50.0 --weight_chrom 50.0 \
+# torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+#                                     --dataset "imagenet" --model "Regnet400mf" --data_path "$SLURM_TMPDIR/imagenet" \
+#                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 --num_workers 24 \
+#                                     --lr_step_size 1 --lr_gamma 0.98 --trial 1 --batch_size 64 \
+#                                     --Q_initial_QF 60 --epoch 20 --weight_lum 10.0 --weight_chrom 10.0 \
 
 # Q_initial_Sensitivity = (1 10 20 30 40 50 60 70 80 90 100)
 # Weight = (0.01 0.1 1 5 10)
-# torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
-#                                     --dataset "imagenet" --model "Regnet400mf" --data_path "$SLURM_TMPDIR/imagenet" \
-#                                     --epoch 20 --JPEG_alpha 100 --Q_initial_Sensitivity 50 --JPEG_learning_rate 0.01 \
-#                                     --weight_lum 10 --weight_chrom 10 \
-#                                     --num_workers 24 --lr_step_size 1 --lr_gamma 0.98 \
-#                                     --trial 1 --batch_size 64 
+torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
+                                    --dataset "imagenet" --model "Regnet400mf" --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --epoch 20 --JPEG_alpha 100 --Q_initial_Sensitivity 50 --JPEG_learning_rate 0.01 \
+                                    --weight_lum 5 --weight_chrom 5 \
+                                    --num_workers 24 --lr_step_size 1 --lr_gamma 0.98 \
+                                    --trial 1 --batch_size 64 
 
 # ------------------------------------------------------Resnet18-------------------------------------------------------#
 # torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
