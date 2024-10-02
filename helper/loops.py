@@ -486,7 +486,7 @@ def evaluate_correlation(opt, model, criterion, val_loader, device, log_suffix="
             if num_processed_samples > 100:
                 break
             
-            with open("./save/CUB200/mobilenet_v2/BPP_Entropy_correlation_alpha_{}.txt".format(int(opt.JPEG_alpha)), 'a') as log:
+            with open("./save/imagenet/mobilenet_v2/BPP_Entropy_correlation_alpha_{}.txt".format(int(opt.JPEG_alpha)), 'a') as log:
                 line =  f"{bpp.item():.15f}\t" + \
                         f"{lum_dc_entropy.item():.15f}\t" + \
                         f"{chrom_dc_entropy.item():.15f}\t" + \
