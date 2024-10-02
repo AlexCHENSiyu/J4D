@@ -456,3 +456,42 @@ def evaluate_JPEG(opt, model, criterion, val_loader, device, log_suffix=""):
            metric_logger.lum_ac.global_avg, metric_logger.chrom_ac.global_avg
 
 
+def evaluate_correlation(opt, model, criterion, val_loader, device, log_suffix=""):
+    # switch to evaluate mode
+    model.eval()
+    
+    metric_logger = imagenet_utils.MetricLogger(delimiter="  ")
+    
+    header = f"Test: {log_suffix}"
+    num_processed_samples = 0
+    with torch.inference_mode():
+        for idx, data in enumerate(metric_logger.log_every(val_loader, opt.print_freq, header)):
+            (input, bpp, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy), target = data
+            input = input.float()
+            bpp = bpp.float()
+            lum_dc_entropy = lum_dc_entropy.float()
+            chrom_dc_entropy = chrom_dc_entropy.float()
+            lum_ac_entropy = lum_ac_entropy.float()
+            chrom_ac_entropy = chrom_ac_entropy.float()
+            
+            input = input.to(device, non_blocking=True)
+            target = target.to(device, non_blocking=True)
+            lum_dc_entropy = lum_dc_entropy.to(device, non_blocking=True).mean() 
+            chrom_dc_entropy = chrom_dc_entropy.to(device, non_blocking=True).mean() 
+            lum_ac_entropy = lum_ac_entropy.to(device, non_blocking=True).mean() 
+            chrom_ac_entropy = chrom_ac_entropy.to(device, non_blocking=True).mean() 
+            
+            batch_size = input.shape[0]
+            num_processed_samples += batch_size
+            if num_processed_samples > 100:
+                break
+            
+            with open("./save/CUB200/mobilenet_v2/BPP_Entropy_correlation_alpha_{}.txt".format(int(opt.JPEG_alpha)), 'a') as log:
+                line =  f"{bpp.item():.15f}\t" + \
+                        f"{lum_dc_entropy.item():.15f}\t" + \
+                        f"{chrom_dc_entropy.item():.15f}\t" + \
+                        f"{lum_ac_entropy.item():.15f}\t" + \
+                        f"{chrom_ac_entropy.item():.15f}\t" + '\n'
+                log.write(line)
+
+    return 0
