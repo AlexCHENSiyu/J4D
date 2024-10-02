@@ -11,7 +11,7 @@ import argparse
 import torch.utils.data
 import torchvision
 import torchvision.transforms
-from helper.JPEG_layer import *
+from helper.JPEG_layer import * 
 from helper.loops import train_JPEG, evaluate_JPEG, evaluate_correlation
 import helper.imagenet_utils as imagenet_utils
 from helper.sampler import RASampler
@@ -104,6 +104,7 @@ def parse_option(add_help=True):
     parser.add_argument('--QF_Inital', action='store_true')
     parser.add_argument('--Sensitivity_Inital', action='store_true')
     parser.add_argument('--HDQ_baseline', help="to get the HDQ baseline for this model and dataset", action='store_true')
+    parser.add_argument('--Test_Correlation', help="to get the Entropy BPP correlation", action='store_true')
     
     # JPEG Hyper
     parser.add_argument('--JPEG_alpha', type=float, default=20.0, help='Tempurature scaling')
@@ -528,7 +529,7 @@ def main(opt):
         return
      
     # to plot BPP entropy correlation
-    if opt.test_correlation:
+    if opt.Test_Correlation:
         for QF_value in [1,10,20,30,40,50,60,70,80,90,100]: 
             HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
             test_loader.dataset.transform = HDQ_preprocess
@@ -539,9 +540,9 @@ def main(opt):
             test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = chrom_q_table.squeeze(0).detach().clone().cpu()
             
             if not model_ema:
-                evaluate_correlation(opt, model_without_ddp.underlying_model, model_without_ddp.jpeg_layer, criterion, test_loader, device=device)
+                evaluate_correlation(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
             else:
-                evaluate_correlation(opt, model_ema_without_ddp.underlying_model, model_ema_without_ddp.jpeg_layer, criterion, test_loader, device=device, log_suffix="EMA")         
+                evaluate_correlation(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")         
         return
 
     
@@ -650,13 +651,13 @@ def main(opt):
             if opt.JPEG_enable:
                 lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
                 chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).squeeze(1).squeeze(-1).clone().detach()
-                quantizationTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
-                print("Quantization Table --> Min: {:.5f}, Max: {:.5f}".format(quantizationTable.min().item(), quantizationTable.max().item()))
-                str_q_alpha = str(quantizationTable.min().item())  + "\t" + str(quantizationTable.max().item())
+                qTable = torch.cat((lum_qtable, chrom_qtable), 0).cpu()
+                print("Quantization Table --> Min: {:.5f}, Max: {:.5f}".format(qTable.min().item(), qTable.max().item()))
+                str_q_alpha = str(qTable.min().item())  + "\t" + str(qTable.max().item())
                 
                 # save the exact q_table
                 q_tables_file = os.path.join(opt.q_tables_folder, 'q_table_epoch_{}.pt'.format(epoch))
-                torch.save(quantizationTable, q_tables_file)
+                torch.save(qTable, q_tables_file)
                 
                 # save lum and chrom q_table for ploting trend
                 lum_qtable = lum_qtable.reshape(8,8)
