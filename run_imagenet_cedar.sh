@@ -33,7 +33,7 @@ torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fix
                                     --auto_augment ta_wide --random_erase 0.1 --label_smoothing 0.1 --mixup_alpha 0.2 --cutmix_alpha 1.0 --weight_decay 0.05 --norm_weight_decay 0.0 \
                                     --train_crop_size 176 --model_ema --val_resize_size 232 --ra_sampler --ra_reps 4 \
                                     --trial 1 --batch_size 64 \
-                                    --Q_initial_QF 10 --epochs 20 --weight_lum 50.0 --weight_chrom 50.0 \
+                                    --Q_initial_QF 10 --epochs 10 --weight_lum 50.0 --weight_chrom 50.0 \
                                     
 # Q_initial_Sensitivity = (1 10 20 30 40 50 60 70 80 90 100)
 # Weight = (0.01 0.1 1 5 10)
