@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-task=24
+#SBATCH --gpus-per-node=v100l:4
+#SBATCH --cpus-per-task=32
 #SBATCH --exclusive
 #SBATCH --mem=0
 #SBATCH --time=0-11:59
@@ -27,10 +27,13 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 # ----------------------------------------------------mobilenet_v2----------------------------------------------------#
 # Q_initial_QF = (10 12 14 16 18 20 30 40 50 60 70 80 90 100)
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "mobilenet_v2" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --JPEG_alpha 100  --JPEG_learning_rate 0.01 --num_workers 24 \
-                                    --lr_step_size 1 --lr_gamma 0.98 --trial 1 --batch_size 64 \
-                                    --Q_initial_QF 20 --epoch 20 --weight_lum 0.1 --weight_chrom 0.1 \
+                                    --dataset "imagenet" --model "ConvNeXt_tiny" --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --JPEG_alpha 100  --JPEG_learning_rate 0.01 --num_workers 32 \
+                                    --lr_scheduler cosineannealinglr --lr_warmup_epochs 5 --lr_warmup_method linear 
+                                    --auto_augment ta_wide --random_erase 0.1 --label_smoothing 0.1 --mixup_alpha 0.2 --cutmix_alpha 1.0 --weight_decay 0.05 --norm_weight_decay 0.0 \
+                                    --train_crop_size 176 --model_ema --val_resize_size 232 --ra_sampler --ra_reps 4 \
+                                    --trial 1 --batch_size 64 \
+                                    --Q_initial_QF 10 --epoch 20 --weight_lum 50.0 --weight_chrom 50.0 \
                                     
 # Q_initial_Sensitivity = (1 10 20 30 40 50 60 70 80 90 100)
 # Weight = (0.01 0.1 1 5 10)
