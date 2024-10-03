@@ -25,7 +25,7 @@ time tar --use-compress-program=pigz -xf $SLURM_TMPDIR/imagenet.tar
 # mobilenet_v2
 # torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
 #                                     --dataset "imagenet" --model "mobilenet_v2" --data_path "$SLURM_TMPDIR/imagenet" \
-#                                     --epoch 15 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
+#                                     --epochs 15 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
 #                                     --weight_lum 0.2 --weight_chrom 0.2 --num_workers 24 \
 #                                     --lr_step_size 1 --lr_gamma 0.98 \
 #                                     --trial 1 --batch_size 64
@@ -33,21 +33,21 @@ time tar --use-compress-program=pigz -xf $SLURM_TMPDIR/imagenet.tar
 # Resnet18
 #torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
 #                                   --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
-#                                   --epoch 15 --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
+#                                   --epochs 15 --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
 #                                   --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 \
 #                                   --trial 1 --batch_size 64 --test_only
 
 # Resnet18
 # torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
 #                                     --dataset "imagenet" --model "resnet18" --data_path "$SLURM_TMPDIR/imagenet" \
-#                                     --epoch 10 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
+#                                     --epochs 10 --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
 #                                     --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 \
 #                                     --trial 1 --batch_size 64 --resume "./save/imagenet/resnet18/JPEG_lr_0.01_alpha_100.0_weight_0.1_0.1_QF_100/trial_1"
 
 # ConvNeXt_tiny
 # [10,15,20,30,40,50,60,70,80,90,98,100]
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "ConvNeXt_tiny" --epoch 15 --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --dataset "imagenet" --model "ConvNeXt_tiny" --epochs 15 --data_path "$SLURM_TMPDIR/imagenet" \
                                     --JPEG_alpha 100 --Q_initial_QF 15 --JPEG_learning_rate 0.01 \
                                     --weight_lum 1.0 --weight_chrom 1.0 --num_workers 48 \
                                     --trial 1 --batch_size 64 \
