@@ -105,6 +105,7 @@ def parse_option(add_help=True):
     parser.add_argument('--Sensitivity_Inital', action='store_true')
     parser.add_argument('--HDQ_baseline', help="to get the HDQ baseline for this model and dataset", action='store_true')
     parser.add_argument('--Test_Correlation', help="to get the Entropy BPP correlation", action='store_true')
+    parser.add_argument('--Google_Method', help="use google training strategy to train the JPEG layer", action='store_true')
     
     # JPEG Hyper
     parser.add_argument('--JPEG_alpha', type=float, default=20.0, help='Tempurature scaling')
@@ -583,9 +584,11 @@ def main(opt):
             test_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
             
             if not model_ema:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
+                    evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
             else:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
+                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
             
             print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
             print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
@@ -600,7 +603,6 @@ def main(opt):
                                 f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
                                 f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\t" + '\n'
                         log.write(line)
-            return
         return
     
     
@@ -720,6 +722,51 @@ def main(opt):
     if scaler:
         checkpoint["scaler"] = scaler.state_dict()
     imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
+    
+    # after training, do validation on QF for google's method
+    if opt.Google_Method:
+        torch.backends.cudnn.benchmark = False
+        torch.backends.cudnn.deterministic = True
+    
+        opt.logs_test_fname = os.path.join(opt.trial_folder, "logs_test.txt")
+        with open(opt.logs_test_fname, 'a') as log:
+            if (not hasattr(opt, 'rank') or opt.rank == 0):
+                line =  'ep' + "\t" + 'test_acc' + "\t\t\t" + 'test_loss' + "\t\t\t" + 'bpp' + "\t\t\t\t\t" + \
+                        'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + '\n'
+                log.write(line)
+        
+        for QF_value in [10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,91,92,93,94,95,96,97,98,99,100]:
+            print("QF_value", QF_value)
+            HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(val_crop_size, val_crop_size, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
+            test_loader.dataset.transform = HDQ_preprocess
+            
+            # catch the q_table and alpha for validate
+            test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.QF_value = QF_value
+            
+            if not model_ema:
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
+                    evaluate_JPEG(opt, model_without_ddp.underlying_model, model_without_ddp.jpeg_layer, criterion, test_loader, device=device)
+            else:
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
+                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, model_ema_without_ddp.jpeg_layer, criterion, test_loader, device=device, log_suffix="EMA")            
+            
+            print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
+            print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
+            print("lum_ac:", test_lum_ac, "chrom_ac:", test_chrom_ac)
+            
+            # only one process can record
+            if (not hasattr(opt, 'rank') or opt.rank == 0):
+                # save test train acc and loss
+                with open(opt.logs_test_fname, 'a') as log:
+                    if (not hasattr(opt, 'rank') or opt.rank == 0):
+                        line =  f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{test_loss:.15f}\t" + f"{bpp:.15f}\t" + \
+                                f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
+                                f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\n"
+                        log.write(line)
     
     # print best acc
     print("\n==> Finish training: ", opt.model_name)

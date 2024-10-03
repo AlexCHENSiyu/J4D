@@ -7,6 +7,7 @@ import torch.nn as nn
 from torchvision import transforms
 import matplotlib.pyplot as plt
 from torch.special import entr
+import random
 import HDQ
 import rate_calc
 import os
@@ -122,6 +123,8 @@ class JPEG_layer_transforms(object):
 
 class JPEG_layer(nn.Module):
     def construct(self, opt):
+        self.opt = opt
+        
         self.num_bit = opt.num_bit
         self.Q_inital = opt.Q_inital
         self.batch_size = opt.batch_size
@@ -136,7 +139,7 @@ class JPEG_layer(nn.Module):
         self.high_level =  2**(self.num_bit-1)
         self.fixed_alpha = opt.fixed_alpha
         self.hardness  = opt.hardness
-        
+
         self.num_non_zero_q = opt.num_non_zero_q # 5
         self.num_non_zero_q_on_1_side = math.floor(self.num_non_zero_q/2) # 2
         self.q_idx = torch.arange(0, self.num_non_zero_q) #[0, 1, ... , 4]
@@ -259,6 +262,19 @@ class JPEG_layer(nn.Module):
         # print("lum max:", self.lum_qtable.max().item(), "lum min:", self.lum_qtable.min().item(), "chrom max:", self.chrom_qtable.max().item(), "chrom max", self.chrom_qtable.min().item())
         # print("lum_qtable:", self.lum_qtable, "chrom_qtable", self.chrom_qtable)
         
+        if self.opt.Google_Method:
+            random_QF = random.randint(10, 90)
+            if random_QF >= 1:
+                if random_QF < 50:
+                    S = 5000 / random_QF
+                else:
+                    S = 200 - 2 * random_QF
+            scaled_lum_qtable = (S * self.lum_qtable) / 100
+            scaled_chrom_qtable = (S * self.chrom_qtable) / 100
+        else:
+            scaled_lum_qtable = self.lum_qtable
+            scaled_chrom_qtable = self.chrom_qtable
+        
         input = input_RGB - 128
         input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
 
@@ -266,8 +282,8 @@ class JPEG_layer(nn.Module):
         input_chrom = input_DCT_block_batch[:, 1:3, ...] 
 
         # Quantization
-        idx_lum   = torch.round(input_lum / self.lum_qtable) # shape: [bs,ch,B,size,size,1]
-        idx_chrom = torch.round(input_chrom / self.chrom_qtable.expand(1, 2, 1, self.block_size, self.block_size, 1)) # shape: [bs,ch,B,size,size,1]
+        idx_lum   = torch.round(input_lum / scaled_lum_qtable) # shape: [bs,ch,B,size,size,1]
+        idx_chrom = torch.round(input_chrom / scaled_chrom_qtable) # shape: [bs,ch,B,size,size,1]
         
         idx_lum   =  torch.clamp(idx_lum   - self.num_non_zero_q_on_1_side, min=self.low_level, max=self.high_level - self.num_non_zero_q) # shape: [bs,ch,B,size,size,1]
         idx_chrom =  torch.clamp(idx_chrom - self.num_non_zero_q_on_1_side, min=self.low_level, max=self.high_level - self.num_non_zero_q) # shape: [bs,ch,B,size,size,1]
@@ -278,8 +294,8 @@ class JPEG_layer(nn.Module):
         idx_lum = idx_lum.detach()
         idx_chrom = idx_chrom.detach()
 
-        iq_lum = idx_lum * self.lum_qtable
-        iq_chrom = idx_chrom * self.chrom_qtable
+        iq_lum = idx_lum * scaled_lum_qtable
+        iq_chrom = idx_chrom * scaled_chrom_qtable
         
         distortion_MSE_mask_lum = F.mse_loss(iq_lum, input_lum.expand(-1, -1, -1, -1, -1, self.num_non_zero_q), reduction='none')  # shape: [bs,ch,B,size,size,5]
         distortion_MSE_mask_chrom = F.mse_loss(iq_chrom, input_chrom.expand(-1, -1, -1, -1, -1, self.num_non_zero_q), reduction='none') # shape: [bs,ch,B,size,size,5] 
@@ -521,6 +537,8 @@ class JPEG_layer_transformer(nn.Module):
         self.JPEG_alpha_trainable = opt.JPEG_alpha_trainable
         self.img_shape = img_shape
         self.validation = validation
+        self.QF_value = 50
+        self.opt = opt
         
         self.construct(opt)
 
@@ -547,6 +565,20 @@ class JPEG_layer_transformer(nn.Module):
         ch,w,h = input_RGB.shape
         # print("input_RGB shape[", bs,ch,w,h,']')
         
+        if self.opt.Google_Method:
+            if self.QF_value >= 1:
+                if self.QF_value < 50:
+                    S = 5000 / self.QF_value
+                else:
+                    S = 200 - 2 * self.QF_value
+            scaled_lum_qtable = (S * self.lum_qtable) / 100
+            scaled_chrom_qtable = (S * self.chrom_qtable) / 100
+            scaled_lum_qtable = torch.clamp(torch.round(scaled_lum_qtable), 1, 255)
+            scaled_chrom_qtable = torch.clamp(torch.round(scaled_chrom_qtable), 1, 255)
+        else:
+            scaled_lum_qtable = self.lum_qtable
+            scaled_chrom_qtable = self.chrom_qtable
+        
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
         input = input_RGB - 128
         input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
@@ -555,8 +587,8 @@ class JPEG_layer_transformer(nn.Module):
         input_chrom = input_DCT_block_batch[1:3, ...] 
 
         # Quantization
-        idx_lum   = torch.round(input_lum / self.lum_qtable) # shape: [bs,ch,B,size,size,1]
-        idx_chrom = torch.round(input_chrom / self.chrom_qtable.expand(2, 1, self.block_size, self.block_size, 1)) # shape: [bs,ch,B,size,size,1]
+        idx_lum   = torch.round(input_lum / scaled_lum_qtable) # shape: [bs,ch,B,size,size,1]
+        idx_chrom = torch.round(input_chrom / scaled_chrom_qtable) # shape: [bs,ch,B,size,size,1]
         
         idx_lum   =  torch.clamp(idx_lum   - self.num_non_zero_q_on_1_side, min=self.low_level, max=self.high_level - self.num_non_zero_q) # shape: [bs,ch,B,size,size,1]
         idx_chrom =  torch.clamp(idx_chrom - self.num_non_zero_q_on_1_side, min=self.low_level, max=self.high_level - self.num_non_zero_q) # shape: [bs,ch,B,size,size,1]
@@ -564,8 +596,8 @@ class JPEG_layer_transformer(nn.Module):
         idx_lum = idx_lum.expand(-1, -1, -1, -1, self.num_non_zero_q) + self.q_idx # shape: [bs,ch,B,size,size,5]
         idx_chrom = idx_chrom.expand(2, -1, -1, -1, self.num_non_zero_q) + self.q_idx  # shape: [bs,ch,B,size,size,5]
 
-        iq_lum = idx_lum * self.lum_qtable
-        iq_chrom = idx_chrom * self.chrom_qtable
+        iq_lum = idx_lum * scaled_lum_qtable
+        iq_chrom = idx_chrom * scaled_chrom_qtable
         
         distortion_MSE_mask_lum = F.mse_loss(iq_lum, input_lum.expand(-1, -1, -1, -1, self.num_non_zero_q), reduction='none')  # shape: [bs,ch,B,size,size,5]
         distortion_MSE_mask_chrom = F.mse_loss(iq_chrom, input_chrom.expand(-1, -1, -1, -1, self.num_non_zero_q), reduction='none') # shape: [bs,ch,B,size,size,5] 
