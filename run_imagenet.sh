@@ -24,7 +24,7 @@
 
 
 torchrun --nproc_per_node=1 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "Regnet400mf" --epochs 3 \
+                                    --dataset "imagenet" --model "Regnet400mf" --epochs 3 --start_epoch 1 \
                                     --JPEG_alpha 100 --Q_initial_QF 50 --JPEG_learning_rate 0.0001 \
                                     --weight_lum 10.0 --weight_chrom 10.0 --num_workers 24 \
                                     --lr_step_size 1 --lr_gamma 0.98 \
