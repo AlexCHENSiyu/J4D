@@ -88,9 +88,9 @@
     "dist_backend": "nccl",
     "added_layer": "JPEG",
     "model_name": "JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60",
-    "trial_folder": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_2",
-    "q_tables_folder": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_2/Q_tables",
-    "alpha_folder": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_2/Alpha_tables",
-    "logs_fname": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_2/logs.txt",
-    "opt_fname": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_2/opt.json"
+    "trial_folder": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_1",
+    "q_tables_folder": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_1/Q_tables",
+    "alpha_folder": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_1/Alpha_tables",
+    "logs_fname": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_1/logs.txt",
+    "opt_fname": "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_60/trial_1/opt.json"
 }

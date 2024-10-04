@@ -7,7 +7,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 python3.9 -m torch.distributed.run --master_port=25
                                     --dataset "imagenet" --model "mobilenet_v2" --num_workers 24 --data_path "/home/l44ye/datasets/" \
                                     --epochs 20 --trial 1 --batch_size 32 \
                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
-                                    --Q_initial_QF 60 --weight_lum 50.0 --weight_chrom 50.0  \
+                                    --Q_initial_QF 60 --weight_lum 50.0 --weight_chrom 50.0
 
 
 # This is for sensitivity training
