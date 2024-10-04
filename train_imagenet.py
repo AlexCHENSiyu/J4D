@@ -610,7 +610,7 @@ def main(opt):
         torch.backends.cudnn.benchmark = False
         torch.backends.cudnn.deterministic = True
         
-        checkpoint = torch.load(os.path.join(opt.resume, "model_last.pth"), map_location="cpu", weights_only=True)
+        checkpoint = torch.load(os.path.join(opt.trial_folder, "model_last.pth"), map_location="cpu", weights_only=True)
         model_without_ddp.load_state_dict(checkpoint["model"])
         
         opt.logs_test_fname = os.path.join(opt.trial_folder, "logs_test.txt")
@@ -634,10 +634,10 @@ def main(opt):
             
             if not model_ema:
                 test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_without_ddp.underlying_model, model_without_ddp.jpeg_layer, criterion, test_loader, device=device)
+                    evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
             else:
                 test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, model_ema_without_ddp.jpeg_layer, criterion, test_loader, device=device, log_suffix="EMA")            
+                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
             
             print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
             print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
