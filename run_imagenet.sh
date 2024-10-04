@@ -1,41 +1,28 @@
-# torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-#                                     --dataset "imagenet" --model "mobilenet_v3" \
-#                                     --JPEG_alpha 100 --JPEG_learning_rate 0.01 --Q_initial_QF 10 --epochs 20 \
-#                                     --weight_lum 20.0 --weight_chrom 20.0 --num_workers 24 \
-#                                     --lr_step_size 2 --lr_gamma 0.973 \
-#                                     --auto_augment imagenet --random_erase 0.2 \
-#                                     --trial 1 --batch_size 32
+# conda activate CHEN
+# bash ./run_imagenet.sh
 
 
-# ~/miniconda3/envs/CHEN/bin/python3.9 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-#                                     --dataset "imagenet" --model "Mnasnet" --epochs 1 \
-#                                     --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
-#                                     --weight_lum 0.1 --weight_chrom 0.1 --num_workers 24 \
-#                                     --lr_step_size 1 --lr_gamma 0.98 \
-#                                     --trial 1 --batch_size 32 --test_only --HDQ_baseline
+# QF_WEIGHT = [(10,50),(10,20),(12,20),(14,20),(16,20),(18,20),(20,20),(16,10),(18,10),(20,10),(30,10),(40,10),(50,10),(60,10)]
+CUDA_VISIBLE_DEVICES=4,5,6,7 python3.9 -m torch.distributed.run --master_port=25670 --nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+                                    --dataset "imagenet" --model "mobilenet_v2" --num_workers 24 --data_path "/home/l44ye/datasets/" \
+                                    --epochs 20 --trial 1 --batch_size 32 \
+                                    --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
+                                    --Q_initial_QF 60 --weight_lum 50.0 --weight_chrom 50.0  \
 
 
-# torchrun --nproc_per_node=1 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-#                                     --dataset "imagenet" --model "Regnet400mf" \
-#                                     --JPEG_alpha 100 --Q_initial_QF 10 --JPEG_learning_rate 0.01 \
-#                                     --weight_lum 20.0 --weight_chrom 20.0 --num_workers 24 \
-#                                     --lr_step_size 1 --lr_gamma 0.98 \
-#                                     --trial 1 --batch_size 32 --HDQ_baseline
+# This is for sensitivity training
+# weight = [10.0, 5.0, 1.0, 0.1, 0.01]
+# CUDA_VISIBLE_DEVICES=4,5,6,7 python3.9 -m torch.distributed.run --master_port=25670 --nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
+#                                     --dataset "imagenet" --model "mobilenet_v2" --num_workers 24 --data_path "/home/l44ye/datasets/" \
+#                                     --epochs 20 --trial 1 --batch_size 32 \
+#                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
+#                                     --Q_initial_Sensitivity 50 --weight_lum 10.0 --weight_chrom 50.0  \
 
 
-torchrun --nproc_per_node=1 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "Regnet400mf" --epochs 3 --start_epoch 1 \
-                                    --JPEG_alpha 100 --Q_initial_QF 50 --JPEG_learning_rate 0.0001 \
-                                    --weight_lum 10.0 --weight_chrom 10.0 --num_workers 24 \
-                                    --lr_step_size 1 --lr_gamma 0.98 \
-                                    --trial 1 --batch_size 4 --Google_Method
+# This is an example how to resume training(train more epochs)
+# CUDA_VISIBLE_DEVICES=4,5,6,7 python3.9 -m torch.distributed.run --master_port=25670 --nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
+#                                     --dataset "imagenet" --model "mobilenet_v2" --num_workers 24 --data_path "/home/l44ye/datasets/" \
+#                                     --epochs 20 --trial 1 --batch_size 32 \
+#                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
+#                                     --Q_initial_QF 10 --weight_lum 50.0 --weight_chrom 50.0 --resume "./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_50.0_50.0_QF_10/trial_1" \
 
-# torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-#                                     --dataset "imagenet" --model "ConvNeXt_tiny" --epochs 15\
-#                                     --JPEG_alpha 100 --Q_initial_QF 100 --JPEG_learning_rate 0.01 \
-#                                     --weight_lum 0.1 --weight_chrom 0.1 --num_workers 48 \
-#                                     --trial 1 --batch_size 16 \
-#                                     --learning_rate 1e-3 --lr_scheduler cosineannealinglr \
-#                                     --lr_warmup_epochs 5 --lr_warmup_method linear --auto_augment ta_wide --random_erase 0.1 \
-#                                     --label_smoothing 0.1 --mixup_alpha 0.2 --cutmix_alpha 1.0 --weight_decay 0.05 --norm_weight_decay 0.0 \
-#                                     --train_crop_size 176 --model_ema --val_resize_size 236 --ra_sampler --ra_reps 4

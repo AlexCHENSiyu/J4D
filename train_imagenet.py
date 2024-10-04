@@ -101,6 +101,7 @@ def parse_option(add_help=True):
     parser.add_argument('--freeze_model', action='store_true')
     parser.add_argument('--fixed_alpha', action='store_true')
     parser.add_argument('--JPEG_alpha_trainable', action='store_true')
+    parser.add_argument('--lr_scheduler_enable', action='store_true')
     parser.add_argument('--QF_Inital', action='store_true')
     parser.add_argument('--Sensitivity_Inital', action='store_true')
     parser.add_argument('--HDQ_baseline', help="to get the HDQ baseline for this model and dataset", action='store_true')
@@ -669,7 +670,8 @@ def main(opt):
         else:
             # train
             train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, model_ema, scaler)
-            lr_scheduler.step()
+            if opt.lr_scheduler_enable:
+                lr_scheduler.step()
         time2 = time.time()
         print('Epoch [{}]: total time {:.5f} s'.format(epoch, time2-time1))
         
