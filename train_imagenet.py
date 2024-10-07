@@ -280,26 +280,26 @@ def load_data(traindir, valdir, opt):
         ra_magnitude = getattr(opt, "ra_magnitude", None)
         augmix_severity = getattr(opt, "augmix_severity", None)
         dataset = torchvision.datasets.ImageFolder(traindir,
-            presets.ClassificationPresetTrain(
-                crop_size=train_crop_size,
-                interpolation=interpolation,
-                auto_augment_policy=auto_augment_policy,
-                random_erase_prob=random_erase_prob,
-                ra_magnitude=ra_magnitude,
-                augmix_severity=augmix_severity,
-                backend=opt.backend,
-                use_v2=opt.use_v2,
-                mean=(0.,0.,0.),
-                std=(1/255., 1/255., 1/255.)),)
-        
-            # presets.ClassificationPresetEval(
-            #     crop_size=val_crop_size,
-            #     resize_size=val_resize_size,
+            # presets.ClassificationPresetTrain(
+            #     crop_size=train_crop_size,
             #     interpolation=interpolation,
+            #     auto_augment_policy=auto_augment_policy,
+            #     random_erase_prob=random_erase_prob,
+            #     ra_magnitude=ra_magnitude,
+            #     augmix_severity=augmix_severity,
             #     backend=opt.backend,
             #     use_v2=opt.use_v2,
             #     mean=(0.,0.,0.),
             #     std=(1/255., 1/255., 1/255.)),)
+        
+            presets.ClassificationPresetEval(
+                crop_size=val_crop_size,
+                resize_size=val_resize_size,
+                interpolation=interpolation,
+                backend=opt.backend,
+                use_v2=opt.use_v2,
+                mean=(0.,0.,0.),
+                std=(1/255., 1/255., 1/255.)),)
             
         if opt.cache_dataset:
             print(f"Saving dataset_train to {cache_path}")
@@ -394,17 +394,6 @@ def main(opt):
     # load underlying model
     print("~loading model {}".format(opt.model))
     underlying_model = load_model_imagenet(opt.model, pretrained=True)
-    
-    # if opt.model == "mobilenet_v2":
-    #     underlying_model = torchvision.models.mobilenet_v2(weights=MobileNet_V2_Weights.IMAGENET1K_V1, progress=True)
-    # elif opt.model == "resnet18":
-    #     underlying_model = torchvision.models.resnet18(weights=ResNet18_Weights.IMAGENET1K_V1, progress=True)
-    # elif opt.model == "ConvNeXt-T":
-    #     underlying_model = torchvision.models.convnext_tiny(weights=ConvNeXt_Tiny_Weights.IMAGENET1K_V1, progress=True)
-    # elif opt.model == "RegNetY-400MF":
-    #     underlying_model = torchvision.models.regnet_y_400mf(weights=RegNet_Y_400MF_Weights.IMAGENET1K_V2, progress=True)
-    # else:
-    #     raise RuntimeError(f"Invalid model {opt.model}. Only mobilenet_v2, resnet18 are supported.")
     
     # load whole model
     opt_name = opt.optimizer.lower()
