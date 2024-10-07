@@ -1,7 +1,7 @@
 {
-    "batch_size": 32,
-    "num_workers": 128,
-    "epochs": 20,
+    "batch_size": 64,
+    "num_workers": 32,
+    "epochs": 10,
     "learning_rate": 0.1,
     "lr_decay_epochs": [
         110
@@ -10,7 +10,7 @@
     "weight_decay": 0.0001,
     "momentum": 0.9,
     "model": "ConvNeXt_tiny",
-    "data_path": "/home/l44ye/datasets/",
+    "data_path": "/localscratch/s875chen.45966338.0/imagenet",
     "device": "cuda",
     "dataset": "imagenet",
     "output_dir": "./save/imagenet/ConvNeXt_tiny",
@@ -82,8 +82,8 @@
     "weights": null,
     "backend": "pil",
     "use_v2": false,
-    "rank": 1,
-    "gpu": 1,
+    "rank": 0,
+    "gpu": 0,
     "distributed": true,
     "dist_backend": "nccl",
     "added_layer": "JPEG",
