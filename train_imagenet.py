@@ -20,7 +20,6 @@ from models import load_model_imagenet
 from torch.utils.data.dataloader import default_collate
 from torchvision.transforms.functional import InterpolationMode
 from helper.transforms import get_mixup_cutmix
-from torchvision.models import MobileNet_V2_Weights, ResNet18_Weights, ConvNeXt_Tiny_Weights, RegNet_Y_400MF_Weights
 
 
 def create_trial_folder(base_folder):
@@ -70,6 +69,10 @@ def _get_cache_path(filepath):
 # salloc --time=1:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --account=def-ehyangit --mem=8G
 # sq
 # scancel {JOGID}
+# source ~/PROJECT_AH/CKD_venv/bin/activate
+# ctrl+B [
+# ctrl+B c
+# ctrl+B D
 
 
 def parse_option(add_help=True):
@@ -420,7 +423,8 @@ def main(opt):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     # loss function
-    criterion = nn.CrossEntropyLoss(label_smoothing=opt.label_smoothing)
+    # criterion = nn.CrossEntropyLoss(label_smoothing=opt.label_smoothing)
+    criterion = nn.CrossEntropyLoss()
     if torch.cuda.is_available():
         model = model.to(device)
         criterion = criterion.to(device)
