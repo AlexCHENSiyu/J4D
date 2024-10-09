@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-from torchaudio.functional import convolve
 import math
 import numpy as np
 import torch.nn as nn
@@ -17,6 +16,14 @@ import os
 # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 smallest_float32 = torch.finfo(torch.float32).tiny
 largest_float32 = torch.finfo(torch.float32).max
+
+try:
+    import torchaudio
+    TORCHAUDIO_AVAILABLE = True
+    print("use torchaudio")
+except ImportError:
+    TORCHAUDIO_AVAILABLE = False
+    print("use custom_convolve")
 
 
 # Define the custom module
@@ -377,10 +384,16 @@ class JPEG_layer(nn.Module):
         
         # reverse first so convolve later is along the right diagonal
         cmpf_lum_dc_shifted_tensor = torch.flip(cmpf_lum_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
-        cmpf_diff_lum_dc = convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
-        
+        if TORCHAUDIO_AVAILABLE:
+            cmpf_diff_lum_dc = torchaudio.functional.convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
+        else:
+            cmpf_diff_lum_dc = custom_convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
+            
         cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
-        cmpf_diff_chrom_dc = convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
+        if TORCHAUDIO_AVAILABLE:
+            cmpf_diff_chrom_dc = torchaudio.functional.convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
+        else:
+            cmpf_diff_chrom_dc = custom_convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
         
         indexes_diff_lum_dc = self.get_diff_indexes(indexes_lum_dc, indexes_lum_dc_shifted) # shape: [bs,ch,B,9]
         indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [bs,ch,B,9]
@@ -680,10 +693,16 @@ class JPEG_layer_transformer(nn.Module):
         
         # reverse first so convolve later is along the right diagonal
         cmpf_lum_dc_shifted_tensor = torch.flip(cmpf_lum_dc_shifted, dims=[-1]) # shape: [ch,B,5]
-        cmpf_diff_lum_dc = convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [ch,B,9]
+        if TORCHAUDIO_AVAILABLE:
+            cmpf_diff_lum_dc = torchaudio.functional.convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [ch,B,9]
+        else:
+            cmpf_diff_lum_dc = custom_convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [ch,B,9]
         
         cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [ch,B,5]
-        cmpf_diff_chrom_dc = convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [ch,B,9]
+        if TORCHAUDIO_AVAILABLE:
+            cmpf_diff_chrom_dc = torchaudio.functional.convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [ch,B,9]
+        else:
+            cmpf_diff_chrom_dc = custom_convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [ch,B,9]
         
         indexes_diff_lum_dc = self.get_diff_indexes(indexes_lum_dc, indexes_lum_dc_shifted) # shape: [ch,B,9]
         indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [ch,B,9]
@@ -1275,6 +1294,73 @@ def load_3x3_weight(model_name = "Alexnet"):
         for j in range(3):
             rt_arr[i, j] = seq_weight[i*3+j]
     return torch.Tensor(rt_arr)
+
+
+def custom_convolve(x: torch.Tensor, y: torch.Tensor, mode: str = "full") -> torch.Tensor:
+    """
+    Convolve inputs along their last dimension using direct convolution.
+
+    Args:
+        x (torch.Tensor): First convolution operand, with shape `(..., N)`.
+        y (torch.Tensor): Second convolution operand, with shape `(..., M)`.
+        mode (str, optional): One of ("full", "valid", "same"). Defaults to "full".
+
+            * "full": Returns the full convolution result, with shape `(..., N + M - 1)`.
+            * "valid": Returns the segment of the full convolution result corresponding to where
+              the two inputs overlap completely, with shape `(..., max(N, M) - min(N, M) + 1)`.
+            * "same": Returns the center segment of the full convolution result, with shape `(..., N)`.
+
+    Returns:
+        torch.Tensor: The result of convolving `x` and `y`.
+    """
+    # Ensure compatibility of shapes
+    if x.size(-1) < y.size(-1):
+        x, y = y, x
+
+    if x.shape[:-1] != y.shape[:-1]:
+        new_shape = [max(i, j) for i, j in zip(x.shape[:-1], y.shape[:-1])]
+        x = x.broadcast_to(new_shape + [x.shape[-1]])
+        y = y.broadcast_to(new_shape + [y.shape[-1]])
+
+    x_size, y_size = x.size(-1), y.size(-1)
+
+    # Flip y for convolution
+    y_flipped = y.flip(-1)
+
+    # Compute padding size for "full" mode
+    padding = y_size - 1
+
+    # Reshape tensors for conv operation (supports multi-dimensional input)
+    reshaped_x = x.reshape(1, -1, x.size(-1))
+    reshaped_y = y_flipped.reshape(-1, 1, y_size)
+
+    # Perform grouped 1D convolution
+    output = torch.nn.functional.conv1d(
+        input=reshaped_x,
+        weight=reshaped_y,
+        stride=1,
+        padding=padding,
+        groups=reshaped_y.size(0)
+    )
+
+    # Reshape the output back to the original shape
+    output_shape = x.shape[:-1] + (-1,)
+    result = output.view(output_shape)
+
+    # Apply mode to get the correct output length
+    if mode == "full":
+        return result
+    elif mode == "valid":
+        valid_length = max(x_size, y_size) - min(x_size, y_size) + 1
+        start_idx = padding
+        end_idx = start_idx + valid_length
+        return result[..., start_idx:end_idx]
+    elif mode == "same":
+        start_idx = (result.size(-1) - x_size) // 2
+        end_idx = start_idx + x_size
+        return result[..., start_idx:end_idx]
+    else:
+        raise ValueError(f"Invalid mode: {mode}. Must be one of ('full', 'valid', 'same').")
 
 
 # def plot_confidence_interval(x, top, bottom, mean, horizontal_line_width=0.25, color='#2187bb',label=None,alpha=1):
