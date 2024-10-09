@@ -16,7 +16,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 python3.8 -m torch.distributed.run --master_port=25
                                     --dataset "imagenet" --model "Mnasnet" --num_workers 32 --data_path "/home/ahamsala/datasets/imagenet" \
                                     --epochs 20 --trial 1 --batch_size 64 \
                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
-                                    --Q_initial_Sensitivity 50 --weight_lum 0.1 --weight_chrom 0.1  \
+                                    --Q_initial_Sensitivity 50 --weight_lum 10.0 --weight_chrom 10.0  \
 
 
 # This is an example how to resume training(train more epochs)

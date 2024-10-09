@@ -767,7 +767,7 @@ def main(opt):
     imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
     
     # print best acc
-    print("\n==> Finish training: ", opt.model_name)
+    print("\n==> Finish training: ", opt.trial_folder)
     print('Best accuracy:', best_acc)
 
 
