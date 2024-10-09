@@ -4,7 +4,7 @@
 #SBATCH --cpus-per-task=32
 #SBATCH --exclusive
 #SBATCH --mem=0
-#SBATCH --time=0-11:59
+#SBATCH --time=0-14:59
 #SBATCH --output=out/%N-%j.txt
 #SBATCH --job-name=imagenet
 #SBATCH --account=def-ehyangit
@@ -37,8 +37,8 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 # Weight = (0.01 0.1 1 5 10)
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
                                     --dataset "imagenet" --model "ConvNeXt_tiny" --data_path "$SLURM_TMPDIR/imagenet" \
-                                    --epochs 10 --JPEG_alpha 100 --Q_initial_Sensitivity 100 --JPEG_learning_rate 0.01 \
-                                    --weight_lum 1.0 --weight_chrom 1.0 \
+                                    --epochs 20 --JPEG_alpha 100 --Q_initial_Sensitivity 50 --JPEG_learning_rate 0.01 \
+                                    --weight_lum 0.01 --weight_chrom 0.01 \
                                     --num_workers 32 \
                                     --trial 1 --batch_size 64 --val_resize_size 236
 
