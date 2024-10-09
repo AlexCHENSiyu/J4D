@@ -71,7 +71,7 @@ def _get_cache_path(filepath):
 # scancel {JOGID}
 # source ~/PROJECT_AH/CKD_venv/bin/activate
 # ctrl+B [
-# ctrl+B c
+# ctrl+B c : new window
 # ctrl+B D
 
 
@@ -561,8 +561,8 @@ def main(opt):
         pt_file_list = find_all_pt_files(opt.q_tables_folder)  
         for epoch, pt in enumerate(pt_file_list):
             print("Test: ", pt)
-            JPEG_layer_q_table = torch.load(os.path.join("./save/imagenet/mobilenet_v2/JPEG_lr_0.01_alpha_100.0_weight_20.0_20.0_QF_10/trial_1/Q_tables", "q_table_epoch_20.pt"))
-            # JPEG_layer_q_table = torch.load(os.path.join(opt.q_tables_folder, pt))
+            # JPEG_layer_q_table = torch.load(os.path.join("./save/imagenet/mobilenet_v2/JPEG_lr_0.001_alpha_100.0_weight_0.1_0.1_sensitivity_10.0/trial_2/Q_tables", "q_table_epoch_1.pt"))
+            JPEG_layer_q_table = torch.load(os.path.join(opt.q_tables_folder, pt))
             lum_q_table, chrom_q_table = JPEG_layer_q_table[0], JPEG_layer_q_table[1]
             lum_q_table = lum_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
             chrom_q_table = chrom_q_table.unsqueeze(0).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
