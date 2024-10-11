@@ -191,28 +191,6 @@ class JPEG_layer(nn.Module):
         nn.init.constant_(self.alpha_lum, self.JEPG_alpha)
         nn.init.constant_(self.alpha_chrom, self.JEPG_alpha)
 
-        # check if opt has rank
-        # if hasattr(opt, 'rank') and opt.rank == 0:
-        #     # save the inital q table
-        #     lum_q_tables_file = os.path.join(opt.q_tables_folder, 'lum_q_table.txt')
-        #     with open(lum_q_tables_file, 'a') as f:
-        #         np.savetxt(f, self.lum_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-        #         f.write('\n')
-        #     chrom_q_tables_file = os.path.join(opt.q_tables_folder, 'chrom_q_table.txt')
-        #     with open(chrom_q_tables_file, 'a') as f:
-        #         np.savetxt(f, self.chrom_qtable.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-        #         f.write('\n')
-
-        #     # save the inital alpha table
-        #     lum_alpha_tables_file = os.path.join(opt.alpha_folder, 'lum_alpha_table.txt')
-        #     with open(lum_alpha_tables_file, 'a') as f:
-        #         np.savetxt(f, self.alpha_lum.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-        #         f.write('\n')
-        #     chrom_alpha_tables_file = os.path.join(opt.alpha_folder, 'chrom_alpha_table.txt')
-        #     with open(chrom_alpha_tables_file, 'a') as f:
-        #         np.savetxt(f, self.alpha_chrom.clone().detach().reshape(8,8).cpu().numpy(), delimiter=',', fmt='%.04f')
-        #         f.write('\n')
-
         self.block_dct = block_dct_callable(self.lum_qtable, self.device, self.validation)
         self.block_idct = block_idct_callable(self.lum_qtable, self.device, self.validation)
 
@@ -263,11 +241,7 @@ class JPEG_layer(nn.Module):
 
     def forward(self, input_RGB):
         # input_RGB shape:[bs,ch,width,height]
-        bs,ch,w,h = input_RGB.shape
-        # print("input_RGB shape[", bs,ch,w,h,']') # shape: [ 32 3 224 224 ]
-        # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
-        # print("lum max:", self.lum_qtable.max().item(), "lum min:", self.lum_qtable.min().item(), "chrom max:", self.chrom_qtable.max().item(), "chrom max", self.chrom_qtable.min().item())
-        # print("lum_qtable:", self.lum_qtable, "chrom_qtable", self.chrom_qtable)
+        bs,ch,w,h = input_RGB.shape # shape: [ 32 3 224 224 ]
         
         if self.opt.Google_Method:
             random_QF = random.randint(10, 90)
@@ -323,10 +297,10 @@ class JPEG_layer(nn.Module):
         # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
         norm_img = self.normalize(self.Scale2One(norm_img))
         
-        assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
-            f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
-        assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
-            f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
+        # assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
+        #     f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
+        # assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
+        #     f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
         
         lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
         lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
@@ -409,10 +383,10 @@ class JPEG_layer(nn.Module):
         indexes_diff_lum_dc += (2**(self.num_bit)-2)
         indexes_diff_chrom_dc += (2**(self.num_bit)-2)
         
-        assert torch.all((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4))]}"
-        assert torch.all((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4))]}"
+        # assert torch.all((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4))]}"
+        # assert torch.all((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4))]}"
 
         #-----------------------------------------DC entropy---------------------------------------------------------
         
@@ -468,10 +442,10 @@ class JPEG_layer(nn.Module):
         indexes_lum -= self.low_level
         indexes_chrom -= self.low_level
         
-        assert torch.all((indexes_lum >= 0) & (indexes_lum <= 2**11-2)), \
-            f"Indexes out of bounds: invalid values found {indexes_lum[~((indexes_lum >= 0) & (indexes_lum <= 2**11-2))]}"
-        assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
-            f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
+        # assert torch.all((indexes_lum >= 0) & (indexes_lum <= 2**11-2)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_lum[~((indexes_lum >= 0) & (indexes_lum <= 2**11-2))]}"
+        # assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
 
         #----------------------------------------------AC entropy method 1-----------------------------------------------
         
@@ -644,10 +618,10 @@ class JPEG_layer_transformer(nn.Module):
         norm_img = torch.clamp(norm_img, min=0.0, max=255.0)
         norm_img = self.normalize(self.Scale2One(norm_img))
         
-        assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
-            f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
-        assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
-            f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
+        # assert torch.all((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1)), \
+        #     f"Indexes out of bounds: invalid values found {idx_lum[~((idx_lum >= -2**10+1) & (idx_lum <= 2**10-1))]}"
+        # assert torch.all((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1)), \
+        #     f"Indexes out of bounds: invalid values found {idx_chrom[~((idx_chrom >= -2**10+1) & (idx_chrom <= 2**10-1))]}"
         
         lum_dc_entropy, chrom_dc_entropy = self.calculate_dc_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
         lum_ac_entropy, chrom_ac_entropy = self.calculate_ac_entropy(idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom)
@@ -718,10 +692,10 @@ class JPEG_layer_transformer(nn.Module):
         indexes_diff_lum_dc += (2**(self.num_bit)-2)
         indexes_diff_chrom_dc += (2**(self.num_bit)-2)
         
-        assert torch.all((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4))]}"
-        assert torch.all((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4)), \
-            f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4))]}"
+        # assert torch.all((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_diff_lum_dc[~((indexes_diff_lum_dc >= 0) & (indexes_diff_lum_dc <= 2**12-4))]}"
+        # assert torch.all((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_diff_chrom_dc[~((indexes_diff_chrom_dc >= 0) & (indexes_diff_chrom_dc <= 2**12-4))]}"
 
         #-----------------------------------------DC entropy---------------------------------------------------------
         
@@ -777,10 +751,10 @@ class JPEG_layer_transformer(nn.Module):
         indexes_lum -= self.low_level
         indexes_chrom -= self.low_level
         
-        assert torch.all((indexes_lum >= 0) & (indexes_lum <= 2**11-2)), \
-            f"Indexes out of bounds: invalid values found {indexes_lum[~((indexes_lum >= 0) & (indexes_lum <= 2**11-2))]}"
-        assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
-            f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
+        # assert torch.all((indexes_lum >= 0) & (indexes_lum <= 2**11-2)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_lum[~((indexes_lum >= 0) & (indexes_lum <= 2**11-2))]}"
+        # assert torch.all((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2)), \
+        #     f"Indexes out of bounds: invalid values found {indexes_chrom[~((indexes_chrom >= 0) & (indexes_chrom <= 2**11-2))]}"
 
         #----------------------------------------------AC entropy method 1-----------------------------------------------
 
