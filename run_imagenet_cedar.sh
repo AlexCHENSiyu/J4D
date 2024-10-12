@@ -28,19 +28,19 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 # Q_initial_QF = (10 12 14 16 18 20 30 40 50 60 70 80 90 100)
 # torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
 #                                     --dataset "imagenet" --model "ConvNeXt_tiny" --num_workers 32 --data_path "$SLURM_TMPDIR/imagenet" \
-#                                     --epochs 10 --trial 1 --batch_size 64 \
+#                                     --epochs 20 --trial 1 --batch_size 64 \
 #                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
-#                                     --Q_initial_QF 60 --weight_lum 1.0 --weight_chrom 1.0 \
-#                                     --val_resize_size 236
+#                                     --Q_initial_QF 60 --weight_lum 10.0 --weight_chrom 10.0 \
+#                                     --val_resize_size 232
 
 # Q_initial_Sensitivity = (1 10 20 30 40 50 60 70 80 90 100)
 # Weight = (0.01 0.1 1 5 10)
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
-                                    --dataset "imagenet" --model "ConvNeXt_tiny" --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --dataset "imagenet" --model "Swin_T" --data_path "$SLURM_TMPDIR/imagenet" \
                                     --epochs 20 --JPEG_alpha 100 --Q_initial_Sensitivity 50 --JPEG_learning_rate 0.01 \
-                                    --weight_lum 0.01 --weight_chrom 0.01 \
+                                    --weight_lum 10.0 --weight_chrom 10.0 \
                                     --num_workers 32 \
-                                    --trial 1 --batch_size 64 --val_resize_size 236
+                                    --trial 1 --batch_size 64 --val_resize_size 232
 
 # ------------------------------------------------------Resnet18-------------------------------------------------------#
 # torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
