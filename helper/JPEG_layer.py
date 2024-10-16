@@ -632,6 +632,61 @@ class JPEG_layer_transformer(nn.Module):
         
         return norm_img, sampled_idx_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
 
+    
+    # def forward(self, input_RGB):
+    #     # input_RGB shape:[bs,ch,width,height]
+    #     ch,w,h = input_RGB.shape
+    #     # print("input_RGB shape[", bs,ch,w,h,']')
+        
+    #     scaled_lum_qtable = self.lum_qtable
+    #     scaled_chrom_qtable = self.chrom_qtable
+        
+    #     # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
+    #     input = input_RGB - 128
+    #     input_DCT = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)) # shape: [ch,B,size,size]
+
+    #     input_lum   = input_DCT[0:1, ...] 
+    #     input_chrom = input_DCT[1:3, ...] 
+
+    #     # Q_u Quantization, shape: [ch,B,size,size]
+    #     quantized_lum = input_lum / scaled_lum_qtable
+    #     quantized_chrom = input_chrom / scaled_chrom_qtable
+        
+    #     rounded_lum   = torch.round(quantized_lum)     # shape: [ch,B,size,size]
+    #     rounded_chrom = torch.round(quantized_chrom)   # shape: [ch,B,size,size]
+    #     rounded_lum   =  torch.clamp(rounded_lum, min=self.low_level, max=self.high_level)
+    #     rounded_chrom =  torch.clamp(rounded_chrom, min=self.low_level, max=self.high_level)
+        
+    #     # Dequantization
+    #     dequantized_lum = rounded_lum * scaled_lum_qtable
+    #     dequantized_chrom = rounded_chrom * scaled_chrom_qtable
+    #     dequantized_DCT = torch.cat((dequantized_lum, dequantized_chrom), 0)
+        
+    #     norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(dequantized_DCT), (self.img_shape[0], self.img_shape[1])))
+    #     norm_img += 128
+    #     norm_img = torch.clamp(norm_img, min=0.0, max=255.0)
+        
+    #     # create the idx_space to calculate Bpp
+    #     idx_space = torch.cat((rounded_lum, rounded_chrom), 0)
+    #     idx_space = deblockify(idx_space, (self.img_shape[0], self.img_shape[1]))
+        
+    #     # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
+    #     norm_img = self.normalize(self.Scale2One(norm_img))
+        
+    #     # reshaped_input_RGB = input_RGB.permute(1, 2, 0)
+    #     # image_input_RGB = reshaped_input_RGB.numpy() / 255.0
+    #     # image_input_RGB = np.clip(image_input_RGB, 0, 1)
+        
+    #     # reshaped_norm_img = norm_img.permute(1, 2, 0)
+    #     # image_norm_img = reshaped_norm_img.numpy()
+    #     # image_norm_img = np.clip(image_norm_img, 0, 1)
+
+    #     # plt.imsave(os.path.join(self.opt.trial_folder,'input_RGB.png'),image_input_RGB)
+    #     # plt.imsave(os.path.join(self.opt.trial_folder,'norm_img.png'), image_norm_img)
+        
+    #     return norm_img, idx_space, 0, 0, 0, 0
+    
+    
 
     def calculate_dc_entropy(self, idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom):
         # get the entropy of DC part.
