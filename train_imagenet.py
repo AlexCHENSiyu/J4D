@@ -549,7 +549,8 @@ def main(opt):
     
     # to plot BPP entropy correlation
     if opt.Test_Correlation:
-        for QF_value in [1,10,20,30,40,50,60,70,80,90,100]: 
+        for QF_value in range(1,101): 
+            print("QF:", QF_value)
             HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
             test_loader.dataset.transform = HDQ_preprocess
 
