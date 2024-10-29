@@ -110,6 +110,7 @@ def parse_option(add_help=True):
     parser.add_argument('--HDQ_baseline', help="to get the HDQ baseline for this model and dataset", action='store_true')
     parser.add_argument('--Q_u_baseline', help="to get the Q_u baseline for this model and dataset", action='store_true')
     parser.add_argument('--Test_Correlation', help="to get the Entropy BPP correlation", action='store_true')
+    parser.add_argument('--Test_sensitivity_constant', help="to get the best sensitivity constant", action='store_true')
     parser.add_argument('--Google_Method', help="use google training strategy to train the JPEG layer", action='store_true')
     
     # JPEG Hyper
@@ -565,6 +566,31 @@ def main(opt):
                 evaluate_correlation(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")         
         return
 
+        # to plot BPP entropy correlation
+    if opt.Test_sensitivity_constant:
+        for constant_value in range(5,50,5): 
+            print("constant_value:", constant_value)
+            HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
+            test_loader.dataset.transform = HDQ_preprocess
+
+            base_path = './save/{}/{}'.format(opt.dataset, opt.model)
+            lum_q_table = torch.tensor(qTable_sensitivity(path=base_path, constant=constant_value, Luminance=True, qmax=opt.max_Q_Step), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            chrom_q_table = torch.tensor(qTable_sensitivity(path=base_path, constant=constant_value, Luminance=False, qmax=opt.max_Q_Step), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
+            test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = lum_q_table.detach().clone().cpu()
+            test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = chrom_q_table.detach().clone().cpu()
+            
+            if not model_ema:
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
+                    evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
+            else:
+                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
+                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")
+            
+            Sensitivity_fname = os.path.join(opt.output_dir, "Sensitivity_constant.txt")
+            with open(Sensitivity_fname, 'a') as log:
+                if (not hasattr(opt, 'rank') or opt.rank == 0):
+                    log.write(f"{constant_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n")
+        return
     
     # function for validation inference
     # HDQ_preprocess = resize_compression(HDQ_transforms(QF_Y=50, QF_C=50))
