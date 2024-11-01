@@ -18,14 +18,14 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 python3.9 -m torch.distributed.run --master_port=25
                                     --dataset "imagenet" --model "Swin_T" --num_workers 64 --data_path "/home/l44ye/datasets/" \
                                     --epochs 20 --trial 1 --batch_size 64 \
                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
-                                    --Q_initial_Sensitivity 15 --weight_lum 0.0 --weight_chrom 0.0 \
+                                    --Q_initial_Sensitivity 15 --weight_lum 0.01 --weight_chrom 0.01 \
                                     --val_resize_size 232
 
 CUDA_VISIBLE_DEVICES=4,5,6,7 python3.9 -m torch.distributed.run --master_port=25670 --nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
                                     --dataset "imagenet" --model "Swin_T" --num_workers 64 --data_path "/home/l44ye/datasets/" \
                                     --epochs 20 --trial 1 --batch_size 64 \
                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
-                                    --Q_initial_Sensitivity 10 --weight_lum 0.0 --weight_chrom 0.0 \
+                                    --Q_initial_Sensitivity 10 --weight_lum 0.01 --weight_chrom 0.1 \
                                     --val_resize_size 232
 
 
@@ -33,7 +33,7 @@ CUDA_VISIBLE_DEVICES=4,5,6,7 python3.9 -m torch.distributed.run --master_port=25
                                     --dataset "imagenet" --model "Swin_T" --num_workers 64 --data_path "/home/l44ye/datasets/" \
                                     --epochs 20 --trial 1 --batch_size 64 \
                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
-                                    --Q_initial_Sensitivity 5 --weight_lum 0.0 --weight_chrom 0.0 \
+                                    --Q_initial_Sensitivity 5 --weight_lum 0.01 --weight_chrom 0.01 \
                                     --val_resize_size 232
 
 # for weight_lum in 0.02 0.05 0.2 0.5 2 5; do
