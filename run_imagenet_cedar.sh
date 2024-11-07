@@ -1,10 +1,10 @@
 #!/bin/bash
 #SBATCH --nodes=1
-#SBATCH --gpus-per-node=v100l:4
-#SBATCH --cpus-per-task=32
+#SBATCH --gpus-per-node=4
+#SBATCH --cpus-per-task=24
 #SBATCH --exclusive
 #SBATCH --mem=0
-#SBATCH --time=0-13:59
+#SBATCH --time=0-11:59
 #SBATCH --output=out/%N-%j.txt
 #SBATCH --job-name=imagenet
 #SBATCH --account=def-ehyangit
@@ -35,9 +35,9 @@ cd /scratch/s875chen/JPEG-Inspired-Compression
 # Weight = (0.01 0.1 1 5 10)
 # model = (mobilenet_v2 Mnasnet Swin_T ConvNeXt_tiny)
 torchrun --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
-                                    --dataset "imagenet" --model "ConvNeXt_tiny" --num_workers 32 --data_path "$SLURM_TMPDIR/imagenet" \
+                                    --dataset "imagenet" --model "mobilenet_v2" --num_workers 24 --data_path "$SLURM_TMPDIR/imagenet" \
                                     --JPEG_alpha 100 --JPEG_learning_rate 0.01 --trial 1 --batch_size 64 --epochs 20 \
-                                    --weight_lum 0.05 --weight_chrom 0.05 --Q_initial_Sensitivity 5 --val_resize_size 236 \
+                                    --weight_lum 0.2 --weight_chrom 0.2 --Q_initial_Sensitivity 10 \
 
 # ------------------------------------------------------Resnet18-------------------------------------------------------#
 # torchrun --nproc_per_node=2 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
