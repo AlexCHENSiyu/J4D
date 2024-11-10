@@ -35,7 +35,7 @@ which will save the rate-accuracy (R-A) results and optimized qtable to a corres
 
 
 ### Sensitivity-Based Initialization of Quantization Tables
-Based on the drived Senstivity, we have followed the following steps to initialize the Q-Tables for JPEG-DL.
+Based on the drived Senstivity, we have followed the following steps to initialize the Q-Tables for J4D.
 ```
 factor = max(1/Y_sens)
 q_y = constand / (Y_sens * factor)
@@ -43,40 +43,41 @@ q_cbcr = 2 * constand / ((Cb_sens + Cr_sens) * factor)
 ```
 
 ### The sensitivity plots for 4 models on ImageNet and 3 models on CUB-200-2011 are shown as follows, alongside their corresponding initialization 
-<p align="center">
-    <figure style="display: inline-block; margin: 6px;">
-        <img src="./Diagrams/imagenet_mobilenet_v2_sensitivity.png" width="25%" height="25%" class="center">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
+    <figure style="margin: 6px;">
+        <img src="./Diagrams/imagenet_mobilenet_v2_sensitivity.png" width="100%" height="100%">
         <figcaption>ImageNet (MobileNetV2)</figcaption>
     </figure>
-    <figure style="display: inline-block; margin: 6px;">
-        <img src="./Diagrams/imagenet_Mnasnet_sensitivity.png" width="25%" height="25%" class="center">
+    <figure style="margin: 6px;">
+        <img src="./Diagrams/imagenet_Mnasnet_sensitivity.png" width="100%" height="100%">
         <figcaption>ImageNet (MnasNet)</figcaption>
     </figure>
-    <figure style="display: inline-block; margin: 6px;">
-        <img src="./Diagrams/imagenet_Swin_T_sensitivity.png" width="25%" height="25%"class="center">
+    <figure style="margin: 6px;">
+        <img src="./Diagrams/imagenet_Swin_T_sensitivity.png" width="100%" height="100%">
         <figcaption>Flowers (Swin_T)</figcaption>
     </figure>
-    <figure style="display: inline-block; margin: 6px;">
-        <img src="./Diagrams/imagenet_ConvNeXt_tiny_sensitivity.png" width="25%" height="25%"class="center">
+    <figure style="margin: 6px;">
+        <img src="./Diagrams/imagenet_ConvNeXt_tiny_sensitivity.png" width="100%" height="100%">
         <figcaption>ImageNet (ConvNeXt-tiny)</figcaption>
     </figure>
-</p>
+</div>
 
-
-<p align="center">
-    <figure style="display: inline-block; margin: 6px;">
-        <img src="./Diagrams/cub200_resnet18_sensitivity.png" width="25%" height="25%" class="center">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
+    <figure style="margin: 6px;">
+        <img src="./Diagrams/cub200_resnet18_sensitivity.png" width="100%" height="100%">
         <figcaption>CUB-200-2011 (ResNet18)</figcaption>
     </figure>
-    <figure style="display: inline-block; margin: 6px;">
-        <img src="./Diagrams/cub200_mobilenet_v2_sensitivity.png" width="25%" height="25%" class="center">
+    <figure style="margin: 6px;">
+        <img src="./Diagrams/cub200_mobilenet_v2_sensitivity.png" width="100%" height="100%">
         <figcaption>CUB-200-2011 (MobileNetV2)</figcaption>
     </figure>
-    <figure style="display: inline-block; margin: 6px;">
-        <img src="./Diagrams/cub200_Mnasnet_sensitivity.png" width="25%" height="25%"class="center">
+    <figure style="margin: 6px;">
+        <img src="./Diagrams/cub200_Mnasnet_sensitivity.png" width="100%" height="100%">
         <figcaption>CUB-200-2011 (MnasNet)</figcaption>
     </figure>
-</p>
+    <figure style="margin: 6px;"></figure>
+</div>
+
 
 
 ## Acknowledgements
