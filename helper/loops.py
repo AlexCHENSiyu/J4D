@@ -4,6 +4,7 @@ from .JPEG_layer import *
 import helper.imagenet_utils as imagenet_utils
 import warnings
 
+
 def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, scaler=None, backward=True):
     model.train()
     

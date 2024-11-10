@@ -1,4 +1,3 @@
-name: CHEN
 channels:
   - conda-forge
   - defaults
@@ -178,4 +177,3 @@ dependencies:
       - triton==2.0.0
       - urllib3==2.2.3
       - yarl==1.15.2
-prefix: /home/ahamsala/.conda/envs/CHEN
