@@ -6,8 +6,10 @@ This zip file is for reproducing the experimental results in our paper [*Learned
 class="center">
 </p>
 
+
 ## Installation
-The repo is tested with Python 3.9, CUDA 11.7, and based on the 'requirements.txt' or 'requirements.yaml' file provided.
+The code is tested with Python 3.9, CUDA 11.7, and based on the `requirements.txt` or `requirements.yaml` files provided. The code also rely on the `rate_calc.so` and `HDQ.so`files for real rate calculation after JPEG HDQ or our customized compression.
+
 
 ## Training J4D
 For ImageNet training, please use [this bash file](./run_imagenet.sh).
@@ -79,6 +81,19 @@ q_cbcr = 2 * constand / ((Cb_sens + Cr_sens) * factor)
 </div>
 
 
-
 ## Acknowledgements
 This repo is based on the code given in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet) for ImageNet.
+
+
+<!-- ## Citation
+```
+    @inproceedings{
+    anonymous2024learned,
+    title={Learned JPEG Compression for DNN Vision},
+    author={Anonymous},
+    booktitle={Submitted to The Conference on Computer Vision and Pattern Recognition 2025},
+    year={2024},
+    url={https://openreview.net/forum?id=te2IdORabL},
+    note={under review}
+    }
+``` -->
