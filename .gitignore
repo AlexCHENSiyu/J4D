@@ -7,7 +7,6 @@ data/
 output*/
 ckpts/
 *.t7
-*.png
 *.jpg
 tmp*.py
 *.pth
