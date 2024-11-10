@@ -1,4 +1,3 @@
-import datetime
 import os
 import time
 import json
@@ -20,17 +19,6 @@ from models import load_model_imagenet
 from torch.utils.data.dataloader import default_collate
 from torchvision.transforms.functional import InterpolationMode
 from helper.transforms import get_mixup_cutmix
-
-
-def create_trial_folder(base_folder):
-    trial_num = 1
-    while True:
-        trial_folder = os.path.join(base_folder, f"trial_{trial_num}")
-        if not os.path.exists(trial_folder):
-            os.makedirs(trial_folder)
-            # print(f"Created folder: {trial_folder}")
-            return trial_folder
-        trial_num += 1
 
 
 def create_folder(folder):
@@ -63,16 +51,6 @@ def _get_cache_path(filepath):
     cache_path = os.path.join("~", ".torch", "vision", "datasets", "imagefolder", h[:10] + ".pt")
     cache_path = os.path.expanduser(cache_path)
     return cache_path
-
-
-# salloc --time=1:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --gres=gpu:1 --account=def-ehyangit --mem=8G
-# salloc --time=1:30:0 --nodes=1 --ntasks=1 --cpus-per-task=16 --account=def-ehyangit --mem=8G
-# sq
-# scancel {JOGID}
-# source ~/PROJECT_AH/CKD_venv/bin/activate
-# ctrl+B [
-# ctrl+B c : new window
-# ctrl+B D
 
 
 def parse_option(add_help=True):
@@ -219,7 +197,6 @@ def prepare_dir(opt):
     create_folder(opt.output_dir)
 
     base_folder = os.path.join(opt.output_dir, opt.model_name)
-    # opt.trial_folder = create_trial_folder(base_folder)
     opt.trial_folder = os.path.join(base_folder, "trial_{}".format(opt.trial))
     create_folder(opt.trial_folder)
     
@@ -577,7 +554,7 @@ def main(opt):
         return
     
     # routine
-    print("~Start training")
+    print("\n==>Start:")
     for epoch in range(opt.start_epoch, opt.epochs+1):
         if opt.distributed:
             train_sampler.set_epoch(epoch)
@@ -586,10 +563,8 @@ def main(opt):
         print("\n==> training...")
         time1 = time.time()
         if epoch == 0:
-            # train with default settings (Validation)
             train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, scaler, backward=False)
         else:
-            # train
             train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, scaler)
             if opt.lr_scheduler_enable:
                 lr_scheduler.step()
