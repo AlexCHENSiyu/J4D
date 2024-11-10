@@ -1,4 +1,4 @@
-# JPEG-Inspired-DL
+# Learned JPEG Compression for DNN Vision (J4D)
 This zip file is for reproducing the experimental results in our paper [*Learned JPEG Compression for DNN Vision*] submitted at CVPR 2025.
 
 <p align="center">
