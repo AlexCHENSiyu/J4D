@@ -333,7 +333,7 @@ def validate_with_output(val_loader, model, criterion, opt):
 import helper.imagenet_utils as imagenet_utils
 import warnings
 
-def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, model_ema=None, scaler=None, backward=True):
+def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, scaler=None, backward=True):
     model.train()
     
     metric_logger = imagenet_utils.MetricLogger(delimiter="  ")
@@ -370,12 +370,6 @@ def train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, mo
                 if opt.clip_grad_norm is not None:
                     nn.utils.clip_grad_norm_(model.parameters(), opt.clip_grad_norm)
                 optimizer.step()
-
-            if model_ema and idx % opt.model_ema_steps == 0:
-                model_ema.update_parameters(model)
-                if epoch < opt.lr_warmup_epochs:
-                    # Reset ema buffer to keep copying weights during warmup period
-                    model_ema.n_averaged.fill_(0)
 
         # ===================meters=====================
         

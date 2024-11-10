@@ -1,6 +1,4 @@
 from .resnet import *
-from .densenet import *
-from .densenet3 import *
 from .imagenet_models import *
 
 def load_model(name, num_classes=10, pretrained=False, **kwargs):

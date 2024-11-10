@@ -10,20 +10,10 @@ import random
 import HDQ
 import rate_calc
 import os
-# import cv2
-# from matplotlib.pyplot import figure
+from torchaudio.functional import convolve
 
-# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 smallest_float32 = torch.finfo(torch.float32).tiny
 largest_float32 = torch.finfo(torch.float32).max
-
-try:
-    import torchaudio
-    TORCHAUDIO_AVAILABLE = True
-    print("use torchaudio")
-except ImportError:
-    TORCHAUDIO_AVAILABLE = False
-    print("use custom_convolve")
 
 
 # Define the custom module
@@ -243,18 +233,8 @@ class JPEG_layer(nn.Module):
         # input_RGB shape:[bs,ch,width,height]
         bs,ch,w,h = input_RGB.shape # shape: [ 32 3 224 224 ]
         
-        if self.opt.Google_Method:
-            random_QF = random.randint(10, 90)
-            if random_QF >= 1:
-                if random_QF < 50:
-                    S = 5000 / random_QF
-                else:
-                    S = 200 - 2 * random_QF
-            scaled_lum_qtable = (S * self.lum_qtable) / 100
-            scaled_chrom_qtable = (S * self.chrom_qtable) / 100
-        else:
-            scaled_lum_qtable = self.lum_qtable
-            scaled_chrom_qtable = self.chrom_qtable
+        scaled_lum_qtable = self.lum_qtable
+        scaled_chrom_qtable = self.chrom_qtable
         
         input = input_RGB - 128
         input_DCT_block_batch = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)).unsqueeze(-1) # shape: [bs,ch,B,size,size,1]
@@ -358,16 +338,10 @@ class JPEG_layer(nn.Module):
         
         # reverse first so convolve later is along the right diagonal
         cmpf_lum_dc_shifted_tensor = torch.flip(cmpf_lum_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
-        if TORCHAUDIO_AVAILABLE:
-            cmpf_diff_lum_dc = torchaudio.functional.convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
-        else:
-            cmpf_diff_lum_dc = custom_convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
+        cmpf_diff_lum_dc = convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [bs,ch,B,9]
             
         cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [bs,ch,B,5]
-        if TORCHAUDIO_AVAILABLE:
-            cmpf_diff_chrom_dc = torchaudio.functional.convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
-        else:
-            cmpf_diff_chrom_dc = custom_convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
+        cmpf_diff_chrom_dc = convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [bs,ch,B,9]
         
         indexes_diff_lum_dc = self.get_diff_indexes(indexes_lum_dc, indexes_lum_dc_shifted) # shape: [bs,ch,B,9]
         indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [bs,ch,B,9]
@@ -552,19 +526,8 @@ class JPEG_layer_transformer(nn.Module):
         ch,w,h = input_RGB.shape
         # print("input_RGB shape[", bs,ch,w,h,']')
         
-        if self.opt.Google_Method:
-            if self.QF_value >= 1:
-                if self.QF_value < 50:
-                    S = 5000 / self.QF_value
-                else:
-                    S = 200 - 2 * self.QF_value
-            scaled_lum_qtable = (S * self.lum_qtable) / 100
-            scaled_chrom_qtable = (S * self.chrom_qtable) / 100
-            scaled_lum_qtable = torch.clamp(torch.round(scaled_lum_qtable), 1, 255)
-            scaled_chrom_qtable = torch.clamp(torch.round(scaled_chrom_qtable), 1, 255)
-        else:
-            scaled_lum_qtable = self.lum_qtable
-            scaled_chrom_qtable = self.chrom_qtable
+        scaled_lum_qtable = self.lum_qtable
+        scaled_chrom_qtable = self.chrom_qtable
         
         # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
         input = input_RGB - 128
@@ -632,61 +595,6 @@ class JPEG_layer_transformer(nn.Module):
         
         return norm_img, sampled_idx_space, lum_dc_entropy, chrom_dc_entropy, lum_ac_entropy, chrom_ac_entropy
 
-    
-    # def forward(self, input_RGB):
-    #     # input_RGB shape:[bs,ch,width,height]
-    #     ch,w,h = input_RGB.shape
-    #     # print("input_RGB shape[", bs,ch,w,h,']')
-        
-    #     scaled_lum_qtable = self.lum_qtable
-    #     scaled_chrom_qtable = self.chrom_qtable
-        
-    #     # mean_per_image = input.mean(dim=(2, 3), keepdim=True)  # Shape (N, C, 1, 1)
-    #     input = input_RGB - 128
-    #     input_DCT = self.block_dct(blockify(rgb_to_ycbcr(input), self.block_size)) # shape: [ch,B,size,size]
-
-    #     input_lum   = input_DCT[0:1, ...] 
-    #     input_chrom = input_DCT[1:3, ...] 
-
-    #     # Q_u Quantization, shape: [ch,B,size,size]
-    #     quantized_lum = input_lum / scaled_lum_qtable
-    #     quantized_chrom = input_chrom / scaled_chrom_qtable
-        
-    #     rounded_lum   = torch.round(quantized_lum)     # shape: [ch,B,size,size]
-    #     rounded_chrom = torch.round(quantized_chrom)   # shape: [ch,B,size,size]
-    #     rounded_lum   =  torch.clamp(rounded_lum, min=self.low_level, max=self.high_level)
-    #     rounded_chrom =  torch.clamp(rounded_chrom, min=self.low_level, max=self.high_level)
-        
-    #     # Dequantization
-    #     dequantized_lum = rounded_lum * scaled_lum_qtable
-    #     dequantized_chrom = rounded_chrom * scaled_chrom_qtable
-    #     dequantized_DCT = torch.cat((dequantized_lum, dequantized_chrom), 0)
-        
-    #     norm_img =  ycbcr_to_rgb(deblockify(self.block_idct(dequantized_DCT), (self.img_shape[0], self.img_shape[1])))
-    #     norm_img += 128
-    #     norm_img = torch.clamp(norm_img, min=0.0, max=255.0)
-        
-    #     # create the idx_space to calculate Bpp
-    #     idx_space = torch.cat((rounded_lum, rounded_chrom), 0)
-    #     idx_space = deblockify(idx_space, (self.img_shape[0], self.img_shape[1]))
-        
-    #     # Here I am doing the same effect of a tensor by using Scale2One then normalize using the standard normalization
-    #     norm_img = self.normalize(self.Scale2One(norm_img))
-        
-    #     # reshaped_input_RGB = input_RGB.permute(1, 2, 0)
-    #     # image_input_RGB = reshaped_input_RGB.numpy() / 255.0
-    #     # image_input_RGB = np.clip(image_input_RGB, 0, 1)
-        
-    #     # reshaped_norm_img = norm_img.permute(1, 2, 0)
-    #     # image_norm_img = reshaped_norm_img.numpy()
-    #     # image_norm_img = np.clip(image_norm_img, 0, 1)
-
-    #     # plt.imsave(os.path.join(self.opt.trial_folder,'input_RGB.png'),image_input_RGB)
-    #     # plt.imsave(os.path.join(self.opt.trial_folder,'norm_img.png'), image_norm_img)
-        
-    #     return norm_img, idx_space, 0, 0, 0, 0
-    
-    
 
     def calculate_dc_entropy(self, idx_lum, idx_chrom, cmpf_mask_lum, cmpf_mask_chrom):
         # get the entropy of DC part.
@@ -722,16 +630,10 @@ class JPEG_layer_transformer(nn.Module):
         
         # reverse first so convolve later is along the right diagonal
         cmpf_lum_dc_shifted_tensor = torch.flip(cmpf_lum_dc_shifted, dims=[-1]) # shape: [ch,B,5]
-        if TORCHAUDIO_AVAILABLE:
-            cmpf_diff_lum_dc = torchaudio.functional.convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [ch,B,9]
-        else:
-            cmpf_diff_lum_dc = custom_convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [ch,B,9]
+        cmpf_diff_lum_dc = convolve(cmpf_lum_dc_shifted_tensor, cmpf_lum_dc) # shape: [ch,B,9]
         
         cmpf_chrom_dc_shifted_tensor = torch.flip(cmpf_chrom_dc_shifted, dims=[-1]) # shape: [ch,B,5]
-        if TORCHAUDIO_AVAILABLE:
-            cmpf_diff_chrom_dc = torchaudio.functional.convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [ch,B,9]
-        else:
-            cmpf_diff_chrom_dc = custom_convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [ch,B,9]
+        cmpf_diff_chrom_dc = convolve(cmpf_chrom_dc_shifted_tensor, cmpf_chrom_dc) # shape: [ch,B,9]
         
         indexes_diff_lum_dc = self.get_diff_indexes(indexes_lum_dc, indexes_lum_dc_shifted) # shape: [ch,B,9]
         indexes_diff_chrom_dc = self.get_diff_indexes(indexes_chrom_dc, indexes_chrom_dc_shifted) # shape: [ch,B,9]
@@ -1019,24 +921,6 @@ def quantizationTable(QF=50, Luminance=True):
     return quantizationTableData
 
 
-# old method
-# def qTable_sensitivity(path, constant=1.0, Luminance=True, qmax=255):
-#     Y_path = os.path.join(path, "Y.npy")
-#     Cb_path = os.path.join(path, "Cb.npy")
-#     Cr_path = os.path.join(path, "Cr.npy")
-#     Y_sensitivity = inverse_zigzag_np(np.load(Y_path).reshape(8, 8).flatten())
-#     Cb_sensitivity = inverse_zigzag_np(np.load(Cb_path).reshape(8, 8).flatten())
-#     Cr_sensitivity = inverse_zigzag_np(np.load(Cr_path).reshape(8, 8).flatten())
-#     Y_mean = np.mean(1 / Y_sensitivity)
-    
-#     if Luminance:
-#         Y_qtable = np.clip(constant / (Y_sensitivity * Y_mean), 1, qmax)
-#         return Y_qtable
-#     else:
-#         CbCr_qtable = np.clip(2 * constant / ((Cb_sensitivity + Cr_sensitivity) * Y_mean), 1, qmax)
-#         return CbCr_qtable
-
-# new method
 def qTable_sensitivity(path, constant=1.0, Luminance=True, qmax=255):
     Y_path = os.path.join(path, "Y.npy")
     Cb_path = os.path.join(path, "Cb.npy")
@@ -1324,79 +1208,3 @@ def load_3x3_weight(model_name = "Alexnet"):
             rt_arr[i, j] = seq_weight[i*3+j]
     return torch.Tensor(rt_arr)
 
-
-def custom_convolve(x: torch.Tensor, y: torch.Tensor, mode: str = "full") -> torch.Tensor:
-    """
-    Convolve inputs along their last dimension using direct convolution.
-
-    Args:
-        x (torch.Tensor): First convolution operand, with shape `(..., N)`.
-        y (torch.Tensor): Second convolution operand, with shape `(..., M)`.
-        mode (str, optional): One of ("full", "valid", "same"). Defaults to "full".
-
-            * "full": Returns the full convolution result, with shape `(..., N + M - 1)`.
-            * "valid": Returns the segment of the full convolution result corresponding to where
-              the two inputs overlap completely, with shape `(..., max(N, M) - min(N, M) + 1)`.
-            * "same": Returns the center segment of the full convolution result, with shape `(..., N)`.
-
-    Returns:
-        torch.Tensor: The result of convolving `x` and `y`.
-    """
-    # Ensure compatibility of shapes
-    if x.size(-1) < y.size(-1):
-        x, y = y, x
-
-    if x.shape[:-1] != y.shape[:-1]:
-        new_shape = [max(i, j) for i, j in zip(x.shape[:-1], y.shape[:-1])]
-        x = x.broadcast_to(new_shape + [x.shape[-1]])
-        y = y.broadcast_to(new_shape + [y.shape[-1]])
-
-    x_size, y_size = x.size(-1), y.size(-1)
-
-    # Flip y for convolution
-    y_flipped = y.flip(-1)
-
-    # Compute padding size for "full" mode
-    padding = y_size - 1
-
-    # Reshape tensors for conv operation (supports multi-dimensional input)
-    reshaped_x = x.reshape(1, -1, x.size(-1))
-    reshaped_y = y_flipped.reshape(-1, 1, y_size)
-
-    # Perform grouped 1D convolution
-    output = torch.nn.functional.conv1d(
-        input=reshaped_x,
-        weight=reshaped_y,
-        stride=1,
-        padding=padding,
-        groups=reshaped_y.size(0)
-    )
-
-    # Reshape the output back to the original shape
-    output_shape = x.shape[:-1] + (-1,)
-    result = output.view(output_shape)
-
-    # Apply mode to get the correct output length
-    if mode == "full":
-        return result
-    elif mode == "valid":
-        valid_length = max(x_size, y_size) - min(x_size, y_size) + 1
-        start_idx = padding
-        end_idx = start_idx + valid_length
-        return result[..., start_idx:end_idx]
-    elif mode == "same":
-        start_idx = (result.size(-1) - x_size) // 2
-        end_idx = start_idx + x_size
-        return result[..., start_idx:end_idx]
-    else:
-        raise ValueError(f"Invalid mode: {mode}. Must be one of ('full', 'valid', 'same').")
-
-
-# def plot_confidence_interval(x, top, bottom, mean, horizontal_line_width=0.25, color='#2187bb',label=None,alpha=1):
-#     left = x - horizontal_line_width / 2
-#     right = x + horizontal_line_width / 2
-#     plt.plot([x, x], [top, bottom], color=color,alpha=0.7*alpha)
-#     plt.plot([left, right], [top, top], color=color,alpha=0.7*alpha)
-#     plt.plot([left, right], [bottom, bottom], color=color,alpha=0.7*alpha)
-#     plt.plot(x, mean, 'o', color=color, label=label,alpha=alpha)
-#     return mean

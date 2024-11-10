@@ -108,10 +108,7 @@ def parse_option(add_help=True):
     parser.add_argument('--QF_Inital', action='store_true')
     parser.add_argument('--Sensitivity_Inital', action='store_true')
     parser.add_argument('--HDQ_baseline', help="to get the HDQ baseline for this model and dataset", action='store_true')
-    parser.add_argument('--Q_u_baseline', help="to get the Q_u baseline for this model and dataset", action='store_true')
     parser.add_argument('--Test_Correlation', help="to get the Entropy BPP correlation", action='store_true')
-    parser.add_argument('--Test_sensitivity_constant', help="to get the best sensitivity constant", action='store_true')
-    parser.add_argument('--Google_Method', help="use google training strategy to train the JPEG layer", action='store_true')
     
     # JPEG Hyper
     parser.add_argument('--JPEG_alpha', type=float, default=20.0, help='Tempurature scaling')
@@ -160,9 +157,6 @@ def parse_option(add_help=True):
     # distributed training parameters
     parser.add_argument("--world_size", default=1, type=int, help="number of distributed processes")
     parser.add_argument("--dist_url", default="env://", type=str, help="url used to set up distributed training")
-    parser.add_argument("--model_ema", action="store_true", help="enable tracking Exponential Moving Average of model parameters")
-    parser.add_argument("--model_ema_steps", type=int, default=32, help="the number of iterations that controls how often to update the EMA model (default: 32)")
-    parser.add_argument("--model_ema_decay", type=float, default=0.99998,help="decay factor for Exponential Moving Average of model parameters (default: 0.99998)")
     parser.add_argument("--use_deterministic_algorithms", action="store_true", help="Forces the use of deterministic algorithms only.")
     parser.add_argument("--interpolation", default="bilinear", type=str, help="the interpolation method (default: bilinear)")
     parser.add_argument("--val_resize_size", default=256, type=int, help="the resize size used for validation (default: 256)")
@@ -425,7 +419,6 @@ def main(opt):
         model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
 
     # loss function
-    # criterion = nn.CrossEntropyLoss(label_smoothing=opt.label_smoothing)
     criterion = nn.CrossEntropyLoss()
     if torch.cuda.is_available():
         model = model.to(device)
@@ -481,15 +474,6 @@ def main(opt):
     if opt.distributed:
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[opt.gpu])
         model_without_ddp = model.module
-
-    # model ema
-    model_ema = None
-    if opt.model_ema:
-        adjust = opt.world_size * opt.batch_size * opt.model_ema_steps / opt.epochs
-        alpha = 1.0 - opt.model_ema_decay
-        alpha = min(1.0, alpha * adjust)
-        model_ema = imagenet_utils.ExponentialMovingAverage(model_without_ddp, device=device, decay=1.0 - alpha)
-        model_ema_without_ddp = model_ema.module
         
     # resume training
     if opt.resume:
@@ -498,8 +482,6 @@ def main(opt):
         if not opt.test_only:
             optimizer.load_state_dict(checkpoint["optimizer"])
             lr_scheduler.load_state_dict(checkpoint["lr_scheduler"])
-        if model_ema:
-            model_ema.load_state_dict(checkpoint["model_ema"])
         if scaler:
             scaler.load_state_dict(checkpoint["scaler"])
 
@@ -525,29 +507,6 @@ def main(opt):
                     log.write(f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n")
         return
     
-    if opt.Q_u_baseline:
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-        for QF_value in range(1, 101):
-            HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(val_crop_size, val_crop_size, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
-            test_loader.dataset.transform = HDQ_preprocess
-            test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = torch.tensor(quantizationTable(QF=QF_value, Luminance=True), dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-            test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = torch.tensor(quantizationTable(QF=QF_value, Luminance=False), dtype=torch.float32).unsqueeze(0).unsqueeze(0)
-            
-            time1 = time.time()
-            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
-            time2 = time.time()
-            
-            print('Total time {:.2f} s'.format(time2 - time1))
-            print("test_acc:", test_acc)
-            print("bpp:", bpp)
-            
-            HDQ_fname = os.path.join(opt.output_dir, "original_Q_u.txt")
-            with open(HDQ_fname, 'a') as log:
-                if (not hasattr(opt, 'rank') or opt.rank == 0):
-                    log.write(f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n")
-        return
-    
     # to plot BPP entropy correlation
     if opt.Test_Correlation:
         for QF_value in range(1,101): 
@@ -560,36 +519,7 @@ def main(opt):
             test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = lum_q_table.squeeze(0).detach().clone().cpu()
             test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = chrom_q_table.squeeze(0).detach().clone().cpu()
             
-            if not model_ema:
-                evaluate_correlation(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
-            else:
-                evaluate_correlation(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")         
-        return
-
-        # to plot BPP entropy correlation
-    if opt.Test_sensitivity_constant:
-        for constant_value in range(5,50,5): 
-            print("constant_value:", constant_value)
-            HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(224, 224, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
-            test_loader.dataset.transform = HDQ_preprocess
-
-            base_path = './save/{}/{}'.format(opt.dataset, opt.model)
-            lum_q_table = torch.tensor(qTable_sensitivity(path=base_path, constant=constant_value, Luminance=True, qmax=opt.max_Q_Step), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
-            chrom_q_table = torch.tensor(qTable_sensitivity(path=base_path, constant=constant_value, Luminance=False, qmax=opt.max_Q_Step), dtype=torch.float32).unsqueeze(0).unsqueeze(0).unsqueeze(-1)
-            test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = lum_q_table.detach().clone().cpu()
-            test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = chrom_q_table.detach().clone().cpu()
-            
-            if not model_ema:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
-            else:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")
-            
-            Sensitivity_fname = os.path.join(opt.output_dir, "Sensitivity_constant.txt")
-            with open(Sensitivity_fname, 'a') as log:
-                if (not hasattr(opt, 'rank') or opt.rank == 0):
-                    log.write(f"{constant_value}\t" + f"{test_acc:.15f}\t" + f"{bpp:.15f}\t" + "\n")
+            evaluate_correlation(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
         return
     
     # function for validation inference
@@ -628,12 +558,8 @@ def main(opt):
             test_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
             test_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
             
-            if not model_ema:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
-            else:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
+            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
+                evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
             
             print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
             print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
@@ -650,55 +576,6 @@ def main(opt):
                         log.write(line)
         return
     
-    # after training, do validation on QF for google's method
-    if opt.Google_Method:
-        torch.backends.cudnn.benchmark = False
-        torch.backends.cudnn.deterministic = True
-        
-        checkpoint = torch.load(os.path.join(opt.trial_folder, "model_last.pth"), map_location="cpu", weights_only=True)
-        model_without_ddp.load_state_dict(checkpoint["model"])
-        
-        opt.logs_test_fname = os.path.join(opt.trial_folder, "logs_test.txt")
-        with open(opt.logs_test_fname, 'a') as log:
-            if (not hasattr(opt, 'rank') or opt.rank == 0):
-                line =  'ep' + "\t" + 'test_acc' + "\t\t\t" + 'test_loss' + "\t\t\t" + 'bpp' + "\t\t\t\t\t" + \
-                        'test_lum_dc' + "\t\t\t" + 'test_chrom_dc' + "\t\t" + 'test_lum_ac' + "\t\t\t" + 'test_chrom_ac' + '\n'
-                log.write(line)
-        
-        for QF_value in [10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,91,92,93,94,95,96,97,98,99,100]:
-            print("QF_value", QF_value)
-            HDQ_preprocess = resize_compression(JPEG_layer_transforms(opt, img_shape=(val_crop_size, val_crop_size, 3), mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)))
-            test_loader.dataset.transform = HDQ_preprocess
-            
-            # catch the q_table and alpha for validate
-            test_loader.dataset.transform.compressor.jpeg_layer.lum_qtable = model_without_ddp.jpeg_layer.lum_qtable.squeeze(0).detach().clone().cpu()
-            test_loader.dataset.transform.compressor.jpeg_layer.chrom_qtable = model_without_ddp.jpeg_layer.chrom_qtable.squeeze(0).detach().clone().cpu()
-            test_loader.dataset.transform.compressor.jpeg_layer.alpha_lum = model_without_ddp.jpeg_layer.alpha_lum.squeeze(0).detach().clone().cpu()
-            test_loader.dataset.transform.compressor.jpeg_layer.alpha_chrom = model_without_ddp.jpeg_layer.alpha_chrom.squeeze(0).detach().clone().cpu()
-            test_loader.dataset.transform.compressor.jpeg_layer.QF_value = QF_value
-            
-            if not model_ema:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
-            else:
-                test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = \
-                    evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")            
-            
-            print("test_acc:", test_acc, "test_loss:", test_loss, "bpp:", bpp)
-            print("lum_dc:", test_lum_dc, "chrom_dc:", test_chrom_dc)
-            print("lum_ac:", test_lum_ac, "chrom_ac:", test_chrom_ac)
-            
-            # only one process can record
-            if (not hasattr(opt, 'rank') or opt.rank == 0):
-                # save test train acc and loss
-                with open(opt.logs_test_fname, 'a') as log:
-                    if (not hasattr(opt, 'rank') or opt.rank == 0):
-                        line =  f"{QF_value}\t" + f"{test_acc:.15f}\t" + f"{test_loss:.15f}\t" + f"{bpp:.15f}\t" + \
-                                f"{test_lum_dc:.15f}\t" + f"{test_chrom_dc:.15f}\t" + \
-                                f"{test_lum_ac:.15f}\t" + f"{test_chrom_ac:.15f}\n"
-                        log.write(line)
-        return
-    
     # routine
     print("~Start training")
     for epoch in range(opt.start_epoch, opt.epochs+1):
@@ -710,10 +587,10 @@ def main(opt):
         time1 = time.time()
         if epoch == 0:
             # train with default settings (Validation)
-            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, model_ema, scaler, backward=False)
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, scaler, backward=False)
         else:
             # train
-            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, model_ema, scaler)
+            train_acc, train_loss, train_lum_dc, train_chrom_dc, train_lum_ac, train_chrom_ac = train_JPEG(opt, model, criterion, optimizer, train_loader, device, epoch, scaler)
             if opt.lr_scheduler_enable:
                 lr_scheduler.step()
         time2 = time.time()
@@ -728,10 +605,7 @@ def main(opt):
         # validate
         print("\n==> validating...")
         time1 = time.time()
-        if not model_ema:
-            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
-        else:
-            test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_ema_without_ddp.underlying_model, criterion, test_loader, device=device, log_suffix="EMA")
+        test_acc, test_acc_top5, test_loss, bpp, test_lum_dc, test_chrom_dc, test_lum_ac, test_chrom_ac = evaluate_JPEG(opt, model_without_ddp.underlying_model, criterion, test_loader, device=device)
         time2 = time.time()
         print('Epoch [{}]: total time {:.5f} s'.format(epoch, time2-time1))
         
@@ -811,8 +685,6 @@ def main(opt):
         "model": model_without_ddp.state_dict(),
         "optimizer": optimizer.state_dict(),
         "lr_scheduler": lr_scheduler.state_dict()}
-    if model_ema:
-        checkpoint["model_ema"] = model_ema.state_dict()
     if scaler:
         checkpoint["scaler"] = scaler.state_dict()
     imagenet_utils.save_on_master(checkpoint, os.path.join(opt.trial_folder, "model_last.pth"))
