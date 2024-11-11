@@ -41,7 +41,7 @@ Both will save the rate-accuracy (R-A) results and optimized qtables after each 
 Based on the drived Senstivity, we have followed the following steps to initialize the Q-Tables for J4D. Here β refers to the constant scaling factor.
 ```
 max_value = max(1/Y_sens)
-q_y = β / (Y_sens  ·max_value)
+q_y = β / (Y_sens · max_value)
 q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 ```
 
