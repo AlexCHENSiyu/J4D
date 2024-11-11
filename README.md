@@ -38,47 +38,47 @@ Both will save the rate-accuracy (R-A) results and optimized qtables after each 
 
 
 ### Sensitivity-Based Initialization of Quantization Tables
-Based on the drived Senstivity, we have followed the following steps to initialize the Q-Tables for J4D.
+Based on the drived Senstivity, we have followed the following steps to initialize the Q-Tables for J4D. Here β refers to the constant scaling factor.
 ```
-factor = max(1/Y_sens)
-q_y = constand / (Y_sens * factor)
-q_cbcr = 2 * constand / ((Cb_sens + Cr_sens) * factor)
+max_value = max(1/Y_sens)
+q_y = β / (Y_sens  ·max_value)
+q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 ```
 
-### The sensitivity plots for 4 models on ImageNet and 3 models on CUB-200-2011 are shown as follows, alongside their corresponding initialization
-All those sentivitity values have been store under the correposing model and dataset folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
+### The sensitivity plots for 4 DNN models on ImageNet and 3 DNN models on CUB-200-2011 are shown as follows, alongside their corresponding initialization
+All those sentivitity values have been store under the correposing dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; justify-items: center;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <img src="./Diagrams/imagenet_mobilenet_v2_sensitivity.png" width="100%" height="100%">
         <figcaption style="font-size: larger;">ImageNet (MobileNetV2)</figcaption>
+        <img src="./Diagrams/imagenet_mobilenet_v2_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <img src="./Diagrams/imagenet_Mnasnet_sensitivity.png" width="100%" height="100%">
         <figcaption style="font-size: larger;">ImageNet (MnasNet)</figcaption>
+        <img src="./Diagrams/imagenet_Mnasnet_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <img src="./Diagrams/imagenet_Swin_T_sensitivity.png" width="100%" height="100%">
         <figcaption style="font-size: larger;">ImageNet (Swin_T)</figcaption>
+        <img src="./Diagrams/imagenet_Swin_T_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <img src="./Diagrams/imagenet_ConvNeXt_tiny_sensitivity.png" width="100%" height="100%">
         <figcaption style="font-size: larger;">ImageNet (ConvNeXt-tiny)</figcaption>
+        <img src="./Diagrams/imagenet_ConvNeXt_tiny_sensitivity.png" width="100%" height="100%">
     </figure>
 </div>
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <img src="./Diagrams/cub200_resnet18_sensitivity.png" width="100%" height="100%">
         <figcaption style="font-size: larger;">CUB-200-2011 (ResNet18)</figcaption>
+        <img src="./Diagrams/cub200_resnet18_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <img src="./Diagrams/cub200_mobilenet_v2_sensitivity.png" width="100%" height="100%">
         <figcaption style="font-size: larger;">CUB-200-2011 (MobileNetV2)</figcaption>
+        <img src="./Diagrams/cub200_mobilenet_v2_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <img src="./Diagrams/cub200_Mnasnet_sensitivity.png" width="100%" height="100%">
         <figcaption style="font-size: larger;">CUB-200-2011 (MnasNet)</figcaption>
+        <img src="./Diagrams/cub200_Mnasnet_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;"></figure>
 </div>
