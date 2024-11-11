@@ -24,7 +24,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10
                                     --Q_initial_QF 10 --weight_lum 0.1 --weight_chrom 0.1 
 ```
 
-Use this command for sensitivity-based initilization traing: 
+Use this command for sensitivity-based initilization training: 
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10427 -nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
                                 --dataset "imagenet" --model "Swin_T" --num_workers 64 \
