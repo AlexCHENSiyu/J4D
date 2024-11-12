@@ -40,6 +40,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10
                                 --val_resize_size 232
 ```
 Both will save the rate-accuracy (R-A) results and optimized qtables after each epoch to a corresponding folder under `./save/imagenet`.
+Follow the `--val_resize_size` used for each model in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet). For example, for ConvNeXt_tiny, the `--val_resize_size` is 236 while for Swin_T it is 232.
 
 
 ### Sensitivity-Based Initialization of Quantization Tables
