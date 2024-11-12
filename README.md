@@ -22,7 +22,7 @@ For ImageNet training, please use [this bash file](./run_imagenet.sh).
 Or use this command for QF-based initilization training: 
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10427 --nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
-                                    --dataset "imagenet" --model "mobilenet_v2" --num_workers 64 \
+                                    --dataset "imagenet" --model "model_name" --num_workers 64 \
                                     --data_path "your_dataset_path" \
                                     --epochs 20 --trial 1 --batch_size 64 \
                                     --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
@@ -32,7 +32,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10
 Use this command for sensitivity-based initilization training: 
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10427 -nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
-                                --dataset "imagenet" --model "Swin_T" --num_workers 64 \
+                                --dataset "imagenet" --model "model_name" --num_workers 64 \
                                 --data_path "your_dataset_path" \
                                 --epochs 20 --trial 1 --batch_size 64 \
                                 --JPEG_alpha 100  --JPEG_learning_rate 0.01 \
