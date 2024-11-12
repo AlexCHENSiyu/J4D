@@ -12,7 +12,7 @@ The code is tested with Python 3.9, CUDA 11.7, and based on the `requirements.tx
 
 
 ## Differentiable JPEG Codec and Rate Estimator
-THe code for implementing differentiable JPEG codec and rate estimator can be found in [this file](./helper/JPEG_layer.py). 
+The code for implementing differentiable JPEG codec and rate estimator can be found in [this file](./helper/JPEG_layer.py). 
 
 To note that, since we use 11 bits to encompass all possible reconstruction levels, where L = 2<sup>b-1</sup> - 1, it will have some computation overheads since the softmax operation in quantizers with $11$ bits is time-consuming. To address this issue, each CPMF is modified to be concentrated proportionally on the top five values with the rest of the conditional probabilities to be 0.
 
