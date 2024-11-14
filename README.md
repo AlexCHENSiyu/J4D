@@ -12,7 +12,7 @@ The code is tested with Python 3.9, CUDA 11.7, and based on the `requirements.tx
 
 
 ## Differentiable JPEG Codec and Rate Estimator
-The code for implementing differentiable JPEG codec and rate estimator can be found in [this file](./helper/JPEG_layer.py). Note that in this file, to reduce the additional training complexity introduced by $\mathcal{Q}_d$, we constrain the support of every CPMF to be the Top-5 closest points in $\mathcal{\hat{A}}$ to the coefficient $C$ being quantized
+The code for implementing differentiable JPEG codec and rate estimator can be found in [this file](./helper/JPEG_layer.py). Note that in this file, to reduce the additional training complexity introduced by $\mathcal{Q}_d$, we constrain the support of every CPMF to be the Top-5 closest points in $\hat{\mathcal{A}}$ to the coefficient $C$ being quantized
 
 ## Training J4D
 For ImageNet training, please use [this bash file](./run_imagenet.sh).
