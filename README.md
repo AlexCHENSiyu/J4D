@@ -89,17 +89,3 @@ All those sentivitity values have been store under the correposing dataset and m
 
 ## Acknowledgements
 This repo is based on the code given in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet) for ImageNet.
-
-
-<!-- ## Citation
-```
-    @inproceedings{
-    anonymous2024learned,
-    title={Learned JPEG Compression for DNN Vision},
-    author={Anonymous},
-    booktitle={Submitted to The Conference on Computer Vision and Pattern Recognition 2025},
-    year={2024},
-    url={https://openreview.net/forum?id=te2IdORabL},
-    note={under review}
-    }
-``` -->
