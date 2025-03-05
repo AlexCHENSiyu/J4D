@@ -57,19 +57,19 @@ All those sentivitity values have been store under the correposing dataset and m
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">ImageNet-1k (MobileNetV2)</figcaption>
+        <figcaption style="font-size: 2.5em;">ImageNet-1k (MobileNetV2)</figcaption>
         <img src="./Diagrams/imagenet_mobilenet_v2_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">ImageNet-1k (MnasNet)</figcaption>
+        <figcaption style="font-size: 2.5em;">ImageNet-1k (MnasNet)</figcaption>
         <img src="./Diagrams/imagenet_Mnasnet_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">ImageNet-1k (Swin_T)</figcaption>
+        <figcaption style="font-size: 2.5em;">ImageNet-1k (Swin_T)</figcaption>
         <img src="./Diagrams/imagenet_Swin_T_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">ImageNet-1k (ConvNeXt-tiny)</figcaption>
+        <figcaption style="font-size: 2.5em;">ImageNet-1k (ConvNeXt-tiny)</figcaption>
         <img src="./Diagrams/imagenet_ConvNeXt_tiny_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;"></figure>
@@ -77,15 +77,15 @@ All those sentivitity values have been store under the correposing dataset and m
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: lar1.5emger;">CUB-200-2011 (ResNet18)</figcaption>
+        <figcaption style="font-size: 2.5em;">CUB-200-2011 (ResNet18)</figcaption>
         <img src="./Diagrams/cub200_resnet18_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">CUB-200-2011 (MobileNetV2)</figcaption>
+        <figcaption style="font-size: 2.5em;">CUB-200-2011 (MobileNetV2)</figcaption>
         <img src="./Diagrams/cub200_mobilenet_v2_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">CUB-200-2011 (MnasNet)</figcaption>
+        <figcaption style="font-size: 2.5em;">CUB-200-2011 (MnasNet)</figcaption>
         <img src="./Diagrams/cub200_Mnasnet_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;"></figure>
@@ -93,33 +93,33 @@ All those sentivitity values have been store under the correposing dataset and m
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">Pascal-VOC-2012 (DeepLabv3-MobileNet)</figcaption>
+        <figcaption style="font-size: 2.5em;">Pascal-VOC-2012 (DeepLabv3-MobileNet)</figcaption>
         <img src="./Diagrams/voc_mobilenet_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">Pascal-VOC-2012 (DeepLabv3-MobileNet)</figcaption>
+        <figcaption style="font-size: 2.5em;">Pascal-VOC-2012 (DeepLabv3-MobileNet)</figcaption>
         <img src="./Diagrams/voc_resnet50_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;"></figure>
 </div>
 
 
-# Visual comparison of compressed images resulting from the default JPEG and J4D
+# Visual Comparison of Compressed Images Resulting from Default JPEG and J4D
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">MobileNetV2 (ImageNet-1k)</figcaption>
+        <figcaption style="font-size: 2.5em;">MobileNetV2 (ImageNet-1k)</figcaption>
         <img src="./Diagrams/low_rate_1.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">MobileNetV2 (ImageNet-1k)</figcaption>
+        <figcaption style="font-size: 2.5em;">MobileNetV2 (ImageNet-1k)</figcaption>
         <img src="./Diagrams/low_rate_2.png" width="100%" height="100%">
-    </figure>1.5em
+    </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: 1.5em;">DeepLabv3-MobileNet (Pascal-VOC-2012)</figcaption>
+        <figcaption style="font-size: 2.5em;">DeepLabv3-MobileNet (Pascal-VOC-2012)</figcaption>
         <img src="./Diagrams/seg_low_rate_1.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal-VOC-2012)</figcaption>
+        <figcaption style="font-size: 2.5em;">DeepLabv3-MobileNet (Pascal-VOC-2012)</figcaption>
         <img src="./Diagrams/seg_low_rate_2.png" width="100%" height="100%">
     </figure>
 </div>
