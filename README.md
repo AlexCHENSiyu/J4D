@@ -15,7 +15,7 @@ The code is tested with Python 3.9, CUDA 11.7, and based on the `requirements.tx
 The code for implementing differentiable JPEG codec and rate estimator can be found in [this file](./helper/JPEG_layer.py). Note that in this file, to reduce the additional training complexity introduced by quantizer $\mathcal{Q}_d$, we constrain the support of every CPMF to be the Top-5 closest points in $\hat{\mathcal{A}}$ to the coefficient $C$ being quantized.
 
 ## Training J4D
-For ImageNet training, please use [this bash file](./run_imagenet.sh).
+For ImageNet-1k training, please use [this bash file](./run_imagenet.sh).
 
 Or use this command for QF-based initilization training by setting the correct `data_path` and `model_name`: 
 ```
@@ -49,24 +49,24 @@ q_y = β / (Y_sens · max_value)
 q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 ```
 
-### The sensitivity plots for 4 DNN models on ImageNet and 3 DNN models on CUB-200-2011 are shown as follows, alongside their corresponding initialization
+### The sensitivity plots for 4 DNN models on ImageNet-1k and 3 DNN models on CUB-200-2011 are shown as follows, alongside their corresponding initialization
 All those sentivitity values have been store under the correposing dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">ImageNet (MobileNetV2)</figcaption>
+        <figcaption style="font-size: larger;">ImageNet-1k (MobileNetV2)</figcaption>
         <img src="./Diagrams/imagenet_mobilenet_v2_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">ImageNet (MnasNet)</figcaption>
+        <figcaption style="font-size: larger;">ImageNet-1k (MnasNet)</figcaption>
         <img src="./Diagrams/imagenet_Mnasnet_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">ImageNet (Swin_T)</figcaption>
+        <figcaption style="font-size: larger;">ImageNet-1k (Swin_T)</figcaption>
         <img src="./Diagrams/imagenet_Swin_T_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">ImageNet (ConvNeXt-tiny)</figcaption>
+        <figcaption style="font-size: larger;">ImageNet-1k (ConvNeXt-tiny)</figcaption>
         <img src="./Diagrams/imagenet_ConvNeXt_tiny_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;"></figure>
@@ -104,19 +104,19 @@ All those sentivitity values have been store under the correposing dataset and m
 ### Visual comparison of compressed images resulting from the default JPEG and J4D
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">MobileNetV2 (ImageNet)</figcaption>
+        <figcaption style="font-size: larger;">MobileNetV2 (ImageNet-1k)</figcaption>
         <img src="./Diagrams/low_rate_1.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">MobileNetV2 (ImageNet)</figcaption>
+        <figcaption style="font-size: larger;">MobileNetV2 (ImageNet-1k)</figcaption>
         <img src="./Diagrams/low_rate_2.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal-VOC-2012)</figcaption>
         <img src="./Diagrams/seg_low_rate_1.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal-VOC-2012)</figcaption>
         <img src="./Diagrams/seg_low_rate_2.png" width="100%" height="100%">
     </figure>
 </div>
@@ -124,4 +124,4 @@ All those sentivitity values have been store under the correposing dataset and m
 
 
 ## Acknowledgements
-This repo is based on the code given in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet) for ImageNet.
+This repo is based on the code given in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet) for ImageNet-1k.
