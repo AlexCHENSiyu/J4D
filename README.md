@@ -69,6 +69,7 @@ All those sentivitity values have been store under the correposing dataset and m
         <figcaption style="font-size: larger;">ImageNet (ConvNeXt-tiny)</figcaption>
         <img src="./Diagrams/imagenet_ConvNeXt_tiny_sensitivity.png" width="100%" height="100%">
     </figure>
+    <figure style="margin: 6px;"></figure>
 </div>
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
@@ -83,6 +84,18 @@ All those sentivitity values have been store under the correposing dataset and m
     <figure style="margin: 6px;">
         <figcaption style="font-size: larger;">CUB-200-2011 (MnasNet)</figcaption>
         <img src="./Diagrams/cub200_Mnasnet_sensitivity.png" width="100%" height="100%">
+    </figure>
+    <figure style="margin: 6px;"></figure>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
+    <figure style="margin: 6px;">
+        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <img src="./Diagrams/voc_mobilenet_sensitivity.png" width="100%" height="100%">
+    </figure>
+    <figure style="margin: 6px;">
+        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <img src="./Diagrams/voc_resnet50_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;"></figure>
 </div>
