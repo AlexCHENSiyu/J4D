@@ -244,30 +244,12 @@ def load_data(traindir, valdir, opt):
     val_resize_size, val_crop_size, train_crop_size = (opt.val_resize_size, opt.val_crop_size, opt.train_crop_size,)
     interpolation = InterpolationMode(opt.interpolation)
 
-    # print("~ Loading training data")
-    start_time = time.time()
     cache_path = _get_cache_path(traindir)
     if opt.cache_dataset and os.path.exists(cache_path):
         print(f"Loading dataset_train from {cache_path}")
         dataset, _ = torch.load(cache_path, weights_only=False)
     else:
-        auto_augment_policy = getattr(opt, "auto_augment", None)
-        random_erase_prob = getattr(opt, "random_erase", 0.0)
-        ra_magnitude = getattr(opt, "ra_magnitude", None)
-        augmix_severity = getattr(opt, "augmix_severity", None)
         dataset = torchvision.datasets.ImageFolder(traindir,
-            # presets.ClassificationPresetTrain(
-            #     crop_size=train_crop_size,
-            #     interpolation=interpolation,
-            #     auto_augment_policy=auto_augment_policy,
-            #     random_erase_prob=random_erase_prob,
-            #     ra_magnitude=ra_magnitude,
-            #     augmix_severity=augmix_severity,
-            #     backend=opt.backend,
-            #     use_v2=opt.use_v2,
-            #     mean=(0.,0.,0.),
-            #     std=(1/255., 1/255., 1/255.)),)
-        
             presets.ClassificationPresetEval(
                 crop_size=val_crop_size,
                 resize_size=val_resize_size,
@@ -281,14 +263,10 @@ def load_data(traindir, valdir, opt):
             print(f"Saving dataset_train to {cache_path}")
             imagenet_utils.mkdir(os.path.dirname(cache_path))
             imagenet_utils.save_on_master((dataset, traindir), cache_path)
-    # print("Took", time.time() - start_time)
 
-    # print("~ Loading validation data")
     cache_path = _get_cache_path(valdir)
     if opt.cache_dataset and os.path.exists(cache_path):
-        # Attention, as the transforms are also cached!
         print(f"Loading dataset_test from {cache_path}")
-        # TODO: this could probably be weights_only=True
         dataset_test, _ = torch.load(cache_path, weights_only=False)
     else:
         if opt.weights and opt.test_only:
@@ -310,7 +288,6 @@ def load_data(traindir, valdir, opt):
             imagenet_utils.mkdir(os.path.dirname(cache_path))
             imagenet_utils.save_on_master((dataset_test, valdir), cache_path)
 
-    # print("~ Creating data loaders")
     if opt.distributed:
         if hasattr(opt, "ra_sampler") and opt.ra_sampler:
             train_sampler = RASampler(dataset, shuffle=True, repetitions=opt.ra_reps)

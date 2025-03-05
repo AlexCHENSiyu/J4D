@@ -17,7 +17,7 @@ The code for implementing differentiable JPEG codec and rate estimator can be fo
 ## Training J4D
 For ImageNet training, please use [this bash file](./run_imagenet.sh).
 
-Or use this command for QF-based initilization training: 
+Or use this command for QF-based initilization training by setting the correct `data_path` and `model_name`: 
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10427 --nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --dataset "imagenet" --model "model_name" --num_workers 64 \
