@@ -39,12 +39,12 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10
                                 --val_resize_size 232
 ```
 
-Both will save the rate-accuracy (R-A) results and optimized qtables after each epoch to a corresponding folder under `./save/imagenet`, alongside an output example.
+Both will save the rate-accuracy (R-A) results and optimized quantization tables after each epoch to a corresponding folder under `./save/imagenet`, alongside an output example.
 Follow the `--val_resize_size` used for each model in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet). For example, for ConvNeXt_tiny, the `--val_resize_size` is 236 while for Swin_T it is 232.
 
 
 ## Sensitivity-Based Initialization Of Quantization Tables
-Based on the drived Senstivity, we have followed the following steps to initialize the Q-Tables for J4D. Here β refers to the constant scaling factor.
+Based on the drived Senstivity, we have followed the following steps to initialize the Quantization Tables for J4D. Here β refers to the constant scaling factor.
 ```
 max_value = max(1/Y_sens)
 q_y = β / (Y_sens · max_value)
@@ -53,7 +53,7 @@ q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 
 
 ## Sensitivity Plots And Corresponding Initialization
-The sensitivity plots for 4 DNN models on ImageNet-1k, 3 DNN models on CUB-200-2011 and 2 DNN models on Pascal-VOC-2012 are shown as follows, alongside their corresponding initialization.
+The sensitivity plots for 4 DNN models on ImageNet-1k (claasification task), 3 DNN models on CUB-200-2011 (claasification task) and 2 DNN models on Pascal-VOC-2012 (segmentation task) are shown as follows, alongside their corresponding quantization table initialization.
 
 All those sentivitity values have been store under the correposing dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
 
