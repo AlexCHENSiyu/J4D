@@ -1,5 +1,5 @@
 # Learned JPEG Compression for DNN Vision (J4D)
-This zip file is for reproducing the experimental results in our paper [*Learned JPEG Compression for DNN Vision*] submitted at CVPR 2025.
+This zip file is for reproducing the experimental results in our paper [*Learned JPEG Compression for DNN Vision*] submitted at ICCV 2025.
 
 <p align="center">
 <img src="./Diagrams/workflow.png" width=80% height=80% 
@@ -86,6 +86,29 @@ All those sentivitity values have been store under the correposing dataset and m
     </figure>
     <figure style="margin: 6px;"></figure>
 </div>
+
+
+### Visual comparison of compressed images resulting from the default JPEG and J4D
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
+    <figure style="margin: 6px;">
+        <figcaption style="font-size: larger;">ImageNet (MobileNetV2)</figcaption>
+        <img src="./Diagrams/low_rate_1.png" width="100%" height="100%">
+    </figure>
+    <figure style="margin: 6px;">
+        <figcaption style="font-size: larger;">ImageNet (MobileNetV2)</figcaption>
+        <img src="./Diagrams/low_rate_2.png" width="100%" height="100%">
+    </figure>
+    <figure style="margin: 6px;">
+        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <img src="./Diagrams/seg_low_rate_1.png" width="100%" height="100%">
+    </figure>
+    <figure style="margin: 6px;">
+        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <img src="./Diagrams/seg_low_rate_2.png" width="100%" height="100%">
+    </figure>
+</div>
+
+
 
 ## Acknowledgements
 This repo is based on the code given in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet) for ImageNet.
