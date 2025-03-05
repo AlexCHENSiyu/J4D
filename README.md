@@ -1,4 +1,4 @@
-# Learned JPEG Compression for DNN Vision (J4D)
+# Learned JPEG Compression For DNN Vision (J4D)
 This zip file is for reproducing the experimental results in our paper [*Learned JPEG Compression for DNN Vision*] submitted at ICCV 2025.
 
 <p align="center">
@@ -11,7 +11,7 @@ class="center">
 The code is tested with Python 3.9, CUDA 11.7, and based on the `requirements.txt` or `requirements.yaml` files provided. The code also relies on the `rate_calc.so` and `HDQ.so` files for real rate calculation through run-length-encoding and Huffman coding during the testing stage using <i>Q<sub>p</sub></i> and <i>Q<sub>u</sub></i>, respectively.
 
 
-# Differentiable JPEG Codec and Rate Estimator
+# Differentiable JPEG Codec And Rate Estimator
 The code for implementing differentiable JPEG codec and rate estimator can be found in [this file](./helper/JPEG_layer.py). Note that in this file, to reduce the additional training complexity introduced by quantizer $\mathcal{Q}_d$, we constrain the support of every CPMF to be the Top-5 closest points in $\hat{\mathcal{A}}$ to the coefficient $C$ being quantized.
 
 
@@ -43,7 +43,7 @@ Both will save the rate-accuracy (R-A) results and optimized qtables after each 
 Follow the `--val_resize_size` used for each model in [PyTorch](https://github.com/pytorch/vision/tree/main/references/classification#resnet). For example, for ConvNeXt_tiny, the `--val_resize_size` is 236 while for Swin_T it is 232.
 
 
-## Sensitivity-Based Initialization of Quantization Tables
+## Sensitivity-Based Initialization Of Quantization Tables
 Based on the drived Senstivity, we have followed the following steps to initialize the Q-Tables for J4D. Here β refers to the constant scaling factor.
 ```
 max_value = max(1/Y_sens)
@@ -52,7 +52,7 @@ q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 ```
 
 
-## Sensitivity Plots and Corresponding Initialization
+## Sensitivity Plots And Corresponding Initialization
 The sensitivity plots for 4 DNN models on ImageNet-1k, 3 DNN models on CUB-200-2011 and 2 DNN models on Pascal-VOC-2012 are shown as follows, alongside their corresponding initialization.
 
 All those sentivitity values have been store under the correposing dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
