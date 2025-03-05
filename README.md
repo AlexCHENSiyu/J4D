@@ -52,7 +52,9 @@ q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 ```
 
 
-## The sensitivity plots for 4 DNN models on ImageNet-1k, 3 DNN models on CUB-200-2011 and 2 DNN models on Pascal-VOC-2012 are shown as follows, alongside their corresponding initialization
+## Sensitivity Plots and Corresponding Initialization
+The sensitivity plots for 4 DNN models on ImageNet-1k, 3 DNN models on CUB-200-2011 and 2 DNN models on Pascal-VOC-2012 are shown as follows, alongside their corresponding initialization.
+
 All those sentivitity values have been store under the correposing dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
@@ -104,7 +106,7 @@ All those sentivitity values have been store under the correposing dataset and m
 </div>
 
 
-# Visual Comparison of Compressed Images Resulting from Default JPEG and J4D
+# Visual Comparison Of Compressed Images Resulting From Default JPEG and J4D
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
         <figcaption style="font-size: 2.5em;">MobileNetV2 (ImageNet-1k)</figcaption>
