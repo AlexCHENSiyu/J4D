@@ -90,11 +90,11 @@ All those sentivitity values have been store under the correposing dataset and m
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <figcaption style="font-size: larger;">Pascal-VOC-2012 (DeepLabv3-MobileNet)</figcaption>
         <img src="./Diagrams/voc_mobilenet_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">DeepLabv3-MobileNet (Pascal VOC 2012)</figcaption>
+        <figcaption style="font-size: larger;">Pascal-VOC-2012 (DeepLabv3-MobileNet)</figcaption>
         <img src="./Diagrams/voc_resnet50_sensitivity.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;"></figure>
@@ -104,11 +104,11 @@ All those sentivitity values have been store under the correposing dataset and m
 ### Visual comparison of compressed images resulting from the default JPEG and J4D
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">ImageNet (MobileNetV2)</figcaption>
+        <figcaption style="font-size: larger;">MobileNetV2 (ImageNet)</figcaption>
         <img src="./Diagrams/low_rate_1.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
-        <figcaption style="font-size: larger;">ImageNet (MobileNetV2)</figcaption>
+        <figcaption style="font-size: larger;">MobileNetV2 (ImageNet)</figcaption>
         <img src="./Diagrams/low_rate_2.png" width="100%" height="100%">
     </figure>
     <figure style="margin: 6px;">
