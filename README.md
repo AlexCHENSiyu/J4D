@@ -44,7 +44,7 @@ Follow the `--val_resize_size` used for each model in [PyTorch](https://github.c
 
 
 ## Sensitivity-Based Initialization Of Quantization Tables
-Based on the drived senstivity value, we have followed the following steps to initialize the quantization tables for J4D. Here β refers to the constant scaling factor.
+Based on the derived sensitivity value, we have followed the following steps to initialize the quantization tables for J4D. Here β refers to the constant scaling factor.
 ```
 max_value = max(1/Y_sens)
 q_y = β / (Y_sens · max_value)
