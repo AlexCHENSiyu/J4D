@@ -53,7 +53,7 @@ q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 
 
 ## Sensitivity Plots And Corresponding Initialization
-The sensitivity plots for 4 DNN models on ImageNet-1k (claasification task), 3 DNN models on CUB-200-2011 (claasification task) and 2 DNN models on Pascal-VOC-2012 (segmentation task) are shown as follows, alongside their corresponding quantization table initialization.
+The sensitivity plots for 4 DNN models on ImageNet-1k (classification task), 3 DNN models on CUB-200-2011 (classification task) and 2 DNN models on Pascal-VOC-2012 (segmentation task) are shown as follows, alongside their corresponding quantization table initialization.
 
 All those sentivitity values have been store under the correposing dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
 
