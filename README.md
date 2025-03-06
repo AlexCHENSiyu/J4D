@@ -18,7 +18,7 @@ The code for implementing differentiable JPEG codec and rate estimator can be fo
 # Training J4D
 For ImageNet-1k training, please use [this bash file](./run_imagenet.sh).
 
-Or use this command for Quality Factor(QF)-based initilization training by setting the correct `data_path` and `model_name`: 
+Or use this command for Quality Factor(QF)-based initialization training by setting the correct `data_path` and `model_name`: 
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10427 --nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --QF_Inital \
                                     --dataset "imagenet" --model "model_name" --num_workers 64 \
@@ -28,7 +28,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10
                                     --Q_initial_QF 10 --weight_lum 0.1 --weight_chrom 0.1 
 ```
 
-Use this command for sensitivity-based initilization training: 
+Use this command for sensitivity-based initialization training: 
 ```
 CUDA_VISIBLE_DEVICES=0,1,2,3 python3.9 -m torch.distributed.run --master_port=10427 -nnodes=1 --nproc_per_node=4 train_imagenet.py --JPEG_enable --freeze_model --fixed_alpha --Sensitivity_Inital \
                                 --dataset "imagenet" --model "model_name" --num_workers 64 \
@@ -55,7 +55,7 @@ q_cbcr = 2β / ((Cb_sens + Cr_sens) · max_value)
 ## Sensitivity Plots And Corresponding Initialization
 The sensitivity plots for 4 DNN models on ImageNet-1k (classification task), 3 DNN models on CUB-200-2011 (classification task) and 2 DNN models on Pascal-VOC-2012 (semantic segmentation task) are shown as follows, alongside their corresponding quantization table initialization.
 
-All those sentivitity values have been store under the correposing dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
+All those sensitivity values have been stored under the corresponding dataset and model folder under [this path](./save), with name `Y.npy`, `Cb.npy` and `Cr.npy`.
 
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; justify-items: center;">
     <figure style="margin: 6px;">
